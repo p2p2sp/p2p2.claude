@@ -131,10 +131,10 @@
 #   unreviewed: T7       --unreviewed, the user or an arbiter ruling waived the review gate
 #   deferred: T7:src/a.ts   --defer, T7 owes that path the test that proves it
 #   closed: memory qa    --chore / --qa, that part of the close is done
-#   decision: T3: <text> --decide, how the owner settled a stalled task; one
+#   decision: T3: <text> --decide, the build's ruling on a stalled task; one
 #                        line per decision, appended after the keys above
 #
-# --decide records the owner's decision for one task that is neither done nor
+# --decide records the build's ruling on one task that is neither done nor
 # skipped. <text> is one non-empty line, stored verbatim (a ":" in it included);
 # the same task id and text recorded twice leaves one line.
 #
@@ -706,8 +706,8 @@ if [[ "${1:-}" == "--skip" ]]; then
   exit 0
 fi
 
-# --- the owner's decision on one task, recorded without a commit ---
-# How the user settled a stalled task: it reaches that task's coder and reviewer
+# --- the build's decision on one task, recorded without a commit ---
+# How the build settled a stalled task: it reaches that task's coder and reviewer
 # through the index, survives a resumed session and ends up in the archive. Like
 # --skip it has no commit of its own and waits in status.md for the next one.
 if [[ "${1:-}" == "--decide" ]]; then

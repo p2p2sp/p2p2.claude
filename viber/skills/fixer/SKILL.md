@@ -28,7 +28,7 @@ Three laws, in this order. None substitutes for another.
 2. Trace per Law 1 to the confirmed divergence.
 3. Write the reproduction test and see it RED (below).
 4. Write up the diagnosis (below) from the confirmed root cause.
-5. When more than one fix approach is defensible, settle the choice with the user in prose before handing off.
+5. When more than one fix approach is defensible, settle the choice with the user through one `AskUserQuestion` before handing off.
 6. Hand off (below).
 
 ## Resolving the report
@@ -75,4 +75,4 @@ The handoff payload - state it in context, in this order. No report file: the pa
 Invoke the `viber:planner` skill, restating every part of the diagnosis verbatim in that invocation. Stop there - do not implement, do not "just apply the one-liner first".
 
 ## Bypass authorization
-The reproduction test is unconditional. When reproduction is genuinely infeasible (hard race, rendering artifact, unreachable third-party state), stop and ask the user for explicit authorization to hand off without it, stating what blocks reproduction. Never decide this alone; "hard to test" is not infeasible.
+The reproduction test is unconditional. When reproduction is genuinely infeasible (hard race, rendering artifact, unreachable third-party state), stop and ask the user through one `AskUserQuestion` for explicit authorization to hand off without it, stating what blocks reproduction: `Authorize` or `Keep trying`. `Keep trying` -> return to step 3. Never decide this alone; "hard to test" is not infeasible.

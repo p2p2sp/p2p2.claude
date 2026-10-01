@@ -346,6 +346,17 @@ test("a rulings.md still uncommitted when the run is archived lands in the archi
   });
 });
 
+test("a summary.md written uncommitted just before the call lands in the archive commit, leaving the tree clean", async () => {
+  await withSeededRepo(async (repo, runDir) => {
+    // what closeout does just before calling: the build summary, beside spec.md
+    fs.writeFileSync(path.join(repo.dir, runDir, "summary.md"), "3/3 tasks committed\nDrift: none\n");
+
+    assert.equal((await run(repo.dir, [runDir], repo.env)).status, 0);
+    assert.equal((await repo.git("show", `HEAD:docs/specs/${KEY}/summary.md`)).stdout, "3/3 tasks committed\nDrift: none\n");
+    assert.equal((await repo.git("status", "--porcelain")).stdout.trim(), "");
+  });
+});
+
 test("the move is one commit, and a spec.md edited before the call lands as a rename plus a modification", async () => {
   await withSeededRepo(async (repo, runDir) => {
     // what closeout does just before calling: the drift, marked in place

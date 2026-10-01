@@ -26,7 +26,7 @@ Cheap models for breadth, frontier models for depth. Wave plans and intermediate
 
 Pick the job matching the user's goal, then read `${CLAUDE_SKILL_DIR}/references/jobs.md` for its exact Impact-signal x Opportunity-signal pair: Code (Tech debt, Dead code), Reliability (Bugs, Coverage, Consistency), Cost (Spend, Performance), Growth (Conversion, SEO).
 
-Default when the user just says "find bugs / review / audit": Reliability/Bugs plus Code/Tech debt. If the goal is unclear, ask once - never silently assume a non-code job.
+Default when the user just says "find bugs / review / audit": Reliability/Bugs plus Code/Tech debt. If the goal is unclear, ask once through one `AskUserQuestion` - never silently assume a non-code job.
 
 ## Arguments
 
@@ -41,7 +41,7 @@ The job never comes from `$ARGUMENTS`; it is always confirmed in Phase 0. Two to
 
 ## Phase 0 - Frame
 
-1. Read the `$ARGUMENTS` tokens, then confirm the target repo path and the job: ask for both when no token was given, ask for the job alone when only the repo was given.
+1. Read the `$ARGUMENTS` tokens, then confirm the target repo path and the job: ask for both when no token was given, ask for the job alone when only the repo was given. Ask the job through one `AskUserQuestion`; the repo path stays an open question in prose.
 2. Resolve the target repo path to an absolute root (`cd "<target-repo-path>" && pwd`). If it already equals the current working directory this is a no-op - never prefix it again downstream.
 3. Validate the area directory, when token 2 was given. An absolute path is accepted only when it lies under the resolved root, and is then rewritten to its root-relative form; a relative path is read against the root. A value that does not exist as a directory under the root, that lies outside it, or that carries a `..` segment STOPS the run here: tell the user `code-auditor: area directory not found under <root>: <value>` and do nothing else. The validated root-relative value is this run's scope, carried into `job.md` and into both Phase 1 commands; with no token 2 the run has no scope and sweeps the whole repo.
 4. Run `sh "${CLAUDE_SKILL_DIR}/scripts/check_node.sh"`. `NODE_OK <cmd>` -> use `<cmd>` wherever this skill writes `node`. `NODE_MISSING` -> STOP here: the Phase 3 gates need Node.js >= 22.6, and without them the sweep, the scout fan-out and the profiler would be paid for and then discarded. Tell the user, and do not start Phase 1. Nothing that spends tokens or runs a script happens before this step - steps 1 to 3 are a conversation and a path check, nothing more.

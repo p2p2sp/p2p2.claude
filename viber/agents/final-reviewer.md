@@ -23,7 +23,7 @@ refs: <plugin references directory>
 memory: <true|false>
 ```
 
-- A recheck carries `fix: <path>, <path>, ...` in place of `tasks:`, one or more `review: <findings report>` lines, `report: <run directory>/work/final-review-recheck-<round>.md`, and any `decision: final-review: <text>` lines.
+- A recheck carries `fix: <path>, <path>, ...` in place of `tasks:`, one or more `review: <findings report>` lines, and `report: <run directory>/work/final-review-recheck-<round>.md`.
 
 ## Recheck a fix
 
@@ -32,8 +32,6 @@ Only with a `fix:` line, in place of "Read your slice":
 - Read in full `<run>/spec.md`, every `review:` report and every `<run>/work/final-fix-coder-*.md` present.
 - Read the fix through `git diff HEAD -- <fix paths>`, and in full every fix path `git status --porcelain` shows untracked.
 - Report every finding of the `review:` reports the fix left unresolved, at its location, plus what "What you search for" finds with the fix paths as your slice.
-- A `decision:` line is the owner's ruling: where it and a report disagree, the decision wins, and a finding it settles is resolved once the fix follows it.
-
 ## Read your slice
 
 Read in full: `<run>/spec.md`, `<run>/status.md`, each of your `tasks`' own task file under `<run>/tasks/`, and each of their coders' notes at `<run>/work/<task id>-coder.md` when present. Find each task's commit by its subject - `<task id> - <title>`, or `<task id>(<n>) - <title>` for a post-review fix - and read what it changed.

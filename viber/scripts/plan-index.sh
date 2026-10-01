@@ -63,7 +63,7 @@
 # not start the build needs. A "deferred" entry is "<task-id>:<path>" - code an
 # earlier task left without its own test because the criterion that proves it
 # belongs to that task, which is how a resumed session still knows who owes the
-# proof. A "decision:" line is the owner settling a stalled task
+# proof. A "decision:" line is the build's ruling on a stalled task
 # (commit-task.sh --decide), "decision: <task-id>: <text>", any number of them;
 # a status.md with none prints exactly what it printed before the line existed.
 # "state" is "done", "skipped" or "todo"; a "dirty"

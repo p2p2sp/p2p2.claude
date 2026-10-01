@@ -34,8 +34,9 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   `VARIANT:` lines are one loop: renaming either side breaks it.
 - `triage` sits before the chain: it assesses one issue, names `/viber:fixer #N`, `/viber:intent #N`
   or a one-line summary for pasted text, and invokes nothing; with `github.issues` off it never
-  fetches or publishes and drops the `#<N>` form. Its `disallowed-tools:` lifts at the prose
-  publish answer; the body alone then keeps `Skill` unused.
+  fetches or publishes and drops the `#<N>` form. Its publish answer is an `AskUserQuestion`
+  tool result, not a user message, so its `disallowed-tools:` removal holds through the publish
+  call, made in the same turn.
 - `create-issue`, `create-pr` (its `pr-create.sh` is the only push viber makes, on the user's yes)
   and `handoff` stand outside the chain like `commit`. `handoff`, user-only and inline, writes one
   file, never overwriting (`EXISTS=true` stops it, not a question: prose drops the pre-approval).
@@ -56,7 +57,8 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   the `(this plan)` one. `implementor` profiles tier from TDD, file count, `feeds` (opus from 3
   consumers) and dependents, review from `verify:` and the tier (never from a field the index does
   not print) or a coder `EXTRA:` line; it reads `next:` only to close its summary on
-  `/viber:intent <archive or run dir>/roadmap.md`: the two change together.
+  `/viber:intent <archive or run dir>/roadmap.md`, the archive form inside `summary.md` when the
+  run is archived: the two change together.
 - `excl` (plan `Exclusive: true`): `implementor` runs the task alone, once nothing else is ready
   or in flight, until committed; outside `--split` `plan-index.sh` rejects a task depending on it.
 - Every agent but the five `code-auditor` ones (`viber/agents/CLAUDE.code-auditor.md`) returns
@@ -74,16 +76,17 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 - task-coder, task-reviewer, test-runner, e2e-writer and final-reviewer share a "Stop what you started" section;
   `implementor`'s and `e2e`'s `SendMessage` on a "stopped with background work" notice, or a
   reply with no `VERDICT:` line, is its other half. Every coder re-run (review failure, `WAIT:`,
-  `retry`, `decide`) is a fresh dispatch from the tree and task file, never a continuation.
+  `retry`, an arbiter ruling) is a fresh dispatch from the tree and task file, never a continuation.
 - A coder's `WAIT:` (a file outside `Files` held by another task's uncommitted change) holds its
   task until every in-flight task returns, then a fresh coder at no attempt cost; nothing else in
   flight, or a second wait on the same path, counts as an ordinary failure.
 - A build runs unattended: a task gets 5 attempts a session (coder failure, review failure or
   refused commit; each one tier up), then `arbiter` rules from a closed list and the build goes on.
-  It asks only on `VERDICT: DENIED`, a coder whose every `DECIDE:` option is owner-marked
-  (`CLAUDE.owner-decisions.md`), each index `dirty:` line (continue / start over / drop),
-  `orphan:` (skip / commit now, via `commit-task.sh --outside`), `open:` runs at landing,
-  `plan-path.sh` exit 3, a task commit's exit 4 and a refused `--skip`/`--decide` it did not rule.
+  The arbiter also rules every coder `DECIDE:` on attempts 2 to 4, attempt 5 being the cap
+  (`CLAUDE.rulings.md`). The build asks only on `VERDICT: DENIED`, each index `dirty:` line
+  (continue / start over / drop), `orphan:` (commit them in a commit of their own via
+  `commit-task.sh --outside`, or leave them uncommitted), `open:` runs at landing, `plan-path.sh`
+  exit 3, a task commit's exit 4 and a refused `--skip` the arbiter did not rule.
 - Coders and reviewers keep git read-only (never `stash`, `checkout`, `restore`, `clean`):
   parallel tasks share one working tree. A coder's two git writes are `git rm -r -q` (removal)
   and `git update-index --chmod=+x` (exec bit): `commit-task.sh` commits only its named paths,
@@ -122,17 +125,20 @@ copies (never moves) the plan-mode file, a round landing into the draft its `int
 - `status.md` - `commit-task.sh` is its only writer (`plan-index.sh` creates it empty).
 - `rulings.md` - the build's rulings, `commit-task.sh --rule` its only writer, created by the first
   ruling; it rides in the archive.
+- `summary.md` - the build's final summary plus a `Drift:` line, `closeout` its only writer, just
+  before the move; it rides in the archive.
 
 `archive-run.sh` moves it to `docs/<specifications>/<key>/` (`docs/specs/` by default), dropping
 only the scaffolding it enumerates, and refuses a run with a task in neither `done` nor
-`skipped`. `closeout` edits `spec.md` first: the drift edit and the move are one commit.
+`skipped`. `closeout` edits `spec.md` and writes `summary.md` first: the drift edit, the summary
+and the move are one commit.
 
 ## Sections
 
 - Read `CLAUDE.plan-format.md` before changing the plan template, `plan-rules.md`, a plan
   parser or how `--split` cuts a task file.
 - Read `CLAUDE.run-branch.md` before touching `branching:`, `run-branch.sh`, `plan-path.sh --branch`.
-- Read `CLAUDE.owner-decisions.md` before touching the owner decision channel.
+- Read `CLAUDE.rulings.md` before touching rulings or the arbiter.
 - Read `CLAUDE.tool-dependencies.md` before touching a `gh`, Playwright or `node` call.
 - Read `CLAUDE.switches.md` before adding or parsing a `viber.yml` key or wiring a switch into
   planning or `intent`.

@@ -1,4 +1,4 @@
-Settle the run branch before reading any code. Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --start "<issue URL>"` as one literal Bash line when the run is tied to an issue, else `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --start` alone. Ask every question below in prose, one per message, never through `AskUserQuestion`.
+Settle the run branch before reading any code. Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --start "<issue URL>"` as one literal Bash line when the run is tied to an issue, else `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --start` alone. Ask every question below through one `AskUserQuestion`, at most four options, any further entry by free text.
 
 - `mode: off` -> say nothing about branches; hand off no branch line.
 - Any `error:` line -> show every one, ask nothing here; hand off no branch line.

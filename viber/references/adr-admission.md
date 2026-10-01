@@ -1,10 +1,10 @@
 # ADR admission
 
-The test a decision passes to become an architecture decision record under `docs/adr/`. Order: exclusions, then gates, then routing. A rule with no evidence is not met: each rule you rely on cites the plan text, the file or the line that proves it. Default: no record.
+The test a decision passes to become an architecture decision record under `docs/adr/`. Order: exclusions, then gates. A rule with no evidence is not met: each rule you rely on cites the plan text, the file or the line that proves it. Default: no record.
 
 One record holds one decision, and only its part passing the test.
 
-## Exclusions - any one true: not a record, go to routing
+## Exclusions - any one true: not a record
 
 - W1 - Behaviour-only difference: the rejected options differ only in what a user or the business sees, or in a business, security or privacy rule - never in mechanism, data structure or contract.
 - W2 - Procedure, configuration, convention or scope: a configuration value, an operational procedure, a naming convention, test organisation without a tool choice, a scope or phase decision. No exception.
@@ -20,10 +20,3 @@ One record holds one decision, and only its part passing the test.
   - a change to a contract consumed outside the component: an API, a token claim, a permission scope, a package format, a registration at an external party;
   - rebuilding a security boundary (tenant isolation, origin, trust in a third party) whose rationale spans several modules.
 - B4 - Significance: surprising without context (a competent engineer would ask "why not the standard?"), or 2 or more of: high business value or risk, a key stakeholder concern, a new demanding runtime quality, an external dependency problem, cross-cutting impact, the first decision of its kind (never enough alone), an area that caused trouble before.
-
-## Routing - everything that is not a record
-
-- comment - the rationale for one non-obvious spot of code
-- rule - a convention to enforce in code, for `.claude/rules/`
-- ops - operational knowledge: backup, keys, deployment
-- nothing - none of the above

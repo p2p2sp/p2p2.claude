@@ -6,9 +6,11 @@ install, `setup`'s merge tool or `code-auditor`'s Node check.
 
 - `triage`, `intent`, `fixer`, `prototype`: `gh`, only through the shared issue scripts in
   `scripts/`; without it each reports the script's `ERROR` line and pasted text still works,
-  unpublished. A create or comment exit 1 leaves the landing unknown and is never retried. Each
-  such call, plus `planner`'s ADR-task step, runs after a prose question ends the turn, so all
-  four rely on the bare `Bash` allow `/viber:setup` installs.
+  unpublished. A create or comment exit 1 leaves the landing unknown and is never retried.
+  `allowed-tools` pre-approves one turn only, so a call made in a later user turn relies on the
+  bare `Bash` allow `/viber:setup` installs: `intent`'s (after its interview), `prototype`'s
+  (after its UI rounds), `fixer`'s issue save (after `issue-save.md` asks a required field) and
+  `create-issue`'s (after it asks what the issue is about or `issue-save.md` asks a required field).
 - `create-issue` and `create-pr`: `gh` as well (`create-pr` also `git push`, in `pr-create.sh`);
   the `STATUS=skip` / `STATUS=stop` reason is stated in one line and nothing is created.
 - A multi-line issue or pull request body or comment travels only as a file under

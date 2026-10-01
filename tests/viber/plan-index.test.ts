@@ -415,7 +415,7 @@ test("a run whose status file carries none of those entries reports none of them
   });
 });
 
-test("every owner decision line of status.md is printed in file order between the closed line and the tasks line, a colon in its text intact", async () => {
+test("every decision line of status.md is printed in file order between the closed line and the tasks line, a colon in its text intact", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
     write(

@@ -56,9 +56,9 @@ clears the context).
   `DENIED` with `REASON: no verdict returned` - `implementor`, `planner`, `e2e`, `memory`, `rules`.
 - A `VERDICT: DENIED` question names the refused call from its `REASON:` line and offers
   `permission added and retry`.
-- A choice followed by a pre-approved script call is an `AskUserQuestion` (`setup` merge/reset,
-  `memory`/`rules` reset, `e2e` install): a prose question ends the turn and the pre-approval.
-  `intent`'s interview and `prototype` ask in prose on purpose; `triage` disallows the tool.
+- Every question offering options is an `AskUserQuestion` (`setup` merge/reset, `memory`/`rules`
+  reset, `e2e` install among them): a prose question ends the turn and the pre-approval. Only
+  `intent`'s interview asks in prose on purpose; an open question with no options stays prose.
 
 ## Sections
 

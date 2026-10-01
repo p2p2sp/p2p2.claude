@@ -17,8 +17,8 @@ Optional: `node`, for `/viber:setup`'s permissions merge, Playwright, for `/vibe
 when its tool is missing. `/viber:code-auditor` also needs `node` 22.6 or newer and stops without it.
 
 `/viber:setup` also installs the bare `Bash` allow in `.claude/settings.json`, which the script
-calls that `/viber:triage`, `/viber:intent`, `/viber:prototype` and the ADR tasks make after a
-prose question rely on; without it each of those calls asks for permission once.
+calls that `/viber:intent`, `/viber:prototype`, `/viber:fixer` and `/viber:create-issue` make
+after a later reply of yours in the conversation rely on; without it each of those calls asks for permission once.
 
 ## Quick start
 
@@ -76,9 +76,10 @@ The build runs to its end without you at the keyboard. A task gets up to 5 attem
 tier up. Where it would otherwise stop and ask - a task past its 5 attempts, a red baseline or
 final test run, a failed recheck of the final review, a refused commit - an arbiter agent picks one way
 forward from a closed list, and the build writes down every such ruling, with its reason and what
-it costs if wrong, in `rulings.md` in the run directory. The final summary lists them. The build still stops to ask you at a refused tool call, when it finds
-another open run or changed files no task claims, when a task's coder hands the decision to the
-owner, and when nothing was committed for a task.
+it costs if wrong, in `rulings.md` in the run directory. The final summary lists them; when the run is archived, the
+screen shows only a two-line result and the full summary sits in `summary.md` in the archive. The
+build still stops to ask you at a refused tool call, when it finds another open run or changed
+files no task claims, and when nothing was committed for a task.
 
 ![How viber works](skills/setup/assets/viber-flow-en.svg)
 
@@ -105,7 +106,7 @@ says it needs that run.
 | `build.memory` | on | The build closes by updating your project's `CLAUDE.md` with what it learned. |
 | `build.rules` | on | The build closes by recording a convention it confirmed in `.claude/rules/`. |
 | `build.qa` | **off** | The build closes by writing test scenarios for what it delivered, which `/viber:e2e` can then automate. |
-| `build.cleanup` | on | The build ends by noting anything it delivered that the specification does not promise, then archiving the run and dropping the working files. |
+| `build.cleanup` | on | The build ends by noting anything it delivered that the specification does not promise, then archiving the run with its build summary and dropping the working files. |
 | `github.issues` | **off** | `/viber:intent`, `/viber:fixer` and `/viber:prototype` can start from a GitHub issue's number or link, and an interview that did not can save its conclusions as a new one; `/viber:prototype` can post its mockup to the issue it started from; `/viber:triage` can fetch and publish to a GitHub issue instead of pasted text alone. |
 
 To change a few settings for yourself only, create an optional `.claude/viber.local.yml` in the
@@ -177,7 +178,7 @@ edited once it lands. With `build.qa` on, the build's test scenarios land there
 too. `rulings.md` appears beside them only when the build ruled on something.
 
 With `build.cleanup` on, the build ends by moving what is worth keeping - the specification and the test
-scenarios, plus `rulings.md` - to `docs/specs/<date>_<slug>/`, and dropping the plan, the progress file and the
+scenarios, plus `rulings.md` and the build summary `summary.md` - to `docs/specs/<date>_<slug>/`, and dropping the plan, the progress file and the
 working notes. They are all in git, so nothing is lost; the archive is simply the half you would
 want to read a year later. Generated
 Playwright tests go into the e2e directory your own project already uses - `/viber:e2e` asks if

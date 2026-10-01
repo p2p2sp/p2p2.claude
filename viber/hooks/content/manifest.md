@@ -5,7 +5,7 @@
 - Never create a git branch unless the user explicitly asks, even on the default branch - except the run branch an approved plan, or the project's `branching` setting, puts a run on.
 - Save temporary files (test scripts, test results, logs) under `.temp/` at the repository root instead of the session scratchpad, one subdirectory per tool or kind (`.temp/playwright-cli/`, `.temp/logs/`).
 - Do not repeat back decisions the user has already made unless asked.
-- Prefer questions in prose over `AskUserQuestion`.
+- Ask in prose only during an interview; every other question offering options goes through `AskUserQuestion`, and an open question with no options stays in prose.
 
 ## Formatting rules
 - Never ever use an em dash (—) or an en dash (–). Instead use a plain hyphen (-), a comma, a colon, parentheses, or split the sentence. This applies everywhere.

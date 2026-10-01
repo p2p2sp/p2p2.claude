@@ -1250,18 +1250,18 @@ wznowić w nowej sesji albo na innym komputerze.</p>
     yourself, name the plan: <q>build docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</q>.</span><span lang="pl">Gdy
     inny przebieg też ma nierozliczone zadania, pyta, który wznowić. Żeby wybrać samemu, podaj plan:
     <q>zbuduj docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</q>.</span></li>
-    <li><span lang="en">Changed files that no task claims get one question: skip them, or commit them now in
-    a commit of their own.</span><span lang="pl">Zmienione pliki, do których nie przyznaje się żadne zadanie,
-    dostają jedno pytanie: pominąć je czy zacommitować od razu we własnym commicie.</span></li>
+    <li><span lang="en">Changed files that no task claims get one question: commit them in a commit of
+    their own, or leave them uncommitted.</span><span lang="pl">Zmienione pliki, do których nie przyznaje się żadne zadanie,
+    dostają jedno pytanie: zacommitować je we własnym commicie czy zostawić niezacommitowane.</span></li>
     <li><span lang="en">A draft is refused. <code>/viber:intent</code> pointed at the draft continues
     it.</span><span lang="pl">Szkicu build nie zbuduje. <code>/viber:intent</code> wskazujący szkic prowadzi go
     dalej.</span></li>
     <li><span lang="en">A task that keeps failing gets 5 attempts, then the arbiter rules to accept or skip it
-    and writes the ruling to <code>rulings.md</code>. Only a coder that leaves the decision to you, or a
-    refused tool call, ends on a question.</span><span lang="pl">Zadanie, które wciąż się nie udaje, dostaje 5 prób,
+    and writes the ruling to <code>rulings.md</code>. A stalled task never ends on a question: only a
+    refused tool call, or a task commit that committed nothing, does.</span><span lang="pl">Zadanie, które wciąż się nie udaje, dostaje 5 prób,
     a potem arbiter orzeka, czy je zaakceptować, czy pominąć, i zapisuje orzeczenie w <code>rulings.md</code>.
-    Pytaniem kończy się tylko wykonawca, który zostawia decyzję tobie, albo odmowa wywołania
-    narzędzia.</span></li>
+    Utknięte zadanie nigdy nie kończy się pytaniem: kończy się nim tylko odmowa wywołania
+    narzędzia albo commit zadania, który niczego nie zacommitował.</span></li>
   </ul>
 </details>
 </section>
@@ -1530,13 +1530,13 @@ na innym komputerze.</p>
 <p lang="en">With <a href="#key-build-cleanup"><code>build.cleanup</code></a> on, the build ends by moving the run to
 <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code> in one commit. The archive keeps the specification and the QA
 documents and drops <code>plan.md</code>, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>, which
-git history still holds; <code>roadmap.md</code> and <code>rulings.md</code> stay in the archive with them. A run with a task neither done
+git history still holds; <code>roadmap.md</code>, <code>rulings.md</code> and the build summary <code>summary.md</code> stay in the archive with them. A run with a task neither done
 nor skipped is never archived.
 <a href="#key-directories"><code>directories</code></a> renames both directories.</p>
 <p lang="pl">Przy włączonym <a href="#key-build-cleanup"><code>build.cleanup</code></a> build kończy się przeniesieniem
 przebiegu do <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code> w jednym commicie. Archiwum zachowuje
 specyfikację i dokumenty QA, a usuwa <code>plan.md</code>, <code>status.md</code>, <code>tasks/</code>
-i <code>work/</code>, które nadal są w historii gita; <code>roadmap.md</code> i <code>rulings.md</code> zostają w archiwum razem z nimi.
+i <code>work/</code>, które nadal są w historii gita; <code>roadmap.md</code>, <code>rulings.md</code> i podsumowanie buildu <code>summary.md</code> zostają w archiwum razem z nimi.
 Przebieg z zadaniem ani ukończonym, ani pominiętym nigdy nie trafia do archiwum. Nazwy obu katalogów zmienisz kluczem
 <a href="#key-directories"><code>directories</code></a>.</p>
 
@@ -1629,17 +1629,22 @@ uruchamia te części zamknięcia, które włączają twoje przełączniki:</p>
   <a href="#agent-closeout"><code>closeout</code></a> odnotowuje w specyfikacji to, co build dostarczył ponad
   nią, a potem archiwizuje przebieg. Przerwany build pomija tę część.</span></li>
 </ul>
-<p lang="en">The build ends on a short summary: the tasks committed, the review rounds spent, the test verdict,
-the time it took, what memory, rules and QA recorded, the archive path, and anything left for you, such as an
-unreviewed task or changed files no task claimed.</p>
-<p lang="pl">Build kończy się krótkim podsumowaniem: zacommitowane zadania, zużyte rundy recenzji, wynik testów,
-czas trwania, to, co zapisały pamięć, reguły i QA, ścieżka archiwum oraz wszystko, co zostaje dla ciebie, na
-przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało się żadne zadanie.</p>
-<p lang="en">With <a href="#key-build-final-review"><code>build.final-review</code></a> on, it lists each finding
+<p lang="en">The build composes a short summary: the tasks committed, the review rounds spent, the test verdict,
+the time it took, what memory, rules and QA recorded, the archive path when the run is archived, and anything left for you, such as an
+unreviewed task or changed files no task claimed. When the run is archived, the screen shows only two lines (the
+tasks committed, the test verdict and the time, then the path of <code>summary.md</code>) and the full summary sits
+in <code>summary.md</code> in the archive. When nothing is archived, the full summary prints on screen.</p>
+<p lang="pl">Build składa krótkie podsumowanie: zacommitowane zadania, zużyte rundy recenzji, wynik testów,
+czas trwania, to, co zapisały pamięć, reguły i QA, ścieżka archiwum, gdy przebieg trafia do archiwum, oraz wszystko, co zostaje dla ciebie, na
+przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało się żadne zadanie. Gdy przebieg trafia
+do archiwum, ekran pokazuje tylko dwie linie (zacommitowane zadania, wynik testów i czas, potem ścieżkę
+<code>summary.md</code>), a pełne podsumowanie leży w <code>summary.md</code> w archiwum. Gdy nic nie trafia do
+archiwum, pełne podsumowanie pojawia się na ekranie.</p>
+<p lang="en">With <a href="#key-build-final-review"><code>build.final-review</code></a> on, the summary lists each finding
 of the final review with what was wrong and what the fix changed, followed by any findings left for you, the
 owner. After it comes the list of the build's rulings, each with its reason and its cost if wrong, the same lines
 as in <code>rulings.md</code>.</p>
-<p lang="pl">Gdy <a href="#key-build-final-review"><code>build.final-review</code></a> jest włączony, wymienia
+<p lang="pl">Gdy <a href="#key-build-final-review"><code>build.final-review</code></a> jest włączony, podsumowanie wymienia
 każdą uwagę recenzji końcowej wraz z tym, co było nie tak i co zmieniła poprawka, a po nich uwagi zostawione dla
 ciebie, właściciela. Po nim idzie lista rozstrzygnięć buildu, każde z uzasadnieniem i kosztem pomyłki, te same
 linie co w <code>rulings.md</code>.</p>
@@ -1718,12 +1723,12 @@ linie co w <code>rulings.md</code>.</p>
   <p lang="en">After the fifth failed attempt, the arbiter rules to skip the task or, after a failed review, to
   accept it. Skipping a task also skips every task that depends on it and leaves its half-finished files
   uncommitted; accepting commits it marked unreviewed. Every ruling goes to <code>rulings.md</code> with its
-  reason and its cost if wrong. You are asked only when the coder marks a way out as yours to decide.</p>
+  reason and its cost if wrong. A stalled task never ends on a question.</p>
   <p lang="pl">Po piątej nieudanej próbie arbiter orzeka pominięcie zadania albo, po odrzuconej
   recenzji, jego zaakceptowanie. Pominięcie zadania pomija też każde zadanie od niego zależne, a jego niedokończone
   pliki zostają niezacommitowane; zaakceptowanie commituje je z oznaczeniem, że nie przeszło recenzji. Każde
-  orzeczenie trafia do <code>rulings.md</code> z uzasadnieniem i kosztem pomyłki. Pytanie dostajesz tylko wtedy,
-  gdy wykonawca oznaczy wyjście jako zostawione tobie.</p>
+  orzeczenie trafia do <code>rulings.md</code> z uzasadnieniem i kosztem pomyłki. Utknięte zadanie
+  nigdy nie kończy się pytaniem.</p>
 </details>
 <details id="ts-denied">
   <summary><span lang="en">A question says an agent's tool call was refused. What now?</span><span lang="pl">Pytanie mówi, że agentowi odmówiono wywołania narzędzia. Co teraz?</span></summary>
@@ -1770,12 +1775,12 @@ linie co w <code>rulings.md</code>.</p>
 </details>
 <details id="ts-plan-gone">
   <summary><span lang="en">Where did <code>plan.md</code> and the task files go?</span><span lang="pl">Gdzie się podziały <code>plan.md</code> i pliki zadań?</span></summary>
-  <p lang="en">With <code>build.cleanup</code> on, the <a href="#term-archive">archive</a> keeps the specification and
-  the QA documents and drops the plan, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>. Git
+  <p lang="en">With <code>build.cleanup</code> on, the <a href="#term-archive">archive</a> keeps the specification, the
+  QA documents, <code>roadmap.md</code>, <code>rulings.md</code> and <code>summary.md</code> and drops the plan, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>. Git
   still has them: <code>git log -- docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code> lists the commits that
   touched the plan.</p>
-  <p lang="pl">Przy włączonym <code>build.cleanup</code> <a href="#term-archive">archiwum</a> zachowuje specyfikację
-  i dokumenty QA, a usuwa plan, <code>status.md</code>, <code>tasks/</code> i <code>work/</code>. Git nadal je
+  <p lang="pl">Przy włączonym <code>build.cleanup</code> <a href="#term-archive">archiwum</a> zachowuje specyfikację,
+  dokumenty QA, <code>roadmap.md</code>, <code>rulings.md</code> i <code>summary.md</code>, a usuwa plan, <code>status.md</code>, <code>tasks/</code> i <code>work/</code>. Git nadal je
   ma: <code>git log -- docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code> wypisuje commity, które zmieniały
   plan.</p>
 </details>
@@ -1896,9 +1901,11 @@ każdą ustawioną przez ciebie wartość.</p>
   <div id="term-archive">
     <dt><span lang="en">archive</span><span lang="pl">archiwum</span></dt>
     <dd><span lang="en">Where a finished run goes with <code>build.cleanup</code> on, <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code>
-    by default. Only its specification and QA documents stay there.</span><span lang="pl">Miejsce, do którego
+    by default. Only its specification, QA documents, <code>roadmap.md</code>, <code>rulings.md</code> and
+    <code>summary.md</code> stay there.</span><span lang="pl">Miejsce, do którego
     przy włączonym <code>build.cleanup</code> trafia zakończony przebieg, domyślnie
-    <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code>. Zostają w nim tylko specyfikacja i dokumenty QA.</span></dd>
+    <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code>. Zostają w nim tylko specyfikacja, dokumenty QA,
+    <code>roadmap.md</code>, <code>rulings.md</code> i <code>summary.md</code>.</span></dd>
   </div>
   <div id="term-build">
     <dt><span lang="en">build</span><span lang="pl">build</span></dt>
@@ -2336,13 +2343,13 @@ z nich mówi, jak nim sterować.</p>
       <dd><span lang="en">After you approve a plan, ask Claude to build it. To resume a build that stopped, ask
       Claude to continue the build: it reopens the run most recently worked on. It refuses a draft. When a task
       stalls, the <a href="#agent-arbiter"><code>arbiter</code></a> rules after the task's 5 attempts, and the
-      build asks you only about a refused tool call, a coder that leaves the decision to you, another open run
-      or files no task claims.</span><span lang="pl">Po
+      build asks you only about a refused tool call, another open run, files no task claims or a task commit that
+      committed nothing.</span><span lang="pl">Po
       zatwierdzeniu planu poproś Claude o jego zbudowanie. Przerwany build wznowisz, prosząc Claude
       o kontynuację buildu: otworzy przebieg, nad którym pracowano ostatnio. Szkicu nie zbuduje. Gdy zadanie
       utknie, po jego 5 próbach rozstrzyga <a href="#agent-arbiter"><code>arbiter</code></a>, a build pyta cię
-      tylko o odmowę wywołania narzędzia, wykonawcę zostawiającego decyzję tobie, inny otwarty przebieg albo pliki,
-      do których nie przyznaje się żadne zadanie.</span></dd>
+      tylko o odmowę wywołania narzędzia, inny otwarty przebieg, pliki, do których nie przyznaje się żadne zadanie,
+      albo commit zadania, który niczego nie zacommitował.</span></dd>
     </div>
     <div>
       <dt><span lang="en">Arguments</span><span lang="pl">Argumenty</span></dt>
@@ -2368,12 +2375,12 @@ z nich mówi, jak nim sterować.</p>
       specification, one file per task, <code>status.md</code> and the <code>work/</code> notes, plus
       <code>rulings.md</code> when the build ruled on anything) and one commit per
       task. With <code>build.cleanup</code> on, the run ends archived in <code>docs/specs/</code>, <code>rulings.md</code>
-      included.</span><span lang="pl">Katalog
+      included, with the build summary in <code>summary.md</code>.</span><span lang="pl">Katalog
       przebiegu <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code> (plan, specyfikacja, plik każdego zadania,
       <code>status.md</code> i notatki w <code>work/</code>, a gdy build coś rozstrzygał, także
       <code>rulings.md</code>) oraz jeden commit na zadanie. Przy włączonym
       <code>build.cleanup</code> przebieg trafia na koniec do archiwum w <code>docs/specs/</code>, razem z
-      <code>rulings.md</code>.</span></dd>
+      <code>rulings.md</code> i podsumowaniem buildu w <code>summary.md</code>.</span></dd>
     </div>
   </dl>
 </article>
@@ -2800,9 +2807,8 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   on.</span><span lang="pl">robi tę samą recenzję planu napisanego w zwykłym trybie planowania, gdy
   <a href="#key-planning-plain-plan-review"><code>planning.plain-plan-review</code></a> jest włączony.</span></li>
   <li id="agent-adr-screener"><code>adr-screener</code> <span lang="en">screens the decisions of a plan against a
-  strict admission test and names the architecture decision records worth writing, and where everything else
-  belongs.</span><span lang="pl">sprawdza decyzje planu względem ścisłego testu przyjęcia i wskazuje rekordy
-  decyzji architektonicznych warte zapisania oraz miejsce dla całej reszty.</span></li>
+  strict admission test and names the architecture decision records worth writing.</span><span lang="pl">sprawdza decyzje planu względem ścisłego testu przyjęcia i wskazuje rekordy
+  decyzji architektonicznych warte zapisania.</span></li>
 </ul>
 
 <h4><span lang="en">Build</span><span lang="pl">Build</span></h4>
@@ -2853,9 +2859,9 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   i <code>qa.e2e.md</code> dla <a href="#skill-e2e"><code>/viber:e2e</code></a>, gdy
   <a href="#key-build-qa"><code>build.qa</code></a> jest włączony.</span></li>
   <li id="agent-closeout"><code>closeout</code> <span lang="en">notes on the specification what the build
-  delivered beyond it, then archives the run, when <a href="#key-build-cleanup"><code>build.cleanup</code></a> is
-  on.</span><span lang="pl">odnotowuje w specyfikacji to, co build dostarczył ponad nią, a potem archiwizuje
-  przebieg, gdy <a href="#key-build-cleanup"><code>build.cleanup</code></a> jest włączony.</span></li>
+  delivered beyond it, writes the build summary to <code>summary.md</code>, then archives the run, when <a href="#key-build-cleanup"><code>build.cleanup</code></a> is
+  on.</span><span lang="pl">odnotowuje w specyfikacji to, co build dostarczył ponad nią, zapisuje podsumowanie buildu
+  w <code>summary.md</code>, a potem archiwizuje przebieg, gdy <a href="#key-build-cleanup"><code>build.cleanup</code></a> jest włączony.</span></li>
 </ul>
 
 <h4><span lang="en">After a build</span><span lang="pl">Po buildzie</span></h4>
@@ -2965,10 +2971,10 @@ wartość.</p>
     <dt><code>planning.adr</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
     <dd><span lang="en"><a href="#skill-planner"><code>planner</code></a> has
     <a href="#agent-adr-screener"><code>adr-screener</code></a> test the plan's decisions against a strict
-    admission test, asks you once about what it found, and turns each record you accept into a task with no
+    admission test, asks you about each record it found (nothing when it found none), and turns each record you accept into a task with no
     dependencies writing <code>docs/adr/</code>.</span><span lang="pl"><a href="#skill-planner"><code>planner</code></a>
     zleca <a href="#agent-adr-screener"><code>adr-screener</code></a> sprawdzenie decyzji planu ścisłym testem
-    przyjęcia, raz pyta cię o to, co znalazł, i każdy zaakceptowany przez ciebie rekord zamienia w zadanie bez
+    przyjęcia, pyta cię o każdy znaleziony rekord (gdy nie znalazł żadnego, o nic), i każdy zaakceptowany przez ciebie rekord zamienia w zadanie bez
     zależności, które zapisuje go w <code>docs/adr/</code>.</span></dd>
   </div>
   <div id="key-planning-plain-plan-review">
@@ -3053,10 +3059,12 @@ wartość.</p>
   <div id="key-build-cleanup">
     <dt><code>build.cleanup</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
     <dd><span lang="en">The build ends by noting on the specification anything it delivered that the specification
-    does not promise, then archiving the run and dropping the plan, the state file and the trail, through
+    does not promise, then archiving the run with the build summary in <code>summary.md</code> and dropping the plan, the state
+    file and the trail, through
     <a href="#agent-closeout"><code>closeout</code></a>. All of them stay in git history.</span><span lang="pl">Build
     kończy się odnotowaniem w specyfikacji wszystkiego, co dostarczył, a czego specyfikacja nie obiecuje,
-    potem przez <a href="#agent-closeout"><code>closeout</code></a> archiwizuje przebieg i usuwa plan, plik stanu
+    potem przez <a href="#agent-closeout"><code>closeout</code></a> archiwizuje przebieg z podsumowaniem buildu
+    w <code>summary.md</code> i usuwa plan, plik stanu
     i ślad pracy. Wszystko to zostaje w historii gita.</span></dd>
   </div>
 </dl>

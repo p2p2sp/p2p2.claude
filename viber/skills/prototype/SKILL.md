@@ -2,7 +2,7 @@
 name: prototype
 description: Turns a UI change into one working, self-contained HTML mockup in the project's own look - a single proposal or three variants to choose from - refines it in a UI-only conversation, then carries the conclusions to viber:intent, onto the GitHub issue it started from, or both. Takes the change in prose, or an issue number or URL when github.issues is on.
 argument-hint: "[the UI change, or an issue number/URL when github.issues is on]"
-allowed-tools: Read, Grep, Glob, Agent, Skill, Edit(./.temp/viber/prototype/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/open-page.sh:*)
+allowed-tools: Read, Grep, Glob, Agent, Skill, AskUserQuestion, Edit(./.temp/viber/prototype/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/open-page.sh:*)
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -11,7 +11,7 @@ disable-model-invocation: true
 
 Turn a UI change into one mockup the user sees in the browser, settle it in conversation, then carry the conclusions on. `viber:prototype-writer` alone writes and edits the mockup: never write or edit it yourself, and never edit host code.
 
-Your tools: `Read`, `Grep`, `Glob`, `Agent` for the writer, `Skill` for `viber:intent` alone, and the script lines below.
+Your tools: `Read`, `Grep`, `Glob`, `Agent` for the writer, `Skill` for `viber:intent` alone, `AskUserQuestion` for a question offering options, and the script lines below.
 
 Every script run is one literal Bash line spelled as in this skill: never prefixed with an interpreter word, never assigned to a variable, never preceded by `cd`, never chained with `;`.
 
@@ -25,7 +25,7 @@ Every script run is one literal Bash line spelled as in this skill: never prefix
 
 ## 2. First question
 
-Open with one line naming what you take as settled from the conversation, the argument and the issue. Then ask, in prose, one question: one proposal, or three alternative scenarios to choose from? End the turn. Never use `AskUserQuestion`.
+Open with one line naming what you take as settled from the conversation, the argument and the issue. Then ask one `AskUserQuestion`: one proposal, or three alternative scenarios to choose from?
 
 ## 3. UI conversation
 
@@ -52,23 +52,26 @@ Branch on its `VERDICT:` line:
 - `PASS` -> name what the mockup shows, one line per `VARIANT:` line, and its basis in one plain line: `design-system` built from the project's design system, `code` styled from the project's code, `brief` no UI code found, so it follows the conversation alone.
   - The run's first PASS -> run `"${CLAUDE_PLUGIN_ROOT}/scripts/open-page.sh" "<FILE value>"` and show its line as it stands; any line but `opened in the browser` already tells the user where to open it by hand, and the conversation goes on.
   - Every later PASS -> remind the user to refresh the browser tab. Never run `open-page.sh` again.
-  - Close on one question in prose: what to change, which variant to keep when the mockup holds three, or whether it is ready. End the turn.
+  - Close on one `AskUserQuestion`; a change request travels through its free-text field:
+    - One variant -> `Ready` or `Change it` (the change typed in its free-text field).
+    - Three variants -> `Keep A`, `Keep B`, `Keep C` and `Ready`.
 - `FAIL` -> show its `REASON:`, ask in prose for what is missing, end the turn. The answer re-dispatches the same round.
-- `DENIED` -> name the refused tool and call from its `REASON:`, ask in prose: add the permission and retry, or stop. End the turn. Retry -> the same dispatch again.
+- `DENIED` -> name the refused tool and call from its `REASON:`, ask through one `AskUserQuestion`: add the permission and retry, or stop. Retry -> the same dispatch again.
 
 ## 5. Revision loop
 
 Read the user's answer:
 
-- Change requests -> `round: revise` with them as `remarks:`.
+- Change requests, typed as the free-text answer or with `Change it` -> `round: revise` with them as `remarks:`.
+- `Change it` with no change typed -> ask in prose what to change, end the turn.
 - A variant picked while the mockup holds three -> `round: narrow` with that `variant:`. A pick when it holds one, or a variant it does not hold -> say so and ask again.
 - Anything outside the screen -> park it as in step 3.
-- Ready while three variants remain -> ask which one to keep; the pick runs the narrow round first.
+- Ready while three variants remain -> ask through one `AskUserQuestion` which one to keep; the pick runs the narrow round first.
 - Ready -> step 6.
 
 ## 6. Exit question
 
-One question in prose, then end the turn:
+One `AskUserQuestion` over the options below:
 
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-exit

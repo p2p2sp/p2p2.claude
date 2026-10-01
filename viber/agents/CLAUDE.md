@@ -12,7 +12,7 @@ same edit.
 | `task-reviewer`, `final-reviewer` | `implementor` (`final-review.true.md` for the second) | its report only |
 | `test-runner` | `implementor`, its baseline fragments, `intent`'s fast path | its report only |
 | `arbiter` | `implementor`, `baseline-run.<value>.md`, `final-review.true.md` | nothing |
-| `qa-writer`, `memory-writer`, `rules-writer`, `closeout` | `implementor`'s `qa`, `memory`, `rules`, `cleanup` fragments; `rules-writer` also `rules` | `qa.md`/`qa.e2e.md`; nodes; `.claude/rules/`; `spec.md` |
+| `qa-writer`, `memory-writer`, `rules-writer`, `closeout` | `implementor`'s `qa`, `memory`, `rules`, `cleanup` fragments; `rules-writer` also `rules` | `qa.md`/`qa.e2e.md`; nodes; `.claude/rules/`; `spec.md`, `summary.md` |
 | `planner-review`, `adr-screener` | `planner` (`adr-screener` only under `adr: true`, once the plan is written and indexed) | nothing |
 | `plain-plan-review` | the plan gate's request | nothing |
 | `prover` | `intent --prove` | nothing (plus web) |
@@ -43,10 +43,9 @@ Read `CLAUDE.code-auditor.md` before editing `profiler`, `scout`, `edge-scout`, 
   `test-runner` (which writes that report: a `status: pass | skip | fail | build-failed` line,
   then `<test name> | <file> | <assertion or error>` per failure), `task-coder` and
   `task-reviewer`. `test-runner`'s baseline mode reuses an existing report and runs nothing.
-- `decision: <task-id>: <text>` beats the task file or a report; `auto:`-prefixed text is the
-  build's own ruling, binding the same. Read by `task-coder`, `task-reviewer`,
-  `final-reviewer` (`decision: final-review:` on a recheck) and `closeout`, which takes them
-  from `status.md` plus every line of `rulings.md`.
+- `decision: <task-id>: <text>`, the build's own ruling (`auto:`-prefixed, from the arbiter),
+  beats the task file or a report. Read by `task-coder`, `task-reviewer` and `closeout`, which
+  takes them from `status.md` plus every line of `rulings.md`.
 - An integration or browser run gets an explicit timeout in minutes (a default one reads as a
   false red): `task-coder`, `task-reviewer`, `test-runner`, `e2e-writer`.
 
@@ -78,6 +77,8 @@ Read `CLAUDE.code-auditor.md` before editing `profiler`, `scout`, `edge-scout`, 
   become shell arguments of `commit-task.sh --rule`.
 - `closeout` makes one Bash call, the literal `archive-run.sh "<run>"` line, and marks drift as
   `[D<n>]` plus one appended section in `spec.md`'s own language; never `qa.md` or `qa.e2e.md`.
+  Before that call it writes its input's `summary:` block verbatim plus a `Drift:` line to
+  `<run>/summary.md`, never under `work/`, which the archive drops.
 - Auditor findings land at `<out><slug>-audit.md`, `/` in the scope becoming `--` (`root` for the
   repository root, `new--<scope>` for a `rules-auditor` proposal, which writes no file when
   nothing passes); `rules-writer` globs `*-audit.md`, `memory-node-writer` gets the path.
@@ -89,7 +90,7 @@ Read `CLAUDE.code-auditor.md` before editing `profiler`, `scout`, `edge-scout`, 
   listed: renaming superui's skill drops the advice silently. It keeps basis and variant labels
   inside the mockup so a later round reads them back.
 - `adr-screener` proposes, never decides: its `VERDICT: NONE|FOUND|DENIED` and the `ADR:`,
-  `DEPRECATE:`, `APPEND:`, `ROUTE: comment|rule|ops` lines are one loop with `planner`'s
+  `DEPRECATE:` and `APPEND:` lines are one loop with `planner`'s
   `references/adr-tasks.md`, which relays every line and adds none. The test itself lives only in
   `references/adr-admission.md`, which it reads whole through `refs:`; a criterion added to the
   agent or to `adr-tasks.md` splits it.

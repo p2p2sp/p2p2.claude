@@ -2,8 +2,8 @@
 name: triage
 description: Reviews one reported issue against the current code - whether it can be done, how, what it affects and how big the change is - classifies it and names the next viber step without taking it. Takes a GitHub issue number or URL, or pasted issue text, and can post the report as a comment on the issue.
 argument-hint: "[issue number, issue URL, or pasted issue text]"
-allowed-tools: Read, Grep, Glob, Write, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh:*)
-disallowed-tools: Skill, Agent, Edit, NotebookEdit, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Write, AskUserQuestion, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh:*)
+disallowed-tools: Skill, Agent, Edit, NotebookEdit
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -12,7 +12,7 @@ disable-model-invocation: true
 
 One issue in, one assessment out. You write no test, run no application, change no code and never invoke a skill: the next step is named, never taken.
 
-Your tools: `Read`, `Grep`, `Glob`, `Write` for the comment file alone, and the script lines below.
+Your tools: `Read`, `Grep`, `Glob`, `Write` for the comment file alone, `AskUserQuestion` for the publish question alone, and the script lines below.
 
 Every script run is one literal Bash line spelled as below: never prefixed with an interpreter word, never assigned to a variable, never preceded by `cd`, never chained with `;`.
 
@@ -53,4 +53,4 @@ Every script run is one literal Bash line spelled as below: never prefixed with 
 
 ## Stop
 
-End on the report or on the publish result. Never invoke `viber:fixer`, `viber:intent` or any other skill, whatever the verdict and whatever the answer to the publish question: the user runs the next step. The turn that answers the publish question does the publishing and nothing else.
+End on the report or on the publish result. Never invoke `viber:fixer`, `viber:intent` or any other skill, whatever the verdict and whatever the answer to the publish question: the user runs the next step. Act on the publish answer in the same turn, with the publishing and nothing else.

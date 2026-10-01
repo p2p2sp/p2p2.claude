@@ -8,8 +8,9 @@ Weigh the fast path first. A change it does not fit goes on to the bullets below
 
 The design:
 
-- Show a short design in chat - what changes, in which files, how it is proven - and end on one question: build it?
-- Build nothing before an explicit yes: a reply approving the design and carrying no correction. Never write a plan file or a run directory.
+- Show a short design in chat - what changes, in which files, how it is proven - and end on one `AskUserQuestion`: `Build it` or `Do not build`, a correction travelling through its free-text field.
+- Build nothing before an explicit yes: `Build it`, carrying no correction. Never write a plan file or a run directory.
+- `Do not build` -> stop; change nothing.
 - A correction -> show the revised design and ask again.
 - Any other reply (a question, a hesitation) -> answer it and ask again.
 - A request for a full plan -> leave the fast path: propose the spec shape and continue the interview into `## Done`.

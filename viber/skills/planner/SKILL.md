@@ -74,7 +74,7 @@ A draft adds the line `scope: spec`. From round 2 on, also pass the previous fin
 A reply with no `VERDICT:` line gets one `SendMessage`, `Finish your task, then return your output lines.`; a second reply without one is handled as `VERDICT: DENIED` with `REASON: no verdict returned`.
 
 - `VERDICT: PASS` - go to step 4 without writing the plan again: its Minor findings stay unapplied, since any write after the PASS voids it. A PASS reached through that `SendMessage` whose `ExitPlanMode` the plan gate still refuses is followed by the fresh dispatch the gate names, not treated as a stall.
-- `VERDICT: FAIL` - show the findings, fix the plan, re-run `plan-index.sh` after every fix unless the plan is a draft, then dispatch again. A finding that needs a decision only the user can make gets asked first, and the answer starts a fresh round 1.
+- `VERDICT: FAIL` - show the findings, fix the plan, re-run `plan-index.sh` after every fix unless the plan is a draft, then dispatch again. A finding that needs a decision only the user can make gets asked first through one `AskUserQuestion`, and the answer starts a fresh round 1.
 - `VERDICT: DENIED` - one `AskUserQuestion` naming the refused call from its `REASON:` line: permission added and retry, dispatching again in the same round, or stop with the plan unreviewed and no hand-off.
 
 ```!
