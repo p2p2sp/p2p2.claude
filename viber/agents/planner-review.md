@@ -42,7 +42,7 @@ Check when the specification carries `## Behaviour` and `## Glossary`, in either
 
 - Filled: not one template slot survives - an angle-bracket placeholder, an `S<n>` left unnumbered, an example line nobody replaced.
 - Anchored: every `### S<n>` scenario traces to an acceptance criterion, and every criterion is reachable from some scenario. A scenario proving nothing the criteria claim is either a missing criterion or a scenario that does not belong.
-- Behavioural: `## Behaviour`, `### Edge cases`, `## Glossary` and `## Constraints` describe what a person observes, never the mechanism. A glossary entry naming a key, a field or a type instead of the concept is a finding: the shape belongs to a `## Contracts` block.
+- Behavioural: `## Behaviour`, `### Edge cases`, `## Glossary` and `## Solution requirements` describe what a person observes, never the mechanism. A glossary entry naming a key, a field or a type instead of the concept is a finding: the shape belongs to a `## Contracts` block.
 
 ## Calibration
 

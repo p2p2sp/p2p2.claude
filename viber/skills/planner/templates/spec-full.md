@@ -93,6 +93,6 @@ Then <...>
 
 - <what this change does not touch>
 
-## Constraints
+## Solution requirements
 
 - <what binds the solution: compatibility, data, performance, a deadline>

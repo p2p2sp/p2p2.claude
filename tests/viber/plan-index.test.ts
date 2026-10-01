@@ -193,7 +193,7 @@ function fullHead(criteria: number): string[] {
     "- Password reset.",
     "- OAuth.",
     "",
-    "## Constraints",
+    "## Solution requirements",
     "",
     "- The existing session cookie name has to survive.",
     "",
