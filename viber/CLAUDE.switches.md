@@ -43,6 +43,17 @@
   test failing before the build shows as new in the final run.
   `task-coder` and `task-reviewer` read `baseline:` as their own input line. The repair coder and
   `final-review.true.md` get no `baseline:` line.
+- `.claude/viber.local.yml` is a personal, git-ignored overlay that only `config.sh` reads. It
+  replaces exactly `tiers.min`, `tiers.max`, `build.baseline-tests` and `github.issues` in the
+  block, in `viber.yml`'s group layout; an invalid value leaves the shared one and the
+  min-above-max reset runs on the merged range. `--branching`, `session-start.sh`, `plan-path.sh`
+  and `archive-run.sh` never read it, `/viber:setup` never creates it (no `schema:`) and
+  `bootstrap.sh`'s merge never touches it: `bootstrap.sh` only appends its `.gitignore` entry, on
+  its own report line. With the file present the block's second line is
+  `# local: <overridden> | ignored: <ignored>`; `<overridden>` names a key that held a valid local
+  value even when the reset then printed the defaults. A local group child counts only at the
+  indentation of its group's first key line. Making another key overridable changes `config.sh`'s
+  `local_prog` and merge, the template's local-file paragraph, `README.md` and `help.html`.
 - `planning.fast-path` reaches `intent`, not planning: `skills/intent/fragments/fast-path.true.md`, preloaded
   at the sizing step, is the whole third branch (design in chat, the session builds after an
   explicit yes, `test-runner` proves it, `/viber:commit` suggested, no plan file, no run

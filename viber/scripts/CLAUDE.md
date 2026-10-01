@@ -9,7 +9,8 @@ Each script's header `Contract:` is its interface; this node carries only what s
   `run-branch.sh` reads `config.sh --branching`, `hooks/scripts/plan-gate.sh` runs
   `../../scripts/config.sh` for `planning.plain-plan-review`, and `issue-templates.sh` and
   `pr-facts.sh` read `github.issue-title` / `github.pr-title` from it. A change to a line's shape
-  or a key's spelling reaches every reader.
+  or a key's spelling reaches every reader. The optional `# local:` comment line that follows the
+  header when `viber.local.yml` exists matches no `^<key>: ` grep and no reader parses it.
 - Sibling calls resolve from the calling script's own directory (`dirname "${BASH_SOURCE[0]}"`)
   through an explicit interpreter (`bash config.sh`, `sh issue-facts.sh`), so they need no exec
   bit and no pre-approval, but moving a script out of `scripts/` breaks them and
