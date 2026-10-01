@@ -20,7 +20,7 @@
 - Scope: Fable 5.1 over-reaches (fixes nearby code, adds tests); Sonnet 5.5 adds unrequested tests, docs and files at every effort, and at `xhigh`/`max` its own review rounds and reviewer subagents. State the range of every instruction and what is out of scope.
 - Exploration: Opus 5.5 under-explores loosely specified tasks. Name the sources to read, or their class.
 - Context: 1M on all but Haiku 4.5 (200K).
-- Knowledge: Fable 5.1, Opus 5.5 and Sonnet 5.5 through Jun 2026. All three shipped after every cutoff (Fable 5.1 2026-09-01, Opus 5.5 2026-09-22, Sonnet 5.5 2026-09-28): take their facts from the profiles.
+- Knowledge: Fable 5.1, Opus 5.5 and Sonnet 5.5 through Jun 2026, Haiku 4.5 through Feb 2025. The first three shipped after every cutoff (Fable 5.1 2026-09-01, Opus 5.5 2026-09-22, Sonnet 5.5 2026-09-28): take their facts from the profiles.
 - Thinking: always on for Fable 5.1 and Opus 5.5; Sonnet 5.5 can skip up-front thinking only at `high` effort or below.
 - Effort: Opus 5.5 defaults to `medium`, Fable 5.1 and Sonnet 5.5 to `high`. In Claude Code Opus 5.5 ignores a user's top-level `effortLevel`: set `effort:` wherever depth matters and the file may run on Opus 5.5.
 

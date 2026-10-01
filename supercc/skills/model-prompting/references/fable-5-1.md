@@ -1,6 +1,6 @@
 # Claude Fable 5.1
 
-Alias `fable`, ID `claude-fable-5-1`, released 2026-09-01. Same weights as Mythos 5.1 plus safeguards. Context 1M, output 128K, knowledge through Jun 2026. $10/$50 per MTok (2.5x Opus 5.5), but cache reads cost 2.5 percent of input, so cache-heavy long sessions close much of the gap. Thinking always on; effort default `high` in Claude Code.
+Alias `fable`, ID `claude-fable-5-1`, released 2026-09-01. Context 1M, output 128K, knowledge through Jun 2026. $10/$50 per MTok (2.5x Opus 5.5), but cache reads cost 2.5 percent of input, so cache-heavy long sessions close much of the gap. Thinking always on; effort default `high` in Claude Code.
 
 ## Effort
 

@@ -1,6 +1,6 @@
 # supercc
 
-Two skills. `skill-designer`: the authoring doctrine for skills and agents, three references read each at one workflow step, a tuning step that invokes `model-prompting`, and a linter. `model-prompting`: per-model prompting knowledge, one reference per current model plus `cross-model.md`, the body only picks which to read. No agents, no hooks, no preload, no `allowed-tools`.
+Two skills. `skill-designer`: the authoring doctrine for skills and agents, three references read each at one workflow step, a tuning step that invokes `model-prompting`, and a linter. `model-prompting`: per-model prompting knowledge, one reference per current model plus `cross-model.md`, which every run reads; the body only picks which profile to add. No agents, no hooks, no preload, no `allowed-tools`.
 
 ## Contracts between files
 

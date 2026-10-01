@@ -1,6 +1,6 @@
 # Claude Haiku 4.5
 
-Alias `haiku`, ID `claude-haiku-4-5-20251001`. No `effort`; thinking only as extended thinking, which in Claude Code follows the session's thinking setting. Retirement not sooner than 2026-10-15, with at least 60 days' notice: re-check what `haiku` resolves to before relying on this profile.
+Alias `haiku`, ID `claude-haiku-4-5-20251001`, released 2025-10-15. Context 200K, output 64K, knowledge through Feb 2025. $1/$5 per MTok. No `effort`; thinking only as extended thinking, which in Claude Code follows the session's thinking setting. Retirement not sooner than 2026-10-15, with at least 60 days' notice: re-check what `haiku` resolves to before relying on this profile.
 
 ## Profile
 
