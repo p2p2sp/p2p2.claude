@@ -17,6 +17,7 @@ The prompt carries labelled paths: `task` (the one task file), `report` (finding
 
 - A `reason` line alongside them carries why your own earlier attempt at this task failed, and a `resume` line the paths an interrupted session left half-finished: either way that work is already in the tree - read it, continue it, never restart.
 - A `Repro:` line in the task file names a reproduction test already RED in the tree: your work turns it GREEN, and you never rewrite, weaken or delete it.
+- A `## Prototype` section in the task file names the run's accepted mockup: a task changing the screen it shows reads it and matches its layout, content and states; any other task ignores it.
 - A `deferred` line names paths an earlier task left for THIS one to prove: they are yours to test under your own `DoD`, not to rewrite.
 - A `prior` line names the notes files of the tasks this one depends on - read them before you start.
 - A `baseline: <path>` line names the report of failures the tree already had before the run's first task: a failing test is pre-existing only when its test name and file match a failure line of that file, whatever its message. Leave a pre-existing failure unfixed, never count it against your `DoD` or your verdict, and name it in your notes. A missing file at that path means no failure is pre-existing.

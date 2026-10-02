@@ -1185,10 +1185,14 @@ w wyglądzie twojego projektu, a twój kod zostaje nietknięty.</p>
     <span class="label"><span lang="en">What is left</span><span lang="pl">Co zostaje</span></span>
     <p lang="en">The mockup in <code>.temp/viber/prototype/&lt;slug&gt;.html</code> and its conclusions. On your
     word they go to <a href="#skill-intent"><code>/viber:intent</code></a> with a <code>Prototype:</code> line
-    naming the mockup, so the interview starts from it.</p>
+    naming the mockup, so the interview starts from it. Once the plan lands, the mockup is copied into the
+    run directory as <code>prototype.html</code> and every task that changes the screen it shows builds against
+    it.</p>
     <p lang="pl">Makieta w <code>.temp/viber/prototype/&lt;slug&gt;.html</code> i wnioski z rozmowy. Na twoje
     słowo trafiają do <a href="#skill-intent"><code>/viber:intent</code></a> z linią <code>Prototype:</code>
-    wskazującą makietę, więc wywiad zaczyna od niej.</p>
+    wskazującą makietę, więc wywiad zaczyna od niej. Gdy plan trafi do katalogu przebiegu, makieta jest tam
+    kopiowana jako <code>prototype.html</code>, a każde zadanie zmieniające pokazany na niej ekran buduje
+    według niej.</p>
   </li>
 </ol>
 <details>
@@ -1516,11 +1520,13 @@ done or skipped, and <code>work/</code> holds the agents' notes and reports.</p>
 oraz osobny plik dla każdego zadania w <code>tasks/</code>. <code>status.md</code> zapisuje, które zadania są
 ukończone lub pominięte, a w <code>work/</code> leżą notatki i raporty agentów.</p>
 <p lang="en">A plan of one part of a split request also gets <code>roadmap.md</code>: the parts and the decisions
-settled for the later ones. When the build rules where it would otherwise have asked you, it also writes
+settled for the later ones. A plan built from a <a href="#skill-prototype">mockup</a> gets
+<code>prototype.html</code>, its copy, named in every task file. When the build rules where it would otherwise have asked you, it also writes
 <code>rulings.md</code>: one line per ruling, with its reason and what it costs if wrong. A build that ruled
 nothing has no such file.</p>
 <p lang="pl">Plan jednej części dzielonej prośby dostaje też <code>roadmap.md</code>: listę części i decyzje
-podjęte dla późniejszych. Gdy build rozstrzyga tam, gdzie inaczej by cię zapytał, zapisuje też
+podjęte dla późniejszych. Plan zbudowany na <a href="#skill-prototype">makiecie</a> dostaje
+<code>prototype.html</code>, jej kopię, wskazaną w każdym pliku zadania. Gdy build rozstrzyga tam, gdzie inaczej by cię zapytał, zapisuje też
 <code>rulings.md</code>: jedna linia na rozstrzygnięcie, z uzasadnieniem i kosztem pomyłki. Build, który niczego
 nie rozstrzygał, nie ma tego pliku.</p>
 <p lang="en">The directory is committed together with every task, which is why a build resumes in a new
@@ -1530,13 +1536,13 @@ na innym komputerze.</p>
 <p lang="en">With <a href="#key-build-cleanup"><code>build.cleanup</code></a> on, the build ends by moving the run to
 <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code> in one commit. The archive keeps the specification and the QA
 documents and drops <code>plan.md</code>, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>, which
-git history still holds; <code>roadmap.md</code>, <code>rulings.md</code> and the build summary <code>outcome.md</code> stay in the archive with them. A run with a task neither done
+git history still holds; <code>roadmap.md</code>, <code>prototype.html</code>, <code>rulings.md</code> and the build summary <code>outcome.md</code> stay in the archive with them. A run with a task neither done
 nor skipped is never archived.
 <a href="#key-directories"><code>directories</code></a> renames both directories.</p>
 <p lang="pl">Przy włączonym <a href="#key-build-cleanup"><code>build.cleanup</code></a> build kończy się przeniesieniem
 przebiegu do <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code> w jednym commicie. Archiwum zachowuje
 specyfikację i dokumenty QA, a usuwa <code>plan.md</code>, <code>status.md</code>, <code>tasks/</code>
-i <code>work/</code>, które nadal są w historii gita; <code>roadmap.md</code>, <code>rulings.md</code> i podsumowanie buildu <code>outcome.md</code> zostają w archiwum razem z nimi.
+i <code>work/</code>, które nadal są w historii gita; <code>roadmap.md</code>, <code>prototype.html</code>, <code>rulings.md</code> i podsumowanie buildu <code>outcome.md</code> zostają w archiwum razem z nimi.
 Przebieg z zadaniem ani ukończonym, ani pominiętym nigdy nie trafia do archiwum. Nazwy obu katalogów zmienisz kluczem
 <a href="#key-directories"><code>directories</code></a>.</p>
 
@@ -1776,11 +1782,11 @@ linie co w <code>rulings.md</code>.</p>
 <details id="ts-plan-gone">
   <summary><span lang="en">Where did <code>plan.md</code> and the task files go?</span><span lang="pl">Gdzie się podziały <code>plan.md</code> i pliki zadań?</span></summary>
   <p lang="en">With <code>build.cleanup</code> on, the <a href="#term-archive">archive</a> keeps the specification, the
-  QA documents, <code>roadmap.md</code>, <code>rulings.md</code> and <code>outcome.md</code> and drops the plan, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>. Git
+  QA documents, <code>roadmap.md</code>, <code>prototype.html</code>, <code>rulings.md</code> and <code>outcome.md</code> and drops the plan, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>. Git
   still has them: <code>git log -- docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code> lists the commits that
   touched the plan.</p>
   <p lang="pl">Przy włączonym <code>build.cleanup</code> <a href="#term-archive">archiwum</a> zachowuje specyfikację,
-  dokumenty QA, <code>roadmap.md</code>, <code>rulings.md</code> i <code>outcome.md</code>, a usuwa plan, <code>status.md</code>, <code>tasks/</code> i <code>work/</code>. Git nadal je
+  dokumenty QA, <code>roadmap.md</code>, <code>prototype.html</code>, <code>rulings.md</code> i <code>outcome.md</code>, a usuwa plan, <code>status.md</code>, <code>tasks/</code> i <code>work/</code>. Git nadal je
   ma: <code>git log -- docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code> wypisuje commity, które zmieniały
   plan.</p>
 </details>
@@ -1901,11 +1907,11 @@ każdą ustawioną przez ciebie wartość.</p>
   <div id="term-archive">
     <dt><span lang="en">archive</span><span lang="pl">archiwum</span></dt>
     <dd><span lang="en">Where a finished run goes with <code>build.cleanup</code> on, <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code>
-    by default. Only its specification, QA documents, <code>roadmap.md</code>, <code>rulings.md</code> and
+    by default. Only its specification, QA documents, <code>roadmap.md</code>, <code>prototype.html</code>, <code>rulings.md</code> and
     <code>outcome.md</code> stay there.</span><span lang="pl">Miejsce, do którego
     przy włączonym <code>build.cleanup</code> trafia zakończony przebieg, domyślnie
     <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code>. Zostają w nim tylko specyfikacja, dokumenty QA,
-    <code>roadmap.md</code>, <code>rulings.md</code> i <code>outcome.md</code>.</span></dd>
+    <code>roadmap.md</code>, <code>prototype.html</code>, <code>rulings.md</code> i <code>outcome.md</code>.</span></dd>
   </div>
   <div id="term-build">
     <dt><span lang="en">build</span><span lang="pl">build</span></dt>
@@ -2203,9 +2209,11 @@ z nich mówi, jak nim sterować.</p>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
       <dd><span lang="en">The mockup, <code>.temp/viber/prototype/&lt;slug&gt;.html</code>, its name prefixed with
       the issue number when the run started from one, plus the comment file beside it. It never edits your
-      code.</span><span lang="pl">Makietę <code>.temp/viber/prototype/&lt;slug&gt;.html</code>, z numerem issue
+      code. A plan built from the mockup lands it in the run directory as <code>prototype.html</code>, and every
+      task file names it.</span><span lang="pl">Makietę <code>.temp/viber/prototype/&lt;slug&gt;.html</code>, z numerem issue
       na początku nazwy, gdy przebieg zaczął się od issue, oraz obok plik komentarza. Nigdy nie zmienia
-      twojego kodu.</span></dd>
+      twojego kodu. Plan zbudowany na makiecie umieszcza ją w katalogu przebiegu jako <code>prototype.html</code>,
+      a każdy plik zadania ją wskazuje.</span></dd>
     </div>
   </dl>
 </article>
@@ -2216,12 +2224,16 @@ z nich mówi, jak nim sterować.</p>
   question at a time, each with three options and its recommendation first. A large request is split into
   subprojects first, and every part is interviewed. It closes on a summary you confirm, then hands it
   to <a href="#skill-planner"><code>planner</code></a>. When a build of one part finishes, it names the next
-  part: run the interview on it and it resumes from the decisions of the first.</p>
+  part: run the interview on it and it resumes from the decisions of the first. When the change alters a
+  screen and no mockup exists yet, the confirmation also offers to go to
+  <a href="#skill-prototype"><code>/viber:prototype</code></a> before the plan.</p>
   <p lang="pl">Wywiad planistyczny. Pyta tylko o to, czego nie rozstrzygają rozmowa i kod, jedno pytanie
   naraz, każde z trzema opcjami i rekomendacją na pierwszym miejscu. Dużą prośbę najpierw dzieli na
   podprojekty i omawia każdy z nich. Kończy się podsumowaniem, które potwierdzasz, a potem
   przekazuje je do <a href="#skill-planner"><code>planner</code></a>. Gdy build jednej części się kończy,
-  wskazuje następną: uruchom na niej wywiad, a wznowi go od decyzji pierwszej.</p>
+  wskazuje następną: uruchom na niej wywiad, a wznowi go od decyzji pierwszej. Gdy zmiana dotyczy ekranu,
+  a makiety jeszcze nie ma, potwierdzenie proponuje też przejście do
+  <a href="#skill-prototype"><code>/viber:prototype</code></a> przed planem.</p>
   <p lang="en">A small change to existing code can take the <a href="#key-planning-fast-path">fast path</a>
   instead: a short design in chat, built in your session only after your explicit yes and proven by
   <a href="#agent-test-runner"><code>test-runner</code></a>, with no plan file; you commit it with

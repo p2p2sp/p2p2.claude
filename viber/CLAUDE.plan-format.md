@@ -11,6 +11,9 @@ every parser.
   `commit-task.sh`, `plan-index.sh`, and `run-branch.sh`'s `plan_issue()` (the bare number, for
   `{issue-number}`); fence-aware guidance-comment stripping in `plan-path.sh`'s landing strip and
   `plan-index.sh`'s `spec.md` cut.
+- The frontmatter `prototype:` key (the `.temp/` mockup path, never rewritten) is read by
+  `plan-path.sh` alone, which copies the file into the run as `prototype.html` at landing;
+  `plan-index.sh --split` keys on that file, never on the key.
 - A fixing task's `Repro:` (the RED reproduction test `fixer` leaves uncommitted) must be one
   path of its own `Files:` with `TDD: none`; it never enters a `dirty:` line, and `task-coder`
   turns it GREEN, never rewriting, weakening or deleting it.

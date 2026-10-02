@@ -24,7 +24,8 @@
  * carrying the block verbatim, the plan's goal, the text of the criteria its
  * `Covers:` line names, the contract blocks its `Uses:` line names, the big
  * shape's `### Must not change` where the plan has one, and the plan's
- * out-of-scope list. That file IS a coder's WHOLE input - it gets no `spec:` line
+ * out-of-scope list, then a `## Prototype` section naming the run's
+ * `prototype.html` when the run holds one. That file IS a coder's WHOLE input - it gets no `spec:` line
  * at all - so a task file that loses a field, loses a contract or picks up a
  * neighbour's is silent, uncatchable drift. The one line it does NOT carry
  * verbatim is `- DoD:`, cut on `;` into one numbered `- DoD.<k>:` line per
@@ -1951,6 +1952,80 @@ test("the header names roadmap.md among the files --split writes", () => {
   const source = fs.readFileSync(SUT, "utf-8");
   const splitDoc = source.slice(source.indexOf("# --split writes"), source.indexOf("# Validation"));
   assert.match(splitDoc, /^#\s+roadmap\.md\s+- /m);
+});
+
+// --- the prototype -----------------------------------------------------------
+
+/** The accepted UI mockup `plan-path.sh --land` copies into the run directory. */
+const PROTOTYPE_REL = `${PLAN_DIR}/prototype.html`;
+
+async function committedFiles(repo: GitRepo): Promise<string[]> {
+  return (await repo.git("show", "--name-only", "--format=", "HEAD")).stdout
+    .trim()
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .sort();
+}
+
+test("--split with prototype.html in the run directory closes every task file with a ## Prototype section naming its repo-relative path, after the out-of-scope list", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seed(dir, planBody(TWO_TASKS));
+    write(dir, PROTOTYPE_REL, "<!doctype html><title>Login</title>\n");
+
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
+    for (const name of taskFiles(dir)) {
+      const body = readRun(dir, `tasks/${name}`);
+      assert.ok(body.endsWith(`\n\n## Prototype\n${PROTOTYPE_REL}\n`), `${name}:\n${body}`);
+      assert.ok(body.indexOf("## Out of scope") < body.indexOf("## Prototype"), `${name}:\n${body}`);
+      assert.equal(body.split("## Prototype").length, 2, `${name} carries one Prototype section`);
+    }
+  });
+});
+
+test("prototype.html is committed with the decomposition", async () => {
+  await withGitRepo(async (repo) => {
+    write(repo.dir, "README.md", "seed\n");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "seed");
+    seed(repo.dir, planBody(TWO_TASKS));
+    write(repo.dir, PROTOTYPE_REL, "<!doctype html><title>Login</title>\n");
+
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(await committedFiles(repo), [
+      PLAN_REL,
+      PROTOTYPE_REL,
+      `${PLAN_DIR}/spec.md`,
+      `${PLAN_DIR}/status.md`,
+      `${PLAN_DIR}/tasks/T1.md`,
+      `${PLAN_DIR}/tasks/T2.md`,
+    ].sort());
+  });
+});
+
+test("--split without prototype.html writes no ## Prototype section and commits nothing beyond the decomposition (a run with no mockup reads as it always did)", async () => {
+  await withGitRepo(async (repo) => {
+    write(repo.dir, "README.md", "seed\n");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "seed");
+    seed(repo.dir, planBody(TWO_TASKS));
+
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    for (const name of taskFiles(repo.dir)) {
+      assert.doesNotMatch(readRun(repo.dir, `tasks/${name}`), /## Prototype|prototype\.html/, name);
+    }
+    assert.deepEqual(await committedFiles(repo), [
+      PLAN_REL,
+      `${PLAN_DIR}/spec.md`,
+      `${PLAN_DIR}/status.md`,
+      `${PLAN_DIR}/tasks/T1.md`,
+      `${PLAN_DIR}/tasks/T2.md`,
+    ].sort());
+  });
 });
 
 /** A plan whose `## Roadmap` lists exactly `entries`, placed like the templates place it. */

@@ -26,7 +26,8 @@ and renaming one on either side breaks the hand-off silently:
   fragments into `work:` / `branch:`.
 - `Roadmap: <path>` - `intent` resuming a `roadmap.md`; `planner` marks every earlier entry
   `(built)` and moves this part's decisions into the specification.
-- `Prototype: <path>` - carried by `intent` into the summary exactly as `prototype` wrote it.
+- `Prototype: <path>` - carried by `intent` into the summary exactly as `prototype` wrote it;
+  `planner` writes it unchanged into the plan's `prototype:` key, read by `plan-path.sh` alone.
 
 `planner` also writes `source:` (the plan-mode file's own path, the only way back after approval
 clears the context).

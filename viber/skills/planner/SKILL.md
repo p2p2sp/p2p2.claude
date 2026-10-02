@@ -26,6 +26,8 @@ Read `${CLAUDE_PLUGIN_ROOT}/references/plan-rules.md` first, on a draft round as
 
 Never plan an end-to-end test on your own: `/viber:e2e` writes them after the build. Plan one only when the input records the user explicitly asking for it, then per `plan-rules.md`'s End-to-end rule; one merely suggested, implied by a UI change or thought useful stays out of every criterion, task and `Verification`.
 
+Never propose, write or show a mockup or prototype: plan mode writes the plan file alone, and a mockup comes from `/viber:prototype` before the interview hands off.
+
 Before writing a task, decide which files get created, modified or deleted and what each one owns: locked-in boundaries are what lets tasks run in parallel.
 
 - One responsibility per file. Files that change together live together.
@@ -36,7 +38,7 @@ Before writing a task, decide which files get created, modified or deleted and w
 
 The specification half is `${CLAUDE_SKILL_DIR}/templates/spec-lite.md` or `${CLAUDE_SKILL_DIR}/templates/spec-full.md`, whichever shape the input names; the task half is `${CLAUDE_SKILL_DIR}/templates/tasks.md` under either. Fill the spec, append the task half under it, and write the result into the plan file plan mode names in its system message, the only file you may write while planning. Keep every section and every HTML marker of both templates, except one a template comment says to drop; add no section of your own.
 
-Write that plan file's absolute path into the frontmatter's `source:` key: approval may clear this context, and that line is then the only way back to the file. Fill the frontmatter's `issue:` key from the input's `Issue:` line, never from the scope, exactly when the input carries one; with no such line drop the key, unless the plan continues a draft (below).
+Write that plan file's absolute path into the frontmatter's `source:` key: approval may clear this context, and that line is then the only way back to the file. Fill the frontmatter's `issue:` key from the input's `Issue:` line, never from the scope, exactly when the input carries one; with no such line drop the key, unless the plan continues a draft (below). Fill the `prototype:` key the same way from the input's `Prototype:` line, carried over by a draft round like `issue:`; its value stays that `.temp/` source path, read only by `plan-path.sh`. A task building the screen the mockup shows names matching "the mockup under `## Prototype`" in its `DoD`.
 
 A round continuing a draft reads `docs/<directories.runs>/<key>/plan.md` first and carries its specification over, changing only what the input's remarks change - its `issue:` line travels with the rest of that specification unless a remark changes it - and writes the key into the frontmatter's `into:` key; any other plan drops that line.
 

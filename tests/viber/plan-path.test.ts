@@ -1182,6 +1182,150 @@ test("a changed source onto a decomposed draft still exits 4, even though the dr
   });
 });
 
+// --- the accepted UI mockup rides into the run as prototype.html ---
+
+/** A plan whose frontmatter names its accepted mockup, and the draft it lands
+ *  into when `into` is given. */
+function withPrototype(proto: string, body: string, into?: string): string {
+  return ["---", "source: /elsewhere/plans/round.md", ...(into ? [`into: ${into}`] : []), `prototype: ${proto}`, "---", "", body].join("\n");
+}
+
+/** A mockup under the host's `.temp/`, where the prototype skill writes one. */
+function mockup(root: string, name: string, html: string): string {
+  const file = path.join(root, ".temp", "viber", "prototype", name);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, html);
+  return file;
+}
+
+/** The POSIX spelling of an absolute path: as is off Windows, `/c/...` on it. */
+function posixForm(file: string): string {
+  return process.platform === "win32" ? slash(file).replace(/^([A-Za-z]):/, (_, d: string) => `/${d.toLowerCase()}`) : file;
+}
+
+/** The value of the landed copy's frontmatter `prototype:` line. */
+function prototypeLine(text: string): string {
+  const match = /^prototype: (.*)$/m.exec(text);
+  assert.ok(match, `no prototype: line in\n${text}`);
+  return match[1];
+}
+
+test("a new landing copies the mockup its prototype: key names (a POSIX path) into the run as prototype.html, the key keeping its source value", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    const proto = posixForm(mockup(dir, "login.html", "<p>accepted</p>\n"));
+    const src = sourcePlan(dir, "outside/add-login.md", withPrototype(proto, PLAN_BODY));
+
+    const result = await run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stderr, "");
+    const resolved = parse(result.stdout);
+    assert.equal(resolved.state, "new");
+
+    const runDir = path.join(dir, path.dirname(resolved.path));
+    assert.equal(fs.readFileSync(path.join(runDir, "prototype.html"), "utf-8"), "<p>accepted</p>\n");
+    assert.equal(prototypeLine(fs.readFileSync(path.join(dir, resolved.path), "utf-8")), proto);
+  });
+});
+
+test(
+  "a prototype: key in the C:/ or C:\\ form lands the mockup too (cygpath normalizes it)",
+  { skip: process.platform === "win32" ? false : "a drive-letter path exists only on Windows" },
+  async () => {
+    for (const form of ["mixed", "native"] as const) {
+      await withTempDir("p2p2-viber-", async (dir) => {
+        const file = mockup(dir, "login.html", `<p>${form}</p>\n`);
+        const proto = form === "mixed" ? slash(file) : path.win32.normalize(file);
+        const src = sourcePlan(dir, "outside/add-login.md", withPrototype(proto, PLAN_BODY));
+
+        const result = await run(dir, ["--land", src]);
+        assert.equal(result.status, 0, `${form} -> stderr: ${result.stderr}`);
+        assert.equal(result.stderr, "", form);
+        const landed = path.join(dir, path.dirname(parse(result.stdout).path), "prototype.html");
+        assert.equal(fs.readFileSync(landed, "utf-8"), `<p>${form}</p>\n`, form);
+      });
+    }
+  },
+);
+
+test("an --into draft round overwrites prototype.html with its revised mockup, and an existing answer copies nothing", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    const key = "2026-09-19-17-30-00_add-login";
+    landPlan(dir, key, "2026-09-19T17:30:00Z", DRAFT_BODY);
+    const landedProto = path.join(dir, "docs", "_specs", key, "prototype.html");
+
+    const first = mockup(dir, "login.html", "<p>round 1</p>\n");
+    const round1 = sourcePlan(dir, "outside/round-1.md", withPrototype(posixForm(first), DRAFT_BODY, key));
+    const one = await run(dir, ["--land", round1]);
+    assert.equal(one.status, 0, `stderr: ${one.stderr}`);
+    assert.equal(fs.readFileSync(landedProto, "utf-8"), "<p>round 1</p>\n");
+
+    const revised = mockup(dir, "login-v2.html", "<p>round 2</p>\n");
+    const round2 = sourcePlan(dir, "outside/round-2.md", withPrototype(posixForm(revised), PLAN_BODY, key));
+    const two = await run(dir, ["--land", round2]);
+    assert.equal(two.status, 0, `stderr: ${two.stderr}`);
+    assert.equal(parse(two.stdout).state, "new");
+    assert.equal(fs.readFileSync(landedProto, "utf-8"), "<p>round 2</p>\n");
+
+    // the same round landed again answers existing: the run is the state, so a
+    // mockup edited since does not reach it
+    fs.writeFileSync(revised, "<p>edited later</p>\n");
+    const again = await run(dir, ["--land", round2]);
+    assert.equal(again.status, 0, `stderr: ${again.stderr}`);
+    assert.equal(parse(again.stdout).state, "existing");
+    assert.equal(fs.readFileSync(landedProto, "utf-8"), "<p>round 2</p>\n");
+  });
+});
+
+test("an --into draft round with no prototype: key removes the prototype.html a former round landed", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    const key = "2026-09-19-17-30-00_add-login";
+    landPlan(dir, key, "2026-09-19T17:30:00Z", DRAFT_BODY);
+    const landedProto = path.join(dir, "docs", "_specs", key, "prototype.html");
+
+    const first = mockup(dir, "login.html", "<p>round 1</p>\n");
+    const round1 = sourcePlan(dir, "outside/round-1.md", withPrototype(posixForm(first), DRAFT_BODY, key));
+    const one = await run(dir, ["--land", round1]);
+    assert.equal(one.status, 0, `stderr: ${one.stderr}`);
+    assert.ok(fs.existsSync(landedProto));
+
+    const round2 = sourcePlan(dir, "outside/round-2.md", ["---", "source: /elsewhere/plans/round.md", `into: ${key}`, "---", "", PLAN_BODY].join("\n"));
+    const two = await run(dir, ["--land", round2]);
+    assert.equal(two.status, 0, `stderr: ${two.stderr}`);
+    assert.equal(two.stderr, "");
+    assert.equal(parse(two.stdout).state, "new");
+    assert.equal(fs.existsSync(landedProto), false);
+  });
+});
+
+test("a prototype: key naming a missing mockup warns on stderr and still lands the plan, exit 0 and stdout unchanged (fail-open)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    const gone = posixForm(path.join(dir, ".temp", "viber", "prototype", "gone.html"));
+    const src = sourcePlan(dir, "outside/add-login.md", withPrototype(gone, PLAN_BODY));
+
+    const result = await run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /^warning: prototype not found/m);
+    assert.equal(result.stderr.trim().split("\n").length, 1, result.stderr);
+    const resolved = parse(result.stdout);
+    assert.deepEqual(Object.keys(resolved), ["path", "key", "state"]);
+    assert.equal(resolved.state, "new");
+    assert.ok(fs.existsSync(path.join(dir, resolved.path)));
+    assert.equal(fs.existsSync(path.join(dir, path.dirname(resolved.path), "prototype.html")), false);
+  });
+});
+
+test("a plan with no prototype: key lands no prototype.html", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    const src = sourcePlan(dir, "outside/add-login.md", ["---", "source: /elsewhere/plans/round.md", "---", "", PLAN_BODY].join("\n"));
+
+    const result = await run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stderr, "");
+    const resolved = parse(result.stdout);
+    assert.deepEqual(fs.readdirSync(path.join(dir, path.dirname(resolved.path))), ["plan.md"]);
+  });
+});
+
 // --- the runs directory is configurable ---
 
 /** `.claude/viber.yml` carrying the `directories:` group, read here relative to

@@ -2,6 +2,7 @@
 source: <absolute path of THIS plan file, the one plan mode named>
 into: <run key of the draft this round continues; drop the line otherwise>
 issue: <full issue URL the run is tied to; drop the line otherwise>
+prototype: <absolute path from the input's Prototype: line; drop the line otherwise>
 ---
 
 To build this plan you must invoke skill `viber:implementor` with `source:` path as its only argument.

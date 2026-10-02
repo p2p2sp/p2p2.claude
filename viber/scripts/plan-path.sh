@@ -97,7 +97,14 @@
 #            landing, and on --branch, <src>'s frontmatter "branch:", "work:"
 #            and "issue:" keys and its task blocks' "Repro:" lines, for the
 #            run branch. On every form printing "branch:", the resolved
-#            plan's "work:" key, for the "target:" line.
+#            plan's "work:" key, for the "target:" line. On every copy (a new
+#            run, an --into draft round, never an "existing" answer), the
+#            copy's frontmatter "prototype:" key: the accepted UI mockup it
+#            names (C:/, C:\ or POSIX form) is copied to prototype.html in the
+#            run directory, overwriting the one a former round left (a copy
+#            with no such key removes it); the key keeps its value. A mockup
+#            missing, not copied or not removed is one "warning:" line on
+#            stderr, the plan landed and exit and stdout unchanged.
 #   git    : HEAD moves only in the branch step of a first landing, or of a
 #            matching round landed again through --into, or by --checkout,
 #            through one checkout; every failure before or inside that step
@@ -388,6 +395,38 @@ infm && /^source:/ { print "source: " ENVIRON["abs"]; next }
   rm -f "$tmp"
 }
 
+# The accepted UI mockup the copy's frontmatter "prototype:" key names, put
+# beside the landed plan as prototype.html, so the run keeps it once .temp/ is
+# cleared. The key keeps its value: nothing rewrites it to the run path. A
+# C:/ or C:\ value goes through cygpath -u where cygpath exists; without it the
+# value is used as written. A copy with no key removes the prototype.html a
+# former round left, so a run never names a mockup its plan dropped.
+# Fail-open: a missing mockup, a failed copy or a failed removal is one
+# warning on stderr, never an exit, since the plan is landed either way.
+land_prototype() {
+  local proto run
+  run="${1%/*}"
+  proto="$(awk '
+NR == 1 { if ($0 !~ /^---[[:space:]]*\r?$/) exit; next }
+/^---[[:space:]]*\r?$/ { exit }
+/^prototype:/ { sub(/^prototype:[[:space:]]*/, ""); sub(/[[:space:]]+$/, ""); print; exit }
+' "$1" || true)"
+  if [[ -z "$proto" ]]; then
+    rm -f -- "$run/prototype.html" 2>/dev/null \
+      || echo "warning: could not remove $run/prototype.html" >&2
+    return 0
+  fi
+  if command -v cygpath >/dev/null 2>&1; then
+    proto="$(cygpath -u -- "$proto" 2>/dev/null || printf '%s\n' "$proto")"
+  fi
+  if [[ ! -f "$proto" ]]; then
+    echo "warning: prototype not found, not landed: $proto" >&2
+  elif ! cp -- "$proto" "$run/prototype.html" 2>/dev/null; then
+    echo "warning: could not copy the prototype to $run/prototype.html" >&2
+  fi
+  return 0
+}
+
 # True when landing <src> at <dest> would change nothing: <dest> already
 # carries this exact plan, save for its own frontmatter "source:" line, which
 # always differs on principle since it names wherever the file already sits.
@@ -608,6 +647,7 @@ if [[ "$into_set" == 1 ]]; then
   fi
   strip_guidance "$dest"
   set_source "$dest"
+  land_prototype "$dest"
   emit "$dest" new
   exit 0
 fi
@@ -667,4 +707,5 @@ if ! mkdir -p -- "${dest%/*}" || ! cp -- "$src" "$dest"; then
 fi
 strip_guidance "$dest"
 set_source "$dest"
+land_prototype "$dest"
 emit "$dest" new

@@ -30,7 +30,10 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   loop with `intent`'s interview bullet. `--prove` never reaches the summary or the planner.
 - `prototype`, user-only, has `prototype-writer` build a UI change into one HTML mockup under
   `.temp/viber/prototype/`, then hands to `intent` with a `Prototype:`
-  line. Its `mode:`, `round:`, `variant:` lines and the writer's `VERDICT:`, `FILE:`, `BASIS:`,
+  line; `intent` offers it (`Prototype first`) before the hand-off when a change alters a screen,
+  `planner` writes the line into the plan's `prototype:` key, `plan-path.sh --land` copies the
+  file into the run as `prototype.html` and `plan-index.sh --split` commits it and names it in
+  every task file's `## Prototype`. Its `mode:`, `round:`, `variant:` lines and the writer's `VERDICT:`, `FILE:`, `BASIS:`,
   `VARIANT:` lines are one loop: renaming either side breaks it.
 - `triage` sits before the chain: it assesses one issue, names `/viber:fixer #N`, `/viber:intent #N`
   or a one-line summary for pasted text, and invokes nothing; with `github.issues` off it never
@@ -122,6 +125,10 @@ copies (never moves) the plan-mode file, a round landing into the draft its `int
   file is a coder's whole input; a coder never sees the plan.
 - `roadmap.md` - only when the plan has a `## Roadmap`: `plan-index.sh --split` cuts it out of
   `spec.md` (never a model's write) and it rides into the archive as a non-scaffolding file.
+- `prototype.html` - only when the plan's `prototype:` key names an existing mockup:
+  `plan-path.sh --land` copies it (a draft round overwrites it, or removes it when the key is
+  gone), `plan-index.sh --split` commits
+  it and appends `## Prototype` with its path to every task file; it rides into the archive.
 - `status.md` - `commit-task.sh` is its only writer (`plan-index.sh` creates it empty).
 - `rulings.md` - the build's rulings, `commit-task.sh --rule` its only writer, created by the first
   ruling; it rides in the archive.
