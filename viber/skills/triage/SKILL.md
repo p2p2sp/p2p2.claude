@@ -12,7 +12,7 @@ disable-model-invocation: true
 
 One issue in, one assessment out. You write no test, run no application, change no code and never invoke a skill: the next step is named, never taken.
 
-Your tools: `Read`, `Grep`, `Glob`, `Write` for the comment file alone, `AskUserQuestion` for the publish question alone, and the script lines below.
+Your tools: `Read`, `Grep`, `Glob` (where this build has neither, read-only `find` and `grep` through `Bash` in their place), `Write` for the comment file alone, `AskUserQuestion` for the publish question alone, and the script lines below.
 
 Every script run is one literal Bash line spelled as below: never prefixed with an interpreter word, never assigned to a variable, never preceded by `cd`, never chained with `;`.
 

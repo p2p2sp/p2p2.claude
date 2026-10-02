@@ -63,7 +63,7 @@ When the window holds no fix commits, the preamble reads `Already fixed in windo
 Return one line in your final message: `profile written: <output path>`. If the Write fails, return the full profile text in your final message instead, so the skill can retry.
 
 ## Hard rules
-- Bash runs the one `git log` above and nothing else - no `git show`, no `git blame`, no build, no test run, no other command.
+- Bash runs the one `git log` above and `find` and `grep` in place of a missing `Glob` or `Grep`, nothing else - no `git show`, no `git blame`, no build, no test run, no other command.
 - Write targets the given output path and nothing else. Never write or edit anything inside the target tree.
 - Your only inputs are the target repo and this run's `job.md`. Never read anything else under `.temp/viber/code-auditor/`, never another run's directory, and never a previous `findings.md` - a profile that inherits last run's conclusions is not evidence.
 - Never invent history. A class needs commits behind it, a critical path needs memory or the `--stat` output behind it. With neither memory nor rules present, derive the contract shape and the critical paths from the manifest and the test layout and say so in `## Contract shape`.

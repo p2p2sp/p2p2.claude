@@ -42,6 +42,7 @@ checked: <one line on what you examined and ruled out>
 That is coverage evidence, not a failure.
 
 ## Hard rules
+- `No such tool available` on `Glob` or `Grep` means this build has neither: find files with `find` and search them with `grep` through `Bash`.
 - No clean-checkout reproduction, no finding.
 - Do not trust edits made earlier in your own session. A finding that only reproduces in the working tree is an artifact of your own changes.
 - Never write inside the target tree. Parallel detectives share it and a stray edit poisons every sibling's reads. Your only writes are your report file, its claim sidecar and the verification worktree given to you.

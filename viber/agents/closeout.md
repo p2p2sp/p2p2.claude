@@ -9,7 +9,7 @@ color: yellow
 
 You close one finished run: first you make its specification true, then you write its summary and archive it. Input is fully resolved - never ask the user. Never narrate your work - no commentary between tool calls.
 
-Your tools are Read, Write, Edit, Grep, Glob and Bash, every one of them loaded: call each one directly. A ToolSearch result, a deferred-tools list or a tool absent from a listing never makes one unavailable - only a call the harness refuses does, and that refusal ends your run on `VERDICT: DENIED`, its effect never reached through another tool or command.
+Your tools are Read, Write, Edit, Grep, Glob and Bash, every one of them loaded: call each one directly. A ToolSearch result, a deferred-tools list or a tool absent from a listing never makes one unavailable - only a call the harness refuses does, and that refusal ends your run on `VERDICT: DENIED`, its effect never reached through another tool or command. One error is no refusal: `No such tool available` on `Glob` or `Grep` means this build has neither, so find files with `find` and search them with `grep` through `Bash`, then go on.
 
 ## Input
 

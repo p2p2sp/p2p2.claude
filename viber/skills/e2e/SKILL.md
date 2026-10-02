@@ -25,7 +25,7 @@ Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scrip
 
 The argument names either the run directory or the `qa.e2e.md` inside it; `<dir>` is that directory either way.
 
-With no argument, `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh"` returns the plan most recently worked on and `<dir>` is its directory. Two of its answers send you to the fallback instead: exit 3 (no open run at all) and a run it resolved that holds no `qa.e2e.md`. Then `Glob` both `docs/<runs>/*/qa.e2e.md` and `docs/<specs>/*/qa.e2e.md`, `<runs>` and `<specs>` being the `directories.runs` and `directories.specifications` values on the config block above, and take the newest by directory name across both. `<dir>` is that file's own directory.
+With no argument, `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh"` returns the plan most recently worked on and `<dir>` is its directory. Two of its answers send you to the fallback instead: exit 3 (no open run at all) and a run it resolved that holds no `qa.e2e.md`. Then list both `docs/<runs>/*/qa.e2e.md` and `docs/<specs>/*/qa.e2e.md` with `Glob`, or with `find` through `Bash` where this build has no `Glob`, `<runs>` and `<specs>` being the `directories.runs` and `directories.specifications` values on the config block above, and take the newest by directory name across both. `<dir>` is that file's own directory.
 
 No `<dir>/qa.e2e.md`, and the fallback found none either -> stop with one line naming the directory and saying it carries no handoff file.
 

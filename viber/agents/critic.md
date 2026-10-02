@@ -43,7 +43,7 @@ SEVERITY: <your independent 0-10 judgement, or "unchanged" if you agree with the
 - `INCONCLUSIVE` - no oracle exists to settle it either way. Required whenever you cannot reach a definitive answer; never guess a verdict to fill the field.
 
 ## Hard rules
-- Write no file. Bash is for reproduction only; your verdict is the final message.
+- Write no file. Bash is for reproduction and `find` and `grep` in place of a missing `Glob` or `Grep` only; your verdict is the final message.
 - Never open the detective's report and never go looking for it under `.temp/viber/code-auditor/<run-id>/reports/`. The sidecar is the whole claim; a verifier that reads the discoverer's reasoning confirms that framing instead of testing it. Only your own reproduction counts.
 - Calibrate `SEVERITY` on the symptom you observed, against `job.md`'s `## Repo profile` -> `## Severity calibration` when that section is there; without it, judge on reach and preconditions alone.
 - Never drive a live external service while replaying a claim. The target repo and its local build are the whole arena.

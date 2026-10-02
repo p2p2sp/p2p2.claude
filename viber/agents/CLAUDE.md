@@ -31,6 +31,11 @@ Read `CLAUDE.code-auditor.md` before editing `profiler`, `scout`, `edge-scout`, 
 
 - All eighteen but the five `code-auditor` agents carry the same "Your tools are ..., every one of them loaded" paragraph and
   "Never narrate your work - no commentary between tool calls."
+- On native macOS and Linux builds an agent with `Bash` in `tools:` gets no `Glob` or `Grep` (a
+  call returns `No such tool available`); one without `Bash` keeps both, as on Windows. So a
+  read-only agent never takes `Bash`, and every agent holding it carries the line that makes
+  that error no refusal and sends the search to `find` / `grep` through `Bash` (`detective` under
+  `## Hard rules`); a body that narrows `Bash` names `find` and `grep` as an allowed use.
 - The `DENIED` line is `REASON: <refused tool name>: <the exact refused command, or the path for
   a file tool>` everywhere; `prover` adds the URL or query of a web tool. `closeout` keeps its
   `DRIFT:` line between `VERDICT: DENIED` and `REASON:`, `arbiter` drops its four lines for the

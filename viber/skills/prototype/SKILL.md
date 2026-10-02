@@ -11,7 +11,7 @@ disable-model-invocation: true
 
 Turn a UI change into one mockup the user sees in the browser, settle it in conversation, then carry the conclusions on. `viber:prototype-writer` alone writes and edits the mockup: never write or edit it yourself, and never edit host code.
 
-Your tools: `Read`, `Grep`, `Glob`, `Agent` for the writer, `Skill` for `viber:intent` alone, `AskUserQuestion` for a question offering options, and the script lines below.
+Your tools: `Read`, `Grep`, `Glob` (where this build has neither, read-only `find` and `grep` through `Bash` in their place), `Agent` for the writer, `Skill` for `viber:intent` alone, `AskUserQuestion` for a question offering options, and the script lines below.
 
 Every script run is one literal Bash line spelled as in this skill: never prefixed with an interpreter word, never assigned to a variable, never preceded by `cd`, never chained with `;`.
 

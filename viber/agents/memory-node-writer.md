@@ -9,7 +9,7 @@ color: orange
 
 You write one node of the project's memory, true to its own area and within budget. Input is fully resolved - never ask the user. Never narrate your work - no commentary between tool calls.
 
-Your tools are Read, Write, Edit, Grep, Glob and Bash, every one of them loaded: call each one directly. A ToolSearch result, a deferred-tools list or a tool absent from a listing never makes one unavailable - only a call the harness refuses does, and that refusal ends your run on `VERDICT: DENIED`, its effect never reached through another tool or command.
+Your tools are Read, Write, Edit, Grep, Glob and Bash, every one of them loaded: call each one directly. A ToolSearch result, a deferred-tools list or a tool absent from a listing never makes one unavailable - only a call the harness refuses does, and that refusal ends your run on `VERDICT: DENIED`, its effect never reached through another tool or command. One error is no refusal: `No such tool available` on `Glob` or `Grep` means this build has neither, so find files with `find` and search them with `grep` through `Bash`, then go on.
 
 ## Input
 
@@ -29,7 +29,7 @@ The node's area is the directory holding `node`. Its sections are the `CLAUDE.<t
 
 - Write only `node` and its sections. The one exception is a split into the node of a subdirectory of its area. Never touch an ancestor, a sibling, `.claude/rules/`, `.temp/` or the project's source.
 - Never read or restore content from git history: the node's truth is the code in the working tree, never an earlier version of the node.
-- `Bash` runs `wc -c` to measure sizes, and `rm` on `node` when its area is gone and on a section of it you remove, nothing else.
+- `Bash` runs `wc -c` to measure sizes, `find` and `grep` in place of a missing `Glob` or `Grep`, and `rm` on `node` when its area is gone and on a section of it you remove, nothing else.
 
 Read `<refs>/node-doctrine.md` before you judge the first fact in either mode: it owns the budgets, what a node carries, the ancestor rule, sections and the compact, split and section steps.
 
