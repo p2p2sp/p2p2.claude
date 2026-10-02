@@ -235,7 +235,7 @@ Complete every task the last `progress: <n>/<total>` settled and every entry sti
 
 Then close:
 
-- `closeout` returned `VERDICT: ARCHIVED` -> print exactly two lines: `<n>/<total> tasks committed, tests <the test verdict>, <elapsed>` (`, <elapsed>` left out on `elapsed: unknown`), then `Summary: <path>/summary.md`, `<path>` being the directory its `PATH:` line names, the parenthesized file count dropped.
+- `closeout` returned `VERDICT: ARCHIVED` -> print exactly two lines: `<n>/<total> tasks committed, tests <the test verdict>, <elapsed>` (`, <elapsed>` left out on `elapsed: unknown`), then `Summary: <path>/outcome.md`, `<path>` being the directory its `PATH:` line names, the parenthesized file count dropped.
 - Every other case (the close part not run, `abort`, `BLOCKED`, an accepted `DENIED`) -> print the final summary in its screen form.
 
 Final summary, both forms: max 7 lines, then every line this step places after them. The 7 lines: tasks committed, review rounds spent, test verdict, the clock's `elapsed:` (none on `elapsed: unknown`, never estimated), what memory, rules and QA recorded, then the form's own line below, then everything the steps carried to it but the `FIXED:` and `OWNER:` lines.

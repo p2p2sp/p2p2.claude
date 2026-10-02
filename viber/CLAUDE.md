@@ -57,7 +57,7 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   the `(this plan)` one. `implementor` profiles tier from TDD, file count, `feeds` (opus from 3
   consumers) and dependents, review from `verify:` and the tier (never from a field the index does
   not print) or a coder `EXTRA:` line; it reads `next:` only to close its summary on
-  `/viber:intent <archive or run dir>/roadmap.md`, the archive form inside `summary.md` when the
+  `/viber:intent <archive or run dir>/roadmap.md`, the archive form inside `outcome.md` when the
   run is archived: the two change together.
 - `excl` (plan `Exclusive: true`): `implementor` runs the task alone, once nothing else is ready
   or in flight, until committed; outside `--split` `plan-index.sh` rejects a task depending on it.
@@ -125,12 +125,12 @@ copies (never moves) the plan-mode file, a round landing into the draft its `int
 - `status.md` - `commit-task.sh` is its only writer (`plan-index.sh` creates it empty).
 - `rulings.md` - the build's rulings, `commit-task.sh --rule` its only writer, created by the first
   ruling; it rides in the archive.
-- `summary.md` - the build's final summary plus a `Drift:` line, `closeout` its only writer, just
+- `outcome.md` - the build's final summary plus a `Drift:` line, `closeout` its only writer, just
   before the move; it rides in the archive.
 
 `archive-run.sh` moves it to `docs/<specifications>/<key>/` (`docs/specs/` by default), dropping
 only the scaffolding it enumerates, and refuses a run with a task in neither `done` nor
-`skipped`. `closeout` edits `spec.md` and writes `summary.md` first: the drift edit, the summary
+`skipped`. `closeout` edits `spec.md` and writes `outcome.md` first: the drift edit, the summary
 and the move are one commit.
 
 ## Sections

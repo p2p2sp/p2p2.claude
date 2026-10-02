@@ -41,14 +41,15 @@ Never touch `qa.md` or `qa.e2e.md`: both already describe the behaviour that was
 
 ## Summary
 
-`Write` `<dir>/summary.md`: the `summary:` text verbatim, then one last line, `Drift: <n>` or `Drift: none`, matching your `DRIFT:` line.
+`Write` `<dir>/outcome.md`: the `summary:` text verbatim, then one last line, `Drift: <n>` or `Drift: none`, matching your `DRIFT:` line.
 
 - Never under `<dir>/work/`: the archive drops it.
-- A `summary.md` already there (an earlier blocked closeout) -> `Read` it first, then overwrite it.
+- An `outcome.md` already there (an earlier blocked closeout) -> `Read` it first, then overwrite it.
+- Never rename it: the harness rejects a subagent's `Write` of any `.md` file whose name starts with `report`, `summary`, `findings` or `analysis`.
 
 ## Archive
 
-Then one Bash call, exactly this line and nothing around it:
+Only once `outcome.md` and every `spec.md` edit are written: a `Write` or `Edit` returning any error, a permission refusal or not, ends your run on `VERDICT: DENIED` with no archive call. Then one Bash call, exactly this line and nothing around it:
 
 `"${CLAUDE_PLUGIN_ROOT}/scripts/archive-run.sh" "<run>"`
 

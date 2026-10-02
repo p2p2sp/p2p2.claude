@@ -12,7 +12,7 @@ same edit.
 | `task-reviewer`, `final-reviewer` | `implementor` (`final-review.true.md` for the second) | its report only |
 | `test-runner` | `implementor`, its baseline fragments, `intent`'s fast path | its report only |
 | `arbiter` | `implementor`, `baseline-run.<value>.md`, `final-review.true.md` | nothing |
-| `qa-writer`, `memory-writer`, `rules-writer`, `closeout` | `implementor`'s `qa`, `memory`, `rules`, `cleanup` fragments; `rules-writer` also `rules` | `qa.md`/`qa.e2e.md`; nodes; `.claude/rules/`; `spec.md`, `summary.md` |
+| `qa-writer`, `memory-writer`, `rules-writer`, `closeout` | `implementor`'s `qa`, `memory`, `rules`, `cleanup` fragments; `rules-writer` also `rules` | `qa.md`/`qa.e2e.md`; nodes; `.claude/rules/`; `spec.md`, `outcome.md` |
 | `planner-review`, `adr-screener` | `planner` (`adr-screener` only under `adr: true`, once the plan is written and indexed) | nothing |
 | `plain-plan-review` | the plan gate's request | nothing |
 | `prover` | `intent --prove` | nothing (plus web) |
@@ -78,7 +78,11 @@ Read `CLAUDE.code-auditor.md` before editing `profiler`, `scout`, `edge-scout`, 
 - `closeout` makes one Bash call, the literal `archive-run.sh "<run>"` line, and marks drift as
   `[D<n>]` plus one appended section in `spec.md`'s own language; never `qa.md` or `qa.e2e.md`.
   Before that call it writes its input's `summary:` block verbatim plus a `Drift:` line to
-  `<run>/summary.md`, never under `work/`, which the archive drops.
+  `<run>/outcome.md`, never under `work/`, which the archive drops; a failed write ends it on
+  `DENIED` before the archive call.
+- The harness rejects a subagent's `Write` of a `.md` file whose basename matches
+  `^(REPORT|SUMMARY|FINDINGS|ANALYSIS).*\.md$`, case-insensitive, as a tool error no permission
+  lifts: no agent's output file may take such a name (hence `outcome.md`, `review-*.md`).
 - Auditor findings land at `<out><slug>-audit.md`, `/` in the scope becoming `--` (`root` for the
   repository root, `new--<scope>` for a `rules-auditor` proposal, which writes no file when
   nothing passes); `rules-writer` globs `*-audit.md`, `memory-node-writer` gets the path.

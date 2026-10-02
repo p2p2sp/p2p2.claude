@@ -77,7 +77,7 @@ tier up. Where it would otherwise stop and ask - a task past its 5 attempts, a r
 final test run, a failed recheck of the final review, a refused commit - an arbiter agent picks one way
 forward from a closed list, and the build writes down every such ruling, with its reason and what
 it costs if wrong, in `rulings.md` in the run directory. The final summary lists them; when the run is archived, the
-screen shows only a two-line result and the full summary sits in `summary.md` in the archive. The
+screen shows only a two-line result and the full summary sits in `outcome.md` in the archive. The
 build still stops to ask you at a refused tool call, when it finds another open run or changed
 files no task claims, and when nothing was committed for a task.
 
@@ -178,7 +178,7 @@ edited once it lands. With `build.qa` on, the build's test scenarios land there
 too. `rulings.md` appears beside them only when the build ruled on something.
 
 With `build.cleanup` on, the build ends by moving what is worth keeping - the specification and the test
-scenarios, plus `rulings.md` and the build summary `summary.md` - to `docs/specs/<date>_<slug>/`, and dropping the plan, the progress file and the
+scenarios, plus `rulings.md` and the build summary `outcome.md` - to `docs/specs/<date>_<slug>/`, and dropping the plan, the progress file and the
 working notes. They are all in git, so nothing is lost; the archive is simply the half you would
 want to read a year later. Generated
 Playwright tests go into the e2e directory your own project already uses - `/viber:e2e` asks if

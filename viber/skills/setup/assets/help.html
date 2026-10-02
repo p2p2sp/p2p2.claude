@@ -1530,13 +1530,13 @@ na innym komputerze.</p>
 <p lang="en">With <a href="#key-build-cleanup"><code>build.cleanup</code></a> on, the build ends by moving the run to
 <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code> in one commit. The archive keeps the specification and the QA
 documents and drops <code>plan.md</code>, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>, which
-git history still holds; <code>roadmap.md</code>, <code>rulings.md</code> and the build summary <code>summary.md</code> stay in the archive with them. A run with a task neither done
+git history still holds; <code>roadmap.md</code>, <code>rulings.md</code> and the build summary <code>outcome.md</code> stay in the archive with them. A run with a task neither done
 nor skipped is never archived.
 <a href="#key-directories"><code>directories</code></a> renames both directories.</p>
 <p lang="pl">Przy włączonym <a href="#key-build-cleanup"><code>build.cleanup</code></a> build kończy się przeniesieniem
 przebiegu do <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code> w jednym commicie. Archiwum zachowuje
 specyfikację i dokumenty QA, a usuwa <code>plan.md</code>, <code>status.md</code>, <code>tasks/</code>
-i <code>work/</code>, które nadal są w historii gita; <code>roadmap.md</code>, <code>rulings.md</code> i podsumowanie buildu <code>summary.md</code> zostają w archiwum razem z nimi.
+i <code>work/</code>, które nadal są w historii gita; <code>roadmap.md</code>, <code>rulings.md</code> i podsumowanie buildu <code>outcome.md</code> zostają w archiwum razem z nimi.
 Przebieg z zadaniem ani ukończonym, ani pominiętym nigdy nie trafia do archiwum. Nazwy obu katalogów zmienisz kluczem
 <a href="#key-directories"><code>directories</code></a>.</p>
 
@@ -1632,13 +1632,13 @@ uruchamia te części zamknięcia, które włączają twoje przełączniki:</p>
 <p lang="en">The build composes a short summary: the tasks committed, the review rounds spent, the test verdict,
 the time it took, what memory, rules and QA recorded, the archive path when the run is archived, and anything left for you, such as an
 unreviewed task or changed files no task claimed. When the run is archived, the screen shows only two lines (the
-tasks committed, the test verdict and the time, then the path of <code>summary.md</code>) and the full summary sits
-in <code>summary.md</code> in the archive. When nothing is archived, the full summary prints on screen.</p>
+tasks committed, the test verdict and the time, then the path of <code>outcome.md</code>) and the full summary sits
+in <code>outcome.md</code> in the archive. When nothing is archived, the full summary prints on screen.</p>
 <p lang="pl">Build składa krótkie podsumowanie: zacommitowane zadania, zużyte rundy recenzji, wynik testów,
 czas trwania, to, co zapisały pamięć, reguły i QA, ścieżka archiwum, gdy przebieg trafia do archiwum, oraz wszystko, co zostaje dla ciebie, na
 przykład zadanie bez recenzji albo zmienione pliki, do których nie przyznało się żadne zadanie. Gdy przebieg trafia
 do archiwum, ekran pokazuje tylko dwie linie (zacommitowane zadania, wynik testów i czas, potem ścieżkę
-<code>summary.md</code>), a pełne podsumowanie leży w <code>summary.md</code> w archiwum. Gdy nic nie trafia do
+<code>outcome.md</code>), a pełne podsumowanie leży w <code>outcome.md</code> w archiwum. Gdy nic nie trafia do
 archiwum, pełne podsumowanie pojawia się na ekranie.</p>
 <p lang="en">With <a href="#key-build-final-review"><code>build.final-review</code></a> on, the summary lists each finding
 of the final review with what was wrong and what the fix changed, followed by any findings left for you, the
@@ -1776,11 +1776,11 @@ linie co w <code>rulings.md</code>.</p>
 <details id="ts-plan-gone">
   <summary><span lang="en">Where did <code>plan.md</code> and the task files go?</span><span lang="pl">Gdzie się podziały <code>plan.md</code> i pliki zadań?</span></summary>
   <p lang="en">With <code>build.cleanup</code> on, the <a href="#term-archive">archive</a> keeps the specification, the
-  QA documents, <code>roadmap.md</code>, <code>rulings.md</code> and <code>summary.md</code> and drops the plan, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>. Git
+  QA documents, <code>roadmap.md</code>, <code>rulings.md</code> and <code>outcome.md</code> and drops the plan, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>. Git
   still has them: <code>git log -- docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code> lists the commits that
   touched the plan.</p>
   <p lang="pl">Przy włączonym <code>build.cleanup</code> <a href="#term-archive">archiwum</a> zachowuje specyfikację,
-  dokumenty QA, <code>roadmap.md</code>, <code>rulings.md</code> i <code>summary.md</code>, a usuwa plan, <code>status.md</code>, <code>tasks/</code> i <code>work/</code>. Git nadal je
+  dokumenty QA, <code>roadmap.md</code>, <code>rulings.md</code> i <code>outcome.md</code>, a usuwa plan, <code>status.md</code>, <code>tasks/</code> i <code>work/</code>. Git nadal je
   ma: <code>git log -- docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code> wypisuje commity, które zmieniały
   plan.</p>
 </details>
@@ -1902,10 +1902,10 @@ każdą ustawioną przez ciebie wartość.</p>
     <dt><span lang="en">archive</span><span lang="pl">archiwum</span></dt>
     <dd><span lang="en">Where a finished run goes with <code>build.cleanup</code> on, <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code>
     by default. Only its specification, QA documents, <code>roadmap.md</code>, <code>rulings.md</code> and
-    <code>summary.md</code> stay there.</span><span lang="pl">Miejsce, do którego
+    <code>outcome.md</code> stay there.</span><span lang="pl">Miejsce, do którego
     przy włączonym <code>build.cleanup</code> trafia zakończony przebieg, domyślnie
     <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code>. Zostają w nim tylko specyfikacja, dokumenty QA,
-    <code>roadmap.md</code>, <code>rulings.md</code> i <code>summary.md</code>.</span></dd>
+    <code>roadmap.md</code>, <code>rulings.md</code> i <code>outcome.md</code>.</span></dd>
   </div>
   <div id="term-build">
     <dt><span lang="en">build</span><span lang="pl">build</span></dt>
@@ -2375,12 +2375,12 @@ z nich mówi, jak nim sterować.</p>
       specification, one file per task, <code>status.md</code> and the <code>work/</code> notes, plus
       <code>rulings.md</code> when the build ruled on anything) and one commit per
       task. With <code>build.cleanup</code> on, the run ends archived in <code>docs/specs/</code>, <code>rulings.md</code>
-      included, with the build summary in <code>summary.md</code>.</span><span lang="pl">Katalog
+      included, with the build summary in <code>outcome.md</code>.</span><span lang="pl">Katalog
       przebiegu <code>docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/</code> (plan, specyfikacja, plik każdego zadania,
       <code>status.md</code> i notatki w <code>work/</code>, a gdy build coś rozstrzygał, także
       <code>rulings.md</code>) oraz jeden commit na zadanie. Przy włączonym
       <code>build.cleanup</code> przebieg trafia na koniec do archiwum w <code>docs/specs/</code>, razem z
-      <code>rulings.md</code> i podsumowaniem buildu w <code>summary.md</code>.</span></dd>
+      <code>rulings.md</code> i podsumowaniem buildu w <code>outcome.md</code>.</span></dd>
     </div>
   </dl>
 </article>
@@ -2859,9 +2859,9 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   i <code>qa.e2e.md</code> dla <a href="#skill-e2e"><code>/viber:e2e</code></a>, gdy
   <a href="#key-build-qa"><code>build.qa</code></a> jest włączony.</span></li>
   <li id="agent-closeout"><code>closeout</code> <span lang="en">notes on the specification what the build
-  delivered beyond it, writes the build summary to <code>summary.md</code>, then archives the run, when <a href="#key-build-cleanup"><code>build.cleanup</code></a> is
+  delivered beyond it, writes the build summary to <code>outcome.md</code>, then archives the run, when <a href="#key-build-cleanup"><code>build.cleanup</code></a> is
   on.</span><span lang="pl">odnotowuje w specyfikacji to, co build dostarczył ponad nią, zapisuje podsumowanie buildu
-  w <code>summary.md</code>, a potem archiwizuje przebieg, gdy <a href="#key-build-cleanup"><code>build.cleanup</code></a> jest włączony.</span></li>
+  w <code>outcome.md</code>, a potem archiwizuje przebieg, gdy <a href="#key-build-cleanup"><code>build.cleanup</code></a> jest włączony.</span></li>
 </ul>
 
 <h4><span lang="en">After a build</span><span lang="pl">Po buildzie</span></h4>
@@ -3059,12 +3059,12 @@ wartość.</p>
   <div id="key-build-cleanup">
     <dt><code>build.cleanup</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
     <dd><span lang="en">The build ends by noting on the specification anything it delivered that the specification
-    does not promise, then archiving the run with the build summary in <code>summary.md</code> and dropping the plan, the state
+    does not promise, then archiving the run with the build summary in <code>outcome.md</code> and dropping the plan, the state
     file and the trail, through
     <a href="#agent-closeout"><code>closeout</code></a>. All of them stay in git history.</span><span lang="pl">Build
     kończy się odnotowaniem w specyfikacji wszystkiego, co dostarczył, a czego specyfikacja nie obiecuje,
     potem przez <a href="#agent-closeout"><code>closeout</code></a> archiwizuje przebieg z podsumowaniem buildu
-    w <code>summary.md</code> i usuwa plan, plik stanu
+    w <code>outcome.md</code> i usuwa plan, plik stanu
     i ślad pracy. Wszystko to zostaje w historii gita.</span></dd>
   </div>
 </dl>
