@@ -2,7 +2,7 @@
 name: plain-plan-review
 description: Reviews one plan written in plain plan mode and returns PASS or FAIL with blocking findings. Invoked only on the plan gate's request, never directly.
 tools: Read, Grep, Glob
-model: inherit
+model: opus
 effort: medium
 color: yellow
 ---

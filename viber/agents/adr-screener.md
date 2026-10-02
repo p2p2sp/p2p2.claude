@@ -30,7 +30,7 @@ input:
 1. Read the plan and `<refs>/adr-admission.md`.
 2. List the decisions of the plan about how the system is built. Skip the ones the first bullet of `## Input` makes context.
 3. Glob `docs/adr/`, and read each file whose slug names the same decision as one of yours.
-4. Run each decision through the admission test in its order, citing the evidence of every rule. A decision failing a rule is not a record and produces no line. A decision passing every gate and matching an existing record follows W3.
+4. Run each decision through the admission test in its order, deciding every rule on evidence found in the plan or the code, never on an assumption. A decision failing a rule is not a record and produces no line. A decision passing every gate and matching an existing record follows W3.
 5. Split a decision that is only partly a record: the passing part becomes the record, the rest produces no line.
 
 ## Output

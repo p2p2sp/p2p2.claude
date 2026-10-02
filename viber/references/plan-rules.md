@@ -1,6 +1,6 @@
 # Plan rules
 
-Every rule a plan's task half and contract appendix must hold. A rule tagged `(script)` is rejected by `plan-index.sh`; a rule tagged `(review)` is the planner's own check before dispatch and is gated by the plan reviewer.
+Every rule a plan must hold. A rule tagged `(script)` is rejected by `plan-index.sh`; a rule tagged `(review)` is the planner's own check before dispatch and is gated by the plan reviewer.
 
 ## Plan
 

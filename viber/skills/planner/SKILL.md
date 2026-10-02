@@ -29,8 +29,8 @@ Never plan an end-to-end test on your own: `/viber:e2e` writes them after the bu
 Before writing a task, decide which files get created, modified or deleted and what each one owns: locked-in boundaries are what lets tasks run in parallel.
 
 - One responsibility per file. Files that change together live together.
-- Read the codebase for what the change FORCES, not only what it introduces: where a new type is registered, exported or wired up, where a new persisted shape is declared and migrated, every existing test asserting the behaviour you change, every place applying a shared rule the change edits or overrides at one caller, or a count, an enumeration or a snapshot over what you touch, and the chain that would break every criterion's claim of absence (an import graph, a bundle's contents, a call never made) through today's tree, each link landing in the file map or dropped from the claim.
-- In an existing codebase follow its established patterns. A file you have to touch that has grown unwieldy may be split, as a task.
+- Read the codebase for everything `plan-rules.md`'s Reach and Owned rules force into the file map, not only what the change introduces.
+- A file you have to touch that has grown unwieldy may be split, as a task.
 
 ## 2. Write the plan
 
@@ -44,9 +44,9 @@ An input carrying a roadmap fills `## Roadmap` in the template's shape with the 
 
 An input carrying a `Roadmap: <path>` line continues a roadmap: read that `roadmap.md`, mark every earlier entry `(built)`, and move this plan's own entry's decisions from the roadmap into the specification, out of the `## Roadmap` section.
 
-A plan stopping at a draft writes the specification half alone: no `## Tasks`, no `## Contracts` appendix, no `plan-index.sh`, no decision record screening.
+A plan stopping at a draft writes the specification half alone: no `## Tasks`, no `## Contracts` appendix, no decision record screening.
 
-Then run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan-path>"`. It must exit 0: fix whatever it reports and re-run.
+Every plan but a draft then runs `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan-path>"`. It must exit 0: fix whatever it reports and re-run.
 
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" planning.adr "${CLAUDE_SKILL_DIR}" adr
@@ -85,15 +85,19 @@ A reply with no `VERDICT:` line gets one `SendMessage`, `Finish your task, then 
 
 Call `ExitPlanMode` only after a PASS from a review dispatched after your last write to the plan file. Every later write voids that PASS, whatever caused it - the user's remark on a refused `ExitPlanMode`, an answer to your question, a Minor finding, your own second thought: re-run `plan-index.sh` unless the plan is a draft, then dispatch step 3 again, as a fresh round 1, before the next `ExitPlanMode`.
 
-A plan with its task half, on a change no draft preceded: name `viber:implementor` as the next step, the path shown in step 2 being the whole handover. Nothing runs here.
+Then exactly one case applies:
 
-A plan with its task half that changes a UI or an endpoint and carries no end-to-end task adds one line to either hand-off:
+- A plan with its task half, on a change no draft preceded: name `viber:implementor` as the next step, the path shown in step 2 being the whole handover. Nothing runs here.
+- A round still carrying no task half: land it below and end there, never naming `viber:implementor`: a build refuses a draft.
+- A round that added the task half to a draft: land it below, then name `viber:implementor` as the next step, the landed path being the handover.
+
+A plan with its task half that changes a UI or an endpoint and carries no end-to-end task adds one line to its hand-off:
 
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.qa "${CLAUDE_SKILL_DIR}" qa-e2e
 ```
 
-A change that went through a draft lands here instead, since nothing downstream lands a plan carrying no task - the only thing this step executes:
+A change that went through a draft lands here, since nothing downstream lands a plan carrying no task - the only thing this step executes:
 
 `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --land "<plan-path>"`
 
@@ -102,5 +106,3 @@ A change that went through a draft lands here instead, since nothing downstream 
 ```
 
 Show the user the landed path. Never run git directly yourself: the landed draft is the user's to commit.
-
-A round still carrying no task half ends there and never names `viber:implementor`: a build refuses a draft. A round that added the task half names `viber:implementor` as the next step, the landed path being the handover.

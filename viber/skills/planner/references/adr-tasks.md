@@ -1,6 +1,6 @@
 # ADR tasks
 
-Read only under `planning.adr: true`, once the whole plan is written and `plan-index.sh` exits 0; a draft never reads it. What is a record is `viber:adr-screener`'s call alone: never add a line of your own to its result, never drop or reword one.
+What is a record is `viber:adr-screener`'s call alone: never add a line of your own to its result, never drop or reword one.
 
 ## 1. Screen
 
