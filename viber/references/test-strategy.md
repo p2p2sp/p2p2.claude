@@ -12,6 +12,7 @@ How a test is written. Where two rules pull against each other, catching a real 
 - A component test drives the whole application through its own entry point inside the test process; every external adapter is replaced by a fake holding its own state, never an in-memory database dialect or an object-relational mapper's in-memory provider. It asserts only on the entry point's response and the fakes' state. (blocking)
 - No control flow in a test body - no branch, no loop, no switch. Cases belong in the framework's parameterised form, one row each. (blocking)
 - Assert on what a caller observes: the returned value, the public state, the side effect through its own surface, the raised error. Never on log output, and never on data the test did not arrange itself. (blocking)
+- A test never reads the source of the code under test as text to assert its shape: no regular expression, substring or line match over a source file. The one exception is a file the host declares as its product (a document, a configuration, a prompt), whose text is the behaviour. (blocking)
 - Construct whatever can be constructed. A double for a value, a record or a single config lookup hides the real shape.
 
 Three shapes raise none of the blocking findings except the end-to-end rule: an end-to-end scenario whose steps model one user flow, a snapshot assertion, and a loop inside a property-based generator - control flow in the property body still counts. A test taking one of these carries a comment naming which; an undocumented one is a finding.
