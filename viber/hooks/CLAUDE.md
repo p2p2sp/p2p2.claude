@@ -41,7 +41,8 @@ verdict line disarms the fail-open gate silently.
   with no id takes the first verdict after it. `"status":"async_launched"` lines (they echo the
   prompt) are never read as verdicts. A verdict from the other reviewer never counts.
 - The awk pattern that selects the verdict line and the one that reads its value must stay
-  identical, or a quoted "VERDICT: PASS is not..." becomes a false allow.
+  identical, or a quoted "VERDICT: PASS is not..." becomes a false allow. Both skip markdown
+  emphasis (`*`, `_`, backtick) around the label and the value: `**VERDICT: PASS**` is a PASS.
 - Each outcome has its own deny reason: no dispatch ("review the plan"), no verdict yet ("let the
   review finish"), `DENIED` ("grant the permission", then review again), `FAIL` ("fix the
   findings"), plan touched after the PASS ("re-review").

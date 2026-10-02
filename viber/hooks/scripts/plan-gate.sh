@@ -200,6 +200,8 @@ fi
 # background agent, inside the <result> of its task-notification. The verdict must
 # open a line (escaped \n), a content string, or the <result> element, and its value
 # must end the token, so a quoted "VERDICT: PASS is not..." cannot pass as one.
+# Markdown emphasis the agent wraps around the label or the value (* _ `, as in
+# "**VERDICT: PASS**" or "**VERDICT:** PASS") is skipped, never read as missing.
 # Pairing binds strictly on the dispatch's own tool-use id when it carries one: a
 # verdict line missing that id (another dispatch's, or none at all) is skipped
 # outright, never kept as a fallback, so a foreign VERDICT while the own review is
@@ -217,7 +219,7 @@ pair_raw="$(
       next
     }
     /"status":"async_launched"/ { next }
-    call && /(\\n|"(text|content)":"|<result>)[[:space:]]*VERDICT:[[:space:]]+`?(PASS|FAIL|DENIED)`?[[:space:]]*(\\n|"|<)/ {
+    call && /(\\n|"(text|content)":"|<result>)[[:space:]]*[*_`]*VERDICT:[*_`]*[[:space:]]+[*_`]*(PASS|FAIL|DENIED)[*_`]*[[:space:]]*(\\n|"|<)/ {
       if (cid != "" && index($0, cid) == 0) {
         # This dispatch carries its own id, and this verdict line does not -
         # a sibling agent reply, or an echo. It cannot be this dispatch answer,
@@ -261,7 +263,7 @@ fi
 # on the gate. The two patterns must stay identical.
 verdict_value=$(
   awk -v ln="$verdict_line" 'NR==ln {
-    if (match($0, /(\\n|"(text|content)":"|<result>)[[:space:]]*VERDICT:[[:space:]]+`?(PASS|FAIL|DENIED)`?[[:space:]]*(\\n|"|<)/)) {
+    if (match($0, /(\\n|"(text|content)":"|<result>)[[:space:]]*[*_`]*VERDICT:[*_`]*[[:space:]]+[*_`]*(PASS|FAIL|DENIED)[*_`]*[[:space:]]*(\\n|"|<)/)) {
       v = substr($0, RSTART, RLENGTH)
       if (match(v, /PASS|FAIL|DENIED/)) print substr(v, RSTART, RLENGTH)
     }

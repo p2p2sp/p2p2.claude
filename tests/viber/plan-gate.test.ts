@@ -465,6 +465,42 @@ test("a back-ticked `VERDICT: `PASS`` -> allow (the agent's own markdown must no
   });
 });
 
+test("a bold '**VERDICT: PASS**' inside a background agent's <result> -> allow (the agent's own markdown must not gate the user)", async () => {
+  await withTempDir("p2p2-plan-gate-", async (dir) => {
+    const bold = line({ type: "user", message: { content: "agent finished: <result>**VERDICT: PASS**\n\n**FINDINGS:**\nnone</result>" } });
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch(), bold]);
+    assert.equal((await runCase(f)).decision, "allow");
+  });
+});
+
+test("a bold label '**VERDICT:** PASS' -> allow", async () => {
+  await withTempDir("p2p2-plan-gate-", async (dir) => {
+    const label = verdict("PASS", { body: "**VERDICT:** PASS\n**FINDINGS:** none" });
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch(), label]);
+    assert.equal((await runCase(f)).decision, "allow");
+  });
+});
+
+test("a bold '**VERDICT: FAIL**' -> deny naming the verdict it read (markdown never turns a FAIL into a missing verdict)", async () => {
+  await withTempDir("p2p2-plan-gate-", async (dir) => {
+    const bold = verdict("FAIL", { body: "**VERDICT: FAIL**\n\n**FINDINGS:**\nfix task 3." });
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch(), bold]);
+    const { decision, reason } = await runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /returned 'VERDICT: FAIL'/);
+  });
+});
+
+test("a bold qualified '**VERDICT: PASS** is not warranted' does not read as a PASS -> deny on the real FAIL below it", async () => {
+  await withTempDir("p2p2-plan-gate-", async (dir) => {
+    const mixed = verdict("FAIL", { body: "**VERDICT: PASS** is not warranted; see below.\n**VERDICT: FAIL**\nfix task 3." });
+    const f = writeTranscript(dir, "t.jsonl", [skillUse(), planWrite(), dispatch(), mixed]);
+    const { decision, reason } = await runCase(f);
+    assert.equal(decision, "deny");
+    assert.match(reason ?? "", /returned 'VERDICT: FAIL'/);
+  });
+});
+
 test("a verdict delivered inside a background agent's <result> element -> allow", async () => {
   await withTempDir("p2p2-plan-gate-", async (dir) => {
     const bg = line({ type: "user", message: { content: "agent finished: <result>VERDICT: PASS</result>" } });
