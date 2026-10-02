@@ -59,6 +59,9 @@ clears the context).
 - Every question offering options is an `AskUserQuestion` (`setup` merge/reset, `memory`/`rules`
   reset, `e2e` install among them): a prose question ends the turn and the pre-approval. Only
   `intent`'s interview asks in prose on purpose; an open question with no options stays prose.
+  A skill names its options in English (`Confirm`, retry / abort) as their meaning; the manifest
+  rule has every `AskUserQuestion` shown whole in the conversation's language, so a skill body
+  never repeats that rule.
 
 ## Sections
 
