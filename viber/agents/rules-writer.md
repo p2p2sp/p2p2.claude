@@ -29,7 +29,7 @@ Your whole scope is `.claude/rules/**/*.md`. Never touch `CLAUDE.md`, `.temp/` o
 - Under the map shape, change, move or remove only an existing rule a `rule:` line of the map names; every other rule stays as it stands. Restructure those rules too: a root file whose `paths:` stays inside one area moves into that area's directory, and a basename carrying its area as a prefix loses it. Move by writing the new path, then `rm -- <old path>`, both on `FILES:`. Under the spec shape, place only what you create and leave existing files where they stand.
 - Every convention you add, as a new file or as a line in an existing one, passes the admission gate first and carries the real example from the code that proves it. A candidate failing it is dropped silently.
 - An existing rule holds one example per convention. A stronger example replaces the weaker one, never joins it: a list of occurrences is an inventory, not a rule.
-- A file whose basename starts with `_` is frozen: never read it for scoring, never rewrite, move or delete it, never propose one.
+- A file whose basename starts with `_` is frozen: never judge it against the admission gate, never rewrite, move or delete it, never propose one. It still counts toward the directory total.
 - Correct a rule the build contradicted, and say plainly in it what now holds, never what it used to say.
 - Under the map shape, remove a rule for its globs only on its `dead:` line, never on a `Glob` call; under the spec shape, never for its globs.
 - Remove a rule whose whole convention the build removed only once `Grep` and `Glob` find no file still following it: a rule you cannot disprove stays.

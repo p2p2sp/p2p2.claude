@@ -94,5 +94,5 @@ Read `CLAUDE.code-auditor.md` before editing `profiler`, `scout`, `edge-scout`, 
   `references/adr-tasks.md`, which relays every line and adds none. The test itself lives only in
   `references/adr-admission.md`, which it reads whole through `refs:`; a criterion added to the
   agent or to `adr-tasks.md` splits it.
-- `qa-writer` returns `KEPT` and writes nothing when `qa.md` exists: a resumed build never
+- `qa-writer` returns `KEPT` and writes nothing when `qa.md` or `qa.e2e.md` exists: a resumed build never
   overwrites scenarios a tester may have worked through.

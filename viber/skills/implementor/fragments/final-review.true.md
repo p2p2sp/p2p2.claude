@@ -1,7 +1,6 @@
 Skip this step, completing its `Final review` entry, when the index's `closed:` line names `final-review`, the build ended on `abort`, or no task was committed this run.
 
-The `Final review` entry's `TaskUpdate` -> completed lands once every dispatch below has returned, committed or been accepted. As an exception to the skill's rule that only coder, reviewer and repair-coder dispatches carry `model`, every dispatch of this step carries it, the arbiter's excepted.
-
+The `Final review` entry's `TaskUpdate` -> completed lands once every dispatch below has returned, committed or been accepted.
 Cut every task of the index, in index order, skipped ones included, into groups of at most 8 consecutive tasks, one group per slice.
 
 Dispatch one `viber:final-reviewer` (Agent tool, `model` opus clamped into the tiers range) per slice, all in one message, each carrying:
@@ -26,7 +25,6 @@ out: .temp/viber/final-fix/
 refs: ${CLAUDE_PLUGIN_ROOT}/references
 ```
 
-- The fix round fixes every FAIL reviewer's `REPORT`, and it is the only one.
 - Fix coder `VERDICT: DENIED` -> `AskUserQuestion`: retry / accept / abort; `accept` commits the fix, its refused call named in the final summary.
 - The fix is every `FILES:` path this step's fix coder returned. None -> no recheck and no commit.
 - Otherwise dispatch one `viber:final-reviewer` (Agent tool, `model` opus clamped into the tiers range) to recheck the fix, carrying:

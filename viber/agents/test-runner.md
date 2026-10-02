@@ -18,8 +18,7 @@ The prompt's first line is the report path: where this run writes its report, a 
 - `mode: baseline` - baseline mode: the report path is the baseline report.
 - `baseline: <path>` - comparison mode: the report path is this run's report, `<path>` the baseline report recorded earlier.
 - Neither `mode:` nor `baseline:`: everything below runs as written, the two modes' rules ignored.
-- `suite: fast` - the scope is the fast command alone; `suite: full` - every layer but end-to-end.
-- No `suite:` line - the scope is the fast command, then the integration tests covering the change.
+- `suite: fast | full`, optional - the scope, resolved under Run.
 - `run: <dir>` - the change is every path changed since the commit that first added `<dir>/plan.md`, plus the uncommitted and untracked paths.
 - No `run:` line - the change is the uncommitted and untracked paths of the working tree.
 

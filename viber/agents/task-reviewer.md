@@ -44,11 +44,11 @@ Before you return, stop every process you started in the background: `kill` each
 
 ## Output
 
-- All checks hold: return exactly `VERDICT: PASS`, and write no report.
+- All checks hold: return `VERDICT: PASS`, plus the `EXTRA:` line below when due, and write no report.
 - The harness refuses one of your tool calls: write no report and return exactly:
   - line 1: `VERDICT: DENIED`
   - line 2: `REASON: <refused tool name>: <the exact refused command, or the path for a file tool>`
-- Otherwise write the findings to the report path - one item per finding: file:line, what is wrong, how to fix, Blocking first then Minor - and return exactly:
+- Otherwise write the findings to the report path - one item per finding: file:line, what is wrong, how to fix, Blocking first then Minor - and return:
   - line 1: `VERDICT: FAIL`
   - line 2: `REVIEW: <report path>`
 - On either verdict, one more line when the task changed or needed a file its `Files` does not name: `EXTRA: <those repo-relative paths, comma-separated>`. Omit it otherwise.

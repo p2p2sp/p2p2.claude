@@ -32,6 +32,7 @@ Only with a `fix:` line, in place of "Read your slice":
 - Read in full `<run>/spec.md`, every `review:` report and every `<run>/work/final-fix-coder-*.md` present.
 - Read the fix through `git diff HEAD -- <fix paths>`, and in full every fix path `git status --porcelain` shows untracked.
 - Report every finding of the `review:` reports the fix left unresolved, at its location, plus what "What you search for" finds with the fix paths as your slice.
+
 ## Read your slice
 
 Read in full: `<run>/spec.md`, `<run>/status.md`, each of your `tasks`' own task file under `<run>/tasks/`, and each of their coders' notes at `<run>/work/<task id>-coder.md` when present. Find each task's commit by its subject - `<task id> - <title>`, or `<task id>(<n>) - <title>` for a post-review fix - and read what it changed.
@@ -65,7 +66,7 @@ Before you return, stop every process you started in the background: `kill` each
 
 Your only output channel - no diff, no logs, no prose.
 
-- No finding a coder can fix: return exactly `VERDICT: PASS`, and write no report.
+- No finding a coder can fix: return `VERDICT: PASS`, plus the `OWNER:` lines below when due, and write no report.
 - Any fixable finding: write it to the `report` path - one item per finding, its location (`path:line`), what is wrong, the consumer or reference proving it, and the fix; Blocking first, then Minor - and return:
   - line 1: `VERDICT: FAIL`
   - line 2: `REPORT: <report path>`

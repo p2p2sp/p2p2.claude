@@ -22,13 +22,13 @@ Carry the preloaded `started:` mark unchanged to step 7.
 You orchestrate and delegate: every piece of work runs inside a subagent. Open no file, write no file and no code, run no build and no test.
 
 - One status line per event. No prose, never restate what an agent returned.
-- Only coder, reviewer and repair-coder dispatches carry `model`; every other dispatch carries none.
+- Only coder, reviewer and repair-coder dispatches, and a dispatch its step names a `model` for, carry `model`; every other dispatch carries none.
 - Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" "<arg>" ...`, every argument double-quoted: never prefixed with an interpreter, never assigned to a variable, never preceded by `cd`, never chained with `;`.
 - Every dispatch or call that starts or ends a task-list entry carries that entry's `TaskUpdate` in the same message.
 - Never two `commit-task.sh` calls in one message: each rewrites the git index and `status.md`.
-- A `commit-task.sh` call exiting non-zero committed nothing. Except a commit outside a task, a `--rule` call and a `--skip` or `--decide` call made after an arbiter ruling (step 4 owns all three): `AskUserQuestion`: retry / abort, its paths named uncommitted in the final summary on abort.
+- A `commit-task.sh` call exiting non-zero committed nothing. Except a task's own commit, a commit outside a task, a `--rule` call and a `--skip` or `--decide` call made after an arbiter ruling (step 4 owns all four): `AskUserQuestion`: retry / abort, its paths named uncommitted in the final summary on abort.
 - An agent's completion notice saying it "stopped with background work of its own still running": hold its verdict and `SendMessage` that agent, once: `Stop every process you started that is still running, then return your output lines again.` Act on what it returns then. The same notice again -> act on the verdict and name that agent's task in the final summary.
-- An agent returning no `VERDICT:` line: `SendMessage` that agent, once: `Finish your task, then return your output lines.` Still none -> act as on its `VERDICT: FAIL`, else `VERDICT: DENIED`, with `REASON: no verdict returned`.
+- An agent returning no `VERDICT:` line: `SendMessage` that agent, once: `Finish your task, then return your output lines.` Still none -> act as on its `VERDICT: FAIL` when its output defines one, else on its `VERDICT: DENIED`, with `REASON: no verdict returned`.
 
 ## Answers
 
@@ -124,9 +124,18 @@ prior: <dir>/work/<dep-id>-coder.md, ...
 decision: <task-id>: <text>
 ```
 
-`out` is per task, shared by its reviewer. `deferred` carries the index entries naming this id plus every `--defer` this build passed naming it, `prior` the notes of the tasks its `deps` names. `decision:` is one line per index `decision:` line plus one per `--decide` this build recorded, whose `<task-id>` is this task or one it depends on, directly or through another. A coder runs on its attempt's tier (below) and the user's `retry` raises it too. Every coder re-run - a next attempt, a `WAIT:` hold, `retry` - is this same fresh dispatch, every labelled line above plus the `report:`, `reason:` or `decision:` line its answer names, and a `resume:` line carrying every path an `EXTRA:` line of the task's earlier coders returned.
+- `out`: per task, shared by its reviewer.
+- `deferred`: the index entries naming this id plus every `--defer` this build passed naming it.
+- `prior`: the notes of the tasks its `deps` names.
+- `decision:`: one line per index `decision:` line plus one per `--decide` this build recorded, whose `<task-id>` is this task or one it depends on, directly or through another.
+- Tier: the attempt's tier (below), raised too by the user's `retry`.
+- Every coder re-run - a next attempt, a `WAIT:` hold, `retry` - is this same fresh dispatch, every labelled line above plus the `report:`, `reason:` or `decision:` line its answer names, and a `resume:` line carrying every path an `EXTRA:` line of the task's earlier coders returned.
 
-Reviewer dispatch: `viber:task-reviewer` (Agent tool, `model` = the review tier) with the task's `task:`, `notes:`, `out:`, `refs:`, `deferred:` and `decision:` lines plus `report: <dir>/work/review-<id>-<round>.md`, round starting at 1 and rising with every review of that task, plus `extra: <repo-relative paths, comma-separated>` (every path an `EXTRA:` line of that task's coder returned so far in this build, across every re-run, never the reviewer's own, except a path the index `files` column gives to a task not yet `done`) and one `recheck: <task-id> | <command>` line per `done` task whose `files` column claims a path on `extra:`, `<command>` being that task's `verify:` command, both omitted when empty, plus any line a fragment of this step adds.
+Reviewer dispatch: `viber:task-reviewer` (Agent tool, `model` = the review tier) carrying the task's `task:`, `notes:`, `out:`, `refs:`, `deferred:` and `decision:` lines, any line a fragment of this step adds, and:
+
+- `report: <dir>/work/review-<id>-<round>.md`, round starting at 1 and rising with every review of that task.
+- `extra: <repo-relative paths, comma-separated>`: every path an `EXTRA:` line of that task's coder returned so far in this build, across every re-run, never the reviewer's own, except a path the index `files` column gives to a task not yet `done`. Omitted when empty.
+- `recheck: <task-id> | <command>`: one line per `done` task whose `files` column claims a path on `extra:`, `<command>` being that task's `verify:` command. Omitted when empty.
 
 Commit: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<plan>" "<id>"` with its `TaskUpdate` -> completed, plus:
 
@@ -210,7 +219,7 @@ Any agent of this step returning `VERDICT: DENIED` -> `AskUserQuestion` naming t
 
 Commit what the memory and rules dispatches above return, one call: memory and rule paths, through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore "<plan>" "<file>" ["<file>"...]`, only once every writer of this step has returned. No writer returned a path, or only `VERDICT: NONE` -> no call.
 
-Then `TaskUpdate` -> completed for each entry, the `memory` entry only after the `--chore` call, when one is due, returned.
+Then `TaskUpdate` -> completed for each entry, the `memory` and `rules` entries only after the `--chore` call, when one is due, returned.
 
 ## 7. Archive and close
 
