@@ -1,5 +1,0 @@
-- Toasts are raised inside `refresh`, only while `observed` is true (read before `observed` is cleared), so the commit hook, the clock and dispatches all feed the same diff.
-- A settled run leaves the view (pickRun skips it), so `refresh` diffs the previous index against the settled index it loaded in the same read (same plan); only an archived run (plan gone) falls back to `diffEvents(prev, undefined)` and the previous counts.
-- A run that settles in one refresh toasts its last task-done and then the build-end, not the build-end alone.
-- The `AskUserQuestion` hook backgrounds its toast and returns `next(e)` untouched; it never delays the call.
-- Another run taking the view while the observed one settles loses the build-end toast (diffEvents returns [] across plans, per C2).

@@ -1,6 +1,0 @@
-- `build.monitor` prints right after `build.cleanup` (before `github.issues`); `bootstrap.sh`'s merge needed no change: a schema-2 file gains `monitor: true` inside `build:` and `schema: 3` on the next setup run.
-- Raising the template to schema 3 moved every bootstrap.test.ts fixture that must stay "left untouched": `GROUPED` is now schema 3 with `monitor: true`, and the "higher schema" case uses 4.
-- Not overridable from `viber.local.yml`: a local `build.monitor` lands under `ignored:` (generic behaviour, one case pins it).
-- Outside `Files`: `.claude/rules/viber/switch-count-prose.md` now quotes "eight of the eleven on" (README and help.html sentences, both languages, were raised to match).
-- Pre-existing, unfixed: tests/viber/commit-task.test.ts "Files list runs past 32767 chars" fails on this machine, unrelated to config or template (commit-task.sh reads neither).
-- Trap: the template comment above `monitor` is the only place besides README/help.html naming 2.1.287.
