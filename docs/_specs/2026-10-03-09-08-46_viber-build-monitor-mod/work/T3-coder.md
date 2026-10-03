@@ -1,0 +1,8 @@
+- The engine refuses a module that shadows `on` or `$` ("declared again"); helpers take `$` as a parameter named `$` and call `$.noun.event(...)` directly, which the validator accepts (it lists calls "via <helper>").
+- state.d.ts names its types `Viber*`: inside `declare module 'claude-code'` a bare `Tier` binds to the engine's own plugin-tier type, not the model tier.
+- plan-index.sh runs WITHOUT --split (the split form writes and commits); the newest `path:` plan is judged settled by its own index, every `open:` plan counts as unsettled by plan-path.sh's count.
+- Clock: `$.clock.every(30_000)` starts on the first dispatch and stops itself once a refresh finds no view (`observed` goes false); session.start restarts it after a hot reload when `observed` is still true. T4-T6 extend the same `refresh`.
+- Test kit: every `$` call the mod makes needs a hook beneath it in the test world (the bottom throws), so a new `$` call in register.tsx needs a matching `on(...)` in worldOf; background work settles on `world.clock.settle()`.
+- "No failed hook" is proven by a prepend-tier probe plugin toasting `next.trace` outcomes (`returned`; `kept`/`skipped` on failure).
+- The two "without waiting" cases carry `timeoutMs: 20_000`: a hook that waited would be released by the 10 s hook budget, so a regression shows as an assertion, not a timeout.
+- Not done (outside Files): viber/hooks/CLAUDE.md and viber/CLAUDE.md layout lines do not mention the monitor module yet.
