@@ -1,0 +1,7 @@
+- `panelRows` reads `attempts` and `tiers` keyed `<plan>#<id>` (C5's key); register.tsx must write them under that exact key.
+- An in-flight flight overrides any index state in `panelRows` (last flight in the array wins); `statusLine` and `panelRows` drop flights of another plan.
+- `diffEvents(prev, next)` with `next.plan !== prev.plan` yields nothing (a view switch, not an end). Trap for T3/T6: `pickRun` drops a run once settled, so when another unsettled run exists the next view is that run and no `build-end`/last `task-done` fires; re-index `prev.plan` itself to see its own settle.
+- `parseDispatch` keeps the `task:` path as written (repo-relative today); an absolute path would never match `RunIndex.plan`. Backslashes are normalized to `/`.
+- `parseIndex` needs both a `plan:` and a `progress:` line, else `undefined`; skipped/deferred split on whitespace as plan-index.sh's own `listed` does.
+- Toast texts: `viber: T4 done (4/6)`, `viber ruling on <subject>: <ruling>` (why/cost dropped), `viber build finished: d/t done`, `viber build is waiting for your answer`.
+- Status line text: `viber <done>/<total> | T5 coding opus | T6 reviewing sonnet`.
