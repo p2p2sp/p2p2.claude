@@ -10,12 +10,15 @@
  * fullscreen layout while drawing. Every hook passes
  * its event on unchanged and starts its refresh without waiting for it. The
  * logic it draws from is monitor.ts; the session state is state.d.ts.
+ * While a build is observed, each refresh toasts the events between the last
+ * read and this one (task done, ruling, build end) and every AskUserQuestion
+ * call toasts that the build waits for the person.
  */
 
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderElement, RenderInput } from 'claude-code'
 
-import { isSettled, panelRows, parseDispatch, parseIndex, parseRunList, pickRun, statusLine } from './monitor'
+import { diffEvents, isSettled, panelRows, parseDispatch, parseIndex, parseRunList, pickRun, statusLine, toastText } from './monitor'
 import type { Candidate, Dispatch, RunIndex } from './monitor'
 
 const enabled = atom({ plugin: 'viber', key: 'enabled' } as const, false)
@@ -72,14 +75,19 @@ async function changedMs($: EngineInterface, root: string, plan: string): Promis
   return Math.max(...times)
 }
 
-/** The active run's index as S2 picks it, or undefined for no view. */
-async function activeIndex($: EngineInterface): Promise<RunIndex | undefined> {
-  const root = await repoRoot($)
-  if (root === undefined) return undefined
-  const listed = await script($, root, 'plan-path')
-  if (listed === undefined) return undefined
-  const list = parseRunList(listed)
+/** What one refresh read: the active run's index as S2 picks it (undefined for no view) and every index it loaded, by plan. */
+interface Reading {
+  view: RunIndex | undefined
+  loaded: Map<string, RunIndex | undefined>
+}
+
+async function activeIndex($: EngineInterface): Promise<Reading> {
   const loaded = new Map<string, RunIndex | undefined>()
+  const root = await repoRoot($)
+  if (root === undefined) return { view: undefined, loaded }
+  const listed = await script($, root, 'plan-path')
+  if (listed === undefined) return { view: undefined, loaded }
+  const list = parseRunList(listed)
   const load = async (plan: string) => {
     if (!loaded.has(plan)) loaded.set(plan, parseIndex((await script($, root, 'plan-index', plan)) ?? ''))
     return loaded.get(plan)
@@ -92,20 +100,34 @@ async function activeIndex($: EngineInterface): Promise<RunIndex | undefined> {
     candidates.push({ plan, settled, changedMs: settled ? 0 : await changedMs($, root, plan) })
   }
   const chosen = pickRun(candidates, (await read($, lastDispatchPlan)) ?? undefined)
-  return chosen === undefined ? undefined : load(chosen)
+  return { view: chosen === undefined ? undefined : await load(chosen), loaded }
 }
 
 // the latest refresh started; an older one finishing after it writes nothing
 let generation = 0
 
-/** Re-reads the active run and pins its status line; with no view the build is no longer observed. */
+/** Re-reads the active run and pins its status line, toasting what an observed build did since the last read; with no view the build is no longer observed. */
 async function refresh($: EngineInterface): Promise<void> {
   const mine = ++generation
-  const view = await activeIndex($)
+  const { view, loaded } = await activeIndex($)
   if (mine !== generation) return
-  await update($, index, () => view ?? null)
+  const seen: { before?: RunIndex } = {}
+  await update($, index, (known) => {
+    seen.before = known ?? undefined
+    return view ?? null
+  })
+  if (await read($, observed)) {
+    // a run that settled leaves the view; its own final index still tells how far it got (absent: archived)
+    const now = view ?? (seen.before === undefined ? undefined : loaded.get(seen.before.plan))
+    for (const event of diffEvents(seen.before, now)) $.ui.toast(toastText(event))
+  }
   if (view === undefined) await update($, observed, () => false)
   await $.ui.status(statusLine(view, await read($, flights)))
+}
+
+/** A call of AskUserQuestion while a build is observed: toasts that the build waits for the person. */
+async function asked($: EngineInterface): Promise<void> {
+  if ((await read($, enabled)) && (await read($, observed))) $.ui.toast(toastText({ kind: 'question' }))
 }
 
 // how often an observed build is re-read between its own events
@@ -224,6 +246,11 @@ export const register: Register = (on) => {
     const ran = await next(e)
     if (/commit-task\.sh/.test(e.command)) background(committed($))
     return ran
+  })
+
+  on('tool.call', { tool: 'AskUserQuestion' }, async ($, e, next) => {
+    background(asked($))
+    return next(e)
   })
 
   on('turn.complete', async ($, e, next) => {

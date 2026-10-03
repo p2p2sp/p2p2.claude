@@ -2,7 +2,8 @@
  * register.test.tsx - proves viber/hooks/monitor/register.tsx, the build
  * monitor's engine layer: the switch read at session start, the coder and
  * reviewer spawns it tracks, the refreshes it starts and the status line it
- * pins, each hook passing its event on unchanged.
+ * pins, the toasts it raises for the build's events, each hook passing its
+ * event on unchanged.
  *
  * Repo reality: run by `claude plugin test`, never by `node --test` (its
  * `.tsx` suffix keeps it out of the `*.test.ts` glob). tests/viber/
@@ -51,6 +52,8 @@ type World = {
   clock: ReturnType<typeof mock.clock>
   /** Rows plan-index.sh prints from now on, per plan. */
   rows: Record<string, readonly Row[]>
+  /** Lines plan-index.sh prints after its tasks from now on. */
+  tail: readonly string[]
   /** Milliseconds of the mocked clock each script run waits before it answers. */
   lateMs: number
 }
@@ -85,6 +88,7 @@ function worldOf(on: On, setup: Setup = {}): World {
     runs: [],
     clock: mock.clock(on, { now: 1_000 }),
     rows: { ...(setup.runs ?? { [PLAN_A]: [['T1', 'done', 'One'], ['T2', 'todo', 'Two']] }) },
+    tail: setup.tail ?? [],
     lateMs: 0,
   }
   const mtimes = setup.mtimes ?? {}
@@ -96,7 +100,7 @@ function worldOf(on: On, setup: Setup = {}): World {
     const plan = argv[2] ?? ''
     if (setup.planIndex !== undefined) return setup.planIndex
     const rows = world.rows[plan]
-    return rows === undefined ? { exitCode: 1, stdout: '' } : { exitCode: 0, stdout: indexOut(plan, rows, setup.tail) }
+    return rows === undefined ? { exitCode: 1, stdout: '' } : { exitCode: 0, stdout: indexOut(plan, rows, world.tail) }
   }
 
   on('process.run', async ($, e) => {
@@ -497,3 +501,115 @@ test('the drawing hook that learns the layout returns what next returned for a d
 
   expect((await ui.find({ type: 'Text', text: 'drawn beneath' }))?.text).toBe('drawn beneath')
 })
+
+const THREE: readonly Row[] = [['T1', 'done', 'One'], ['T2', 'todo', 'Two'], ['T3', 'todo', 'Three']]
+const ASK = {
+  tool: 'AskUserQuestion' as const,
+  questions: [{ question: 'Which way?', header: 'Way', multiSelect: false, options: [{ label: 'Left' }, { label: 'Right' }] }],
+}
+
+/** A world observing PLAN_A: T1 done of three, a coder dispatched for T2. */
+async function observing($: Engine, on: On, setup: Setup = {}): Promise<World> {
+  const world = worldOf(on, { runs: { [PLAN_A]: THREE }, ...setup })
+  await $.session.start(SESSION)
+  await $.agent.spawn(spawnOf(PLAN_A, 'T2', 'viber:task-coder', 'opus', 'tu1'))
+  await world.clock.settle()
+  world.toasts.length = 0
+  return world
+}
+
+test('a refresh showing a newly done task toasts its id and the new progress', async ($, on) => {
+  const world = await observing($, on)
+  world.rows[PLAN_A] = [['T1', 'done', 'One'], ['T2', 'done', 'Two'], ['T3', 'todo', 'Three']]
+
+  await $.tool.call(COMMIT)
+  await world.clock.settle()
+
+  expect(world.toasts).toEqual(['viber: T2 done (2/3)'])
+})
+
+test('a new ruling toasts its subject', async ($, on) => {
+  const world = await observing($, on)
+  world.tail = ['ruling: T2: retry | why: flaky | cost if wrong: a rerun']
+
+  await $.tool.call(COMMIT)
+  await world.clock.settle()
+
+  expect(world.toasts).toEqual(['viber ruling on T2: retry'])
+})
+
+const ENDS: readonly (readonly [end: string, change: (world: World) => void, toast: string])[] = [
+  ['turning settled', (world) => { world.rows[PLAN_A] = [['T1', 'done', 'One'], ['T2', 'done', 'Two'], ['T3', 'skipped', 'Three']] }, 'viber build finished: 2/3 done'],
+  ['disappearing (archived)', (world) => { delete world.rows[PLAN_A] }, 'viber build finished: 1/3 done'],
+]
+
+for (const [end, change, toast] of ENDS) {
+  test(`the run ${end} raises exactly one build-end toast`, async ($, on) => {
+    const world = await observing($, on)
+    change(world)
+
+    await $.tool.call(COMMIT)
+    await world.clock.settle()
+
+    expect(world.toasts.filter((text) => text.startsWith('viber build finished'))).toEqual([toast])
+  })
+}
+
+test('an AskUserQuestion call during an observed build toasts the question', async ($, on) => {
+  const world = await observing($, on)
+
+  await $.tool.call(ASK)
+  await world.clock.settle()
+
+  expect(world.toasts).toEqual(['viber build is waiting for your answer'])
+})
+
+test('an AskUserQuestion call during an observed build passes unchanged', async ($, on) => {
+  const world = await observing($, on)
+
+  const result = await $.tool.call(ASK)
+  await world.clock.settle()
+
+  expect({ result, received: world.received.at(-1) }).toMatchObject({ result: { result: 'committed', text: 'progress: 2/3' }, received: ASK })
+})
+
+test('an AskUserQuestion call before any dispatch of the session toasts nothing', async ($, on) => {
+  const world = worldOf(on)
+  await $.session.start(SESSION)
+  await world.clock.settle()
+
+  await $.tool.call(ASK)
+  await world.clock.settle()
+
+  expect(world.toasts).toEqual([])
+})
+
+const SILENT: readonly (readonly [event: string, act: ($: Engine, world: World) => Promise<unknown>])[] = [
+  ['a newly done task', async ($, world) => {
+    world.rows[PLAN_A] = [['T1', 'done', 'One'], ['T2', 'done', 'Two'], ['T3', 'todo', 'Three']]
+    await $.tool.call(COMMIT)
+  }],
+  ['a new ruling', async ($, world) => {
+    world.tail = ['ruling: T2: retry | why: flaky | cost if wrong: a rerun']
+    await $.tool.call(COMMIT)
+  }],
+  ['the run ending', async ($, world) => {
+    delete world.rows[PLAN_A]
+    await $.tool.call(COMMIT)
+  }],
+  ['an AskUserQuestion call', ($) => $.tool.call(ASK)],
+]
+
+for (const [event, act] of SILENT) {
+  test(`with build.monitor false ${event} raises no toast`, async ($, on) => {
+    const world = worldOf(on, { monitor: false, runs: { [PLAN_A]: THREE } })
+    await $.session.start(SESSION)
+    await $.agent.spawn(spawnOf(PLAN_A, 'T2', 'viber:task-coder', 'opus', 'tu1'))
+    await world.clock.settle()
+
+    await act($, world)
+    await world.clock.settle()
+
+    expect(world.toasts).toEqual([])
+  })
+}
