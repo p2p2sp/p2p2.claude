@@ -58,7 +58,6 @@ const OFF = {
   "build.rules": "false",
   "build.qa": "false",
   "build.cleanup": "false",
-  "build.monitor": "false",
   "github.issues": "false",
 };
 const DEFAULT_DIRS = { runs: "_specs", specifications: "specs" };
@@ -94,7 +93,7 @@ function config(stdout: string): Record<string, string> {
   return out;
 }
 
-/** The eleven switches alone, so a case about a switch need not restate the
+/** The ten switches alone, so a case about a switch need not restate the
  *  titles, directory names, tiers and branching mode. */
 function switches(stdout: string): Record<string, string | undefined> {
   const all = config(stdout);
@@ -142,7 +141,6 @@ test("no config file: the block is every switch off, both title defaults, then t
       "build.rules: false",
       "build.qa: false",
       "build.cleanup: false",
-      "build.monitor: false",
       "github.issues: false",
       "github.issue-title: {summary}",
       "github.pr-title: [{issue-number}] {summary}",
@@ -226,49 +224,6 @@ for (const [label, body] of [
     });
   });
 }
-
-for (const value of ["true", "TRUE", "True"]) {
-  test(`\`monitor: ${value}\` inside \`build:\` prints \`build.monitor: true\`, matched in any letter case`, async () => {
-    await withTempDir("p2p2-viber-", async (dir) => {
-      writeConfig(dir, inGroup("build", `monitor: ${value}`));
-
-      assert.equal(printedLine((await run(dir)).stdout, "build.monitor"), "build.monitor: true");
-    });
-  });
-}
-
-for (const [label, body] of [
-  ["the key absent", inGroup("build", "memory: true")],
-  ["the value false", inGroup("build", "monitor: false")],
-  ["another value", inGroup("build", "monitor: enabled")],
-  ["a column-0 key", "monitor: true\n"],
-  ["the key under another group", inGroup("planning", "monitor: true")],
-] as const) {
-  test(`a config with ${label} prints \`build.monitor: false\``, async () => {
-    await withTempDir("p2p2-viber-", async (dir) => {
-      writeConfig(dir, body);
-
-      assert.equal(printedLine((await run(dir)).stdout, "build.monitor"), "build.monitor: false");
-    });
-  });
-}
-
-test("with no config file `build.monitor` prints false", async () => {
-  await withTempDir("p2p2-viber-", async (dir) => {
-    assert.equal(printedLine((await run(dir)).stdout, "build.monitor"), "build.monitor: false");
-  });
-});
-
-test("`build.monitor` is not a local override: a `monitor: true` in the local file leaves the shared false and is named under ignored", async () => {
-  await withTempDir("p2p2-viber-", async (dir) => {
-    writeConfig(dir, inGroup("build", "monitor: false"));
-    writeLocal(dir, inGroup("build", "monitor: true"));
-
-    const stdout = (await run(dir)).stdout;
-    assert.equal(printedLine(stdout, "build.monitor"), "build.monitor: false");
-    assert.equal(localLine(stdout), "# local: none | ignored: build.monitor");
-  });
-});
 
 test("`build.baseline-tests` still sits between `planning.fast-path` and `build.final-review`", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
@@ -410,7 +365,6 @@ test("the shipped template resolves to its own defaults: every switch, both titl
       "build.rules": "true",
       "build.qa": "false",
       "build.cleanup": "true",
-      "build.monitor": "true",
       "github.issues": "false",
     });
     assert.deepEqual(titles(result.stdout), DEFAULT_TITLES);
@@ -974,7 +928,6 @@ const DEFAULT_BLOCK = [
   "build.rules: false",
   "build.qa: false",
   "build.cleanup: false",
-  "build.monitor: false",
   "github.issues: false",
   "github.issue-title: {summary}",
   "github.pr-title: [{issue-number}] {summary}",
@@ -1007,7 +960,6 @@ test("a local file setting all four keys prints the local value on those four li
       "build.rules: false",
       "build.qa: false",
       "build.cleanup: false",
-      "build.monitor: false",
       "github.issues: true",
       "github.issue-title: {summary}",
       "github.pr-title: [{issue-number}] {summary}",

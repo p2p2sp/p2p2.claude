@@ -6,7 +6,6 @@
     "name": "Dariusz Lenartowicz",
     "email": "dariusz.lenartowicz@p2p2.com.pl"
   },
-  "types": "./hooks/monitor/state.d.ts",
   "skills": [
     "./skills/setup/",
     "./skills/triage/",

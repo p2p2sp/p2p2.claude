@@ -51,9 +51,7 @@ function gitEnv(dir: string): Record<string, string> {
 }
 
 // Written as a file rather than through `git config --global` calls: a
-// spawned process is the most expensive thing the suite does. Auto gc and
-// maintenance are off: a commit of many paths otherwise starts a detached
-// `git gc` that writes into the repo while its temp dir is being removed.
+// spawned process is the most expensive thing the suite does.
 function writeGitConfig(dir: string, env: Record<string, string>): void {
   fs.writeFileSync(
     path.join(dir, GIT_CONFIG_NAME),
@@ -65,10 +63,6 @@ function writeGitConfig(dir: string, env: Record<string, string>): void {
       "\tgpgsign = false",
       "[init]",
       "\tdefaultBranch = main",
-      "[gc]",
-      "\tauto = 0",
-      "[maintenance]",
-      "\tauto = false",
       "",
     ].join("\n"),
   );

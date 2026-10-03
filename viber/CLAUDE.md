@@ -13,7 +13,7 @@ skills/<name>/           17 skills: SKILL.md plus files read at one step;
 agents/                  23 agents
 scripts/                 16 plugin-wide scripts
 references/              read at runtime: by agents through `refs:`, by skills by direct path
-hooks/                   command hooks (manifest, plan hints, plan gate, kill guard) + build monitor module
+hooks/                   SessionStart manifest + UserPromptSubmit plan hints + PreToolUse plan gate, kill guard
 ```
 
 ## The chain

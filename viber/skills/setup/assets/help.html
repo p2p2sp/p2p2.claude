@@ -2935,14 +2935,14 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   </div>
 </dl>
 <p lang="en">Every switch counts only inside its group: <code>planning:</code> holds the ones read while a change
-is planned, <code>build:</code> the ones a build reads, <code>github:</code> the GitHub ones. Eight of the eleven
+is planned, <code>build:</code> the ones a build reads, <code>github:</code> the GitHub ones. Seven of the ten
 start on; <code>build.qa</code>, <code>github.issues</code> and <code>build.baseline-tests</code> start off. To
 change any of them, edit <code>.claude/viber.yml</code>: every key has a comment there, and only
 <code>true</code> counts as on. Turn a switch off with <code>false</code> instead of deleting it. Only
 <code>build.baseline-tests</code> takes <code>off</code>, <code>fast</code> or <code>full</code>.</p>
 <p lang="pl">Każdy przełącznik liczy się tylko wewnątrz swojej grupy: <code>planning:</code> trzyma te czytane
 podczas planowania zmiany, <code>build:</code> te czytane przez build, <code>github:</code> te dotyczące GitHuba.
-Osiem z jedenastu jest domyślnie włączonych; <code>build.qa</code>, <code>github.issues</code>
+Siedem z dziesięciu jest domyślnie włączonych; <code>build.qa</code>, <code>github.issues</code>
 i <code>build.baseline-tests</code> startują wyłączone. Zmienisz to w <code>.claude/viber.yml</code>: każdy
 klucz ma tam komentarz, a za włączony liczy się tylko <code>true</code>. Przełącznik wyłączaj wartością
 <code>false</code>, nie usuwaj go. Tylko <code>build.baseline-tests</code> przyjmuje <code>off</code>,
@@ -3078,19 +3078,6 @@ wartość.</p>
     potem przez <a href="#agent-closeout"><code>closeout</code></a> archiwizuje przebieg z podsumowaniem buildu
     w <code>outcome.md</code> i usuwa plan, plik stanu
     i ślad pracy. Wszystko to zostaje w historii gita.</span></dd>
-  </div>
-  <div id="key-build-monitor">
-    <dt><code>build.monitor</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
-    <dd><span lang="en">While a build runs, Claude Code shows it live: a status line with the build's progress, a
-    <code>/viber-build</code> panel with its tasks, and a toast when a task is committed or a build needs you. It reads
-    the run's files and the build's dispatches itself, so it costs no model tokens, and it only shows: it changes
-    nothing in the build. It needs Claude Code 2.1.287 or newer. With the switch off there is no status line, no panel,
-    no <code>/viber-build</code> command and no toast.</span><span lang="pl">Gdy build trwa, Claude Code pokazuje go
-    na żywo: linię stanu z postępem buildu, panel <code>/viber-build</code> z jego zadaniami oraz powiadomienie,
-    gdy zadanie zostanie zatwierdzone albo build czegoś od ciebie potrzebuje. Czyta pliki przebiegu i zlecenia buildu
-    sam, więc nie kosztuje tokenów modelu, a tylko pokazuje: niczego w buildzie nie zmienia. Wymaga Claude Code
-    2.1.287 lub nowszego. Przy wyłączonym przełączniku nie ma linii stanu, panelu, polecenia
-    <code>/viber-build</code> ani powiadomień.</span></dd>
   </div>
 </dl>
 

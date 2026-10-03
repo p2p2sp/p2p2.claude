@@ -16,8 +16,7 @@ behaviour keeps (or gains) its one assertion in `tests/harness.test.ts`.
   case spawns nothing it can avoid: `shells.ts` memoises PATH scans and `bash --version` probes
   per PATH value and, outside CI, stops at the first working bash; `withGitRepo` copies a
   template repo `git init`ed once per process and writes its global gitconfig as a file instead
-  of calling `git config`, with `gc.auto=0` and `maintenance.auto=false` (a detached `git gc` still
-  writing breaks the temp dir's removal); `canDenyRead`/`canSymlinkDir` probe once per process.
+  of calling `git config`; `canDenyRead`/`canSymlinkDir` probe once per process.
 - The full shell matrix is CI-only: `FULL_SHELL_MATRIX` (`CI` = `true`/`1`) is the one switch, and
   a local `forEachShell` runs the first shell present and reports the rest as skips.
 - A capability helper answers `false` (a skip), never throws, and verifies by doing the real thing:
