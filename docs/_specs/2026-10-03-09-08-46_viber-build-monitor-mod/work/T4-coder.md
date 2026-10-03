@@ -1,0 +1,6 @@
+- `key` on a `Text` is not kept in the drawn tree (only `props` of the element survive), so the pane test finds rows by `{ type: 'Text', text: /regex/ }`, not by key.
+- The command registers in `opened` (session.start) only when `build.monitor` resolves true; a hot reload re-registers it. The world in register.test.tsx now needs `on('command.register')` and `on('ui.open')` hooks.
+- `command.run` opens the pane then starts a background refresh, so the pane redraws from the index atom; it never waits on the scripts.
+- The pane rows read `index`, `flights`, `attempts`, `tiers` atoms through `panelRows`; no new state key was needed (`autoOpened` stays for T5/T6).
+- Row format: `<id> | <state> | <tier or -> | attempts <n> | <title>`, deferred paths on a dim line beneath it.
+- Not done (outside Files): viber/hooks/CLAUDE.md and viber/CLAUDE.md still do not mention the monitor module or `/viber-build`.

@@ -3,15 +3,17 @@
  * `build.monitor` through config.sh and stays silent unless it is `true`.
  * Otherwise it tracks viber:task-coder and viber:task-reviewer spawns,
  * refreshes the active run through plan-path.sh and plan-index.sh (never
- * --split: the mod writes nothing) and pins the status line. Every hook passes
+ * --split: the mod writes nothing) and pins the status line. It also registers
+ * `/viber-build` (immediate), which opens the `viber-build` pane drawing the
+ * task rows, decisions and rulings of the active run. Every hook passes
  * its event on unchanged and starts its refresh without waiting for it. The
  * logic it draws from is monitor.ts; the session state is state.d.ts.
  */
 
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register } from 'claude-code'
+import type { EngineInterface, Register, RenderElement, RenderInput } from 'claude-code'
 
-import { isSettled, parseDispatch, parseIndex, parseRunList, pickRun, statusLine } from './monitor'
+import { isSettled, panelRows, parseDispatch, parseIndex, parseRunList, pickRun, statusLine } from './monitor'
 import type { Candidate, Dispatch, RunIndex } from './monitor'
 
 const enabled = atom({ plugin: 'viber', key: 'enabled' } as const, false)
@@ -21,6 +23,10 @@ const attempts = atom({ plugin: 'viber', key: 'attempts' } as const, {})
 const tiers = atom({ plugin: 'viber', key: 'tiers' } as const, {})
 const lastDispatchPlan = atom({ plugin: 'viber', key: 'lastDispatchPlan' } as const, null)
 const observed = atom({ plugin: 'viber', key: 'observed' } as const, false)
+
+const COMMAND = 'viber-build'
+const PANE = 'viber-build'
+const PANE_TITLE = 'viber build'
 
 // added to every script run, so its `git status` never takes the index lock a
 // task commit needs
@@ -144,13 +150,39 @@ async function committed($: EngineInterface): Promise<void> {
   if (await read($, enabled)) await refresh($)
 }
 
-/** Resolves the switch; on, picks the clock back up for an observed build (a reload drops it) and refreshes. */
+/** Resolves the switch; on, registers /viber-build, picks the clock back up for an observed build (a reload drops it) and refreshes. */
 async function opened($: EngineInterface): Promise<void> {
   const isOn = await readSwitch($)
   await update($, enabled, () => isOn)
   if (!isOn) return
+  await $.command.register({ name: COMMAND, description: 'Show the viber build panel', immediate: true })
   if (await read($, observed)) watch($)
   background(refresh($))
+}
+
+/** The build panel's body: every task row, then the run's decisions and rulings. */
+async function panel($: EngineInterface, e: RenderInput): Promise<RenderElement> {
+  const { Box, Text } = $.ui.resolve(e)
+  const view = await read($, index)
+  if (view === null) return <Text dimColor>No build run to show.</Text>
+  const rows = panelRows(view, await read($, flights), await read($, attempts), await read($, tiers))
+  return (
+    <Box flexDirection="column">
+      <Text bold>{`${view.title} ${view.done}/${view.total}`}</Text>
+      {rows.map((row) => (
+        <Box flexDirection="column">
+          <Text>{`${row.id} | ${row.state} | ${row.tier ?? '-'} | attempts ${row.attempts} | ${row.title}`}</Text>
+          {row.deferred.length > 0 && <Text dimColor>{`deferred: ${row.deferred.join(', ')}`}</Text>}
+        </Box>
+      ))}
+      <Text bold>Decisions</Text>
+      {view.decisions.length === 0 && <Text dimColor>none</Text>}
+      {view.decisions.map((text) => <Text>{text}</Text>)}
+      <Text bold>Rulings</Text>
+      {view.rulings.length === 0 && <Text dimColor>none</Text>}
+      {view.rulings.map((text) => <Text>{text}</Text>)}
+    </Box>
+  )
 }
 
 /** Lets work run on past the hook that started it, its failure swallowed: the monitor never fails a hook. */
@@ -184,4 +216,12 @@ export const register: Register = (on) => {
     if (e.agentId !== undefined) background(finished($, e.agentId))
     return ended
   })
+
+  on('command.run', { command: COMMAND }, async ($) => {
+    await $.ui.open({ id: PANE, title: PANE_TITLE })
+    background(refresh($))
+    return { text: 'viber build panel opened.' }
+  })
+
+  on('ui.render', { component: 'Pane', requestId: PANE }, ($, e) => panel($, e))
 }

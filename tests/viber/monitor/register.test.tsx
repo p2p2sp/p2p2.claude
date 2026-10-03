@@ -34,11 +34,17 @@ type Setup = {
   planIndex?: Answer
   /** Repo-relative path -> mtimeMs; a path absent here does not exist. */
   mtimes?: Record<string, number>
+  /** Lines plan-index.sh prints after its tasks (`deferred: ...`, `decision: ...`, `ruling: ...`). */
+  tail?: readonly string[]
 }
 
 type World = {
   statuses: (string | undefined)[]
   toasts: string[]
+  /** Every slash command registered, in order. */
+  commands: { name: string; description: string; immediate?: true }[]
+  /** The id and title of every pane opened, in order. */
+  panes: { id: string; title?: string }[]
   /** Every event the world beneath the mod received, in order. */
   received: unknown[]
   runs: { argv: readonly string[]; env: Record<string, string> | undefined }[]
@@ -50,7 +56,7 @@ type World = {
 }
 
 /** plan-index.sh's stdout for `plan` holding `rows`. */
-function indexOut(plan: string, rows: readonly Row[]): string {
+function indexOut(plan: string, rows: readonly Row[], tail: readonly string[] = []): string {
   const done = rows.filter(([, state]) => state === 'done').length
   return [
     `plan: ${plan}`,
@@ -58,6 +64,7 @@ function indexOut(plan: string, rows: readonly Row[]): string {
     `progress: ${done}/${rows.length}`,
     'tasks: id | state | tdd | excl | deps | feeds | files | title',
     ...rows.map(([id, state, title]) => `${id} | ${state} | none | - | - | - | src/${id}.ts | ${title}`),
+    ...tail,
     '',
   ].join('\n')
 }
@@ -72,6 +79,8 @@ function worldOf(on: On, setup: Setup = {}): World {
   const world: World = {
     statuses: [],
     toasts: [],
+    commands: [],
+    panes: [],
     received: [],
     runs: [],
     clock: mock.clock(on, { now: 1_000 }),
@@ -87,7 +96,7 @@ function worldOf(on: On, setup: Setup = {}): World {
     const plan = argv[2] ?? ''
     if (setup.planIndex !== undefined) return setup.planIndex
     const rows = world.rows[plan]
-    return rows === undefined ? { exitCode: 1, stdout: '' } : { exitCode: 0, stdout: indexOut(plan, rows) }
+    return rows === undefined ? { exitCode: 1, stdout: '' } : { exitCode: 0, stdout: indexOut(plan, rows, setup.tail) }
   }
 
   on('process.run', async ($, e) => {
@@ -110,6 +119,14 @@ function worldOf(on: On, setup: Setup = {}): World {
   on('ui.toast', ($, e) => {
     world.toasts.push(e.text)
     return { value: undefined }
+  })
+  on('command.register', ($, e) => {
+    world.commands.push(e)
+    return { value: { command: e.name } }
+  })
+  on('ui.open', ($, e) => {
+    world.panes.push({ id: e.id, title: e.title })
+    return { value: { isPlaced: true as const } }
   })
   on('session.start', ($, e) => {
     world.received.push(e)
@@ -332,5 +349,67 @@ for (const [hook, act, sent, answered] of PASSED) {
     await world.clock.settle()
 
     expect({ result, received: world.received.at(-1) }).toMatchObject({ result: answered, received: sent })
+  })
+}
+
+test('with build.monitor true /viber-build is registered', async ($, on) => {
+  const world = worldOf(on)
+
+  await $.session.start(SESSION)
+
+  expect(world.commands.map((command) => command.name)).toEqual(['viber-build'])
+})
+
+test('with build.monitor false no command is registered', async ($, on) => {
+  const world = worldOf(on, { monitor: false })
+
+  await $.session.start(SESSION)
+
+  expect(world.commands).toEqual([])
+})
+
+test('/viber-build is registered to run during a turn', async ($, on) => {
+  const world = worldOf(on)
+
+  await $.session.start(SESSION)
+
+  expect(world.commands.map((command) => command.immediate)).toEqual([true])
+})
+
+test('running /viber-build opens the viber-build pane', async ($, on) => {
+  const world = worldOf(on)
+  await $.session.start(SESSION)
+
+  await $.command.run({ command: 'viber-build' })
+
+  expect(world.panes).toEqual([{ id: 'viber-build', title: 'viber build' }])
+})
+
+const PANE_PROPS = { title: 'viber build', isFocused: false, bodyColumns: 80, placement: 'inline' as const, scroll: { offset: 0, bodyRows: 24 }, view: {} }
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  test(`on ${surface} the pane draws every task row with state, tier, attempts and deferred paths, then the decisions and rulings`, async ($, on) => {
+    const world = worldOf(on, {
+      tail: ['deferred: T1:src/late.ts T1:src/more.ts', 'decision: T2: keep the cache', 'ruling: T2 | retry | gave up'],
+    })
+    await $.session.start(SESSION)
+    await $.agent.spawn(spawnOf(PLAN_A, 'T2', 'viber:task-coder', 'opus', 'tu1'))
+    await world.clock.settle()
+
+    const ui = await $.ui.mount({ plugin: 'viber', surface, component: 'Pane', requestId: 'viber-build', props: PANE_PROPS })
+
+    expect({
+      done: (await ui.find({ type: 'Text', text: /^T1 \|/ }))?.text,
+      deferred: (await ui.find({ type: 'Text', text: /^deferred:/ }))?.text,
+      doing: (await ui.find({ type: 'Text', text: /^T2 \| coding/ }))?.text,
+      decision: (await ui.find({ type: 'Text', text: /keep the cache/ }))?.text,
+      ruling: (await ui.find({ type: 'Text', text: /gave up/ }))?.text,
+    }).toEqual({
+      done: 'T1 | done | - | attempts 0 | One',
+      deferred: 'deferred: src/late.ts, src/more.ts',
+      doing: 'T2 | coding | opus | attempts 1 | Two',
+      decision: 'T2: keep the cache',
+      ruling: 'T2 | retry | gave up',
+    })
   })
 }
