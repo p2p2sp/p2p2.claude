@@ -15,7 +15,7 @@
 # The layout this file follows. /viber:setup raises it when it brings the file
 # up to a newer layout, and a session start tells you when it lags behind the
 # installed viber. Leave it as it is.
-schema: 2
+schema: 3
 
 # Switches read while a change is planned.
 planning:
@@ -55,6 +55,11 @@ build:
   # into the archive below and dropping the plan, the state file and the trail -
   # git keeps them.
   cleanup: true
+  # While a build runs, a status line, a /viber-build panel and toasts show its
+  # progress inside Claude Code (version 2.1.287 or newer). They read the run's
+  # files and the build's dispatches themselves, so they cost no model tokens
+  # and change nothing in the build.
+  monitor: true
 
 # GitHub issues and pull requests.
 github:

@@ -38,7 +38,8 @@
 #            assignment of a child wins; a CR is never part of a value.
 #            planning.adr, planning.plain-plan-review, planning.fast-path,
 #            build.baseline-tests, build.final-review, build.memory,
-#            build.rules, build.qa, build.cleanup, github.issues - switches.
+#            build.rules, build.qa, build.cleanup, build.monitor, github.issues -
+#            switches.
 #            One is `true` ONLY as a child of its own group, spelled exactly
 #            (case-sensitive), whose value is `true` in any letter case (ended
 #            by a space, a comment or the end of the line). A column-0 key of
@@ -104,6 +105,7 @@
 #              build.rules: true
 #              build.qa: false
 #              build.cleanup: true
+#              build.monitor: false
 #              github.issues: false
 #              github.issue-title: {summary}
 #              github.pr-title: [{issue-number}] {summary}
@@ -196,7 +198,7 @@ function title(v, dflt,  q, end) {
   return v == "" ? dflt : v
 }
 END {
-  n = split("planning.adr planning.plain-plan-review planning.fast-path build.baseline-tests build.final-review build.memory build.rules build.qa build.cleanup github.issues", ids, " ")
+  n = split("planning.adr planning.plain-plan-review planning.fast-path build.baseline-tests build.final-review build.memory build.rules build.qa build.cleanup build.monitor github.issues", ids, " ")
   for (i = 1; i <= n; i++) {
     v = raw[ids[i]]
     sub(/[[:space:]#].*$/, "", v)
