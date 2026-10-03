@@ -5,7 +5,9 @@
  * refreshes the active run through plan-path.sh and plan-index.sh (never
  * --split: the mod writes nothing) and pins the status line. It also registers
  * `/viber-build` (immediate), which opens the `viber-build` pane drawing the
- * task rows, decisions and rulings of the active run. Every hook passes
+ * task rows, decisions and rulings of the active run; the session's first
+ * coder dispatch opens it by itself when the surface last reported a
+ * fullscreen layout while drawing. Every hook passes
  * its event on unchanged and starts its refresh without waiting for it. The
  * logic it draws from is monitor.ts; the session state is state.d.ts.
  */
@@ -23,6 +25,7 @@ const attempts = atom({ plugin: 'viber', key: 'attempts' } as const, {})
 const tiers = atom({ plugin: 'viber', key: 'tiers' } as const, {})
 const lastDispatchPlan = atom({ plugin: 'viber', key: 'lastDispatchPlan' } as const, null)
 const observed = atom({ plugin: 'viber', key: 'observed' } as const, false)
+const autoOpened = atom({ plugin: 'viber', key: 'autoOpened' } as const, false)
 
 const COMMAND = 'viber-build'
 const PANE = 'viber-build'
@@ -121,11 +124,15 @@ function watch($: EngineInterface): void {
   ticker ??= $.clock.every(PERIOD_MS, () => background(tick($)))
 }
 
-/** Records a coder or reviewer dispatch, then refreshes. */
-async function dispatched($: EngineInterface, agentId: string, dispatch: Dispatch): Promise<void> {
+/** Records a coder or reviewer dispatch, opens the panel on the session's first coder dispatch where it docks as a sidebar, then refreshes. */
+async function dispatched($: EngineInterface, agentId: string, dispatch: Dispatch, isFullscreen: boolean): Promise<void> {
   if (!(await read($, enabled))) return
   await update($, flights, (list) => [...list, { agentId, dispatch }])
   if (dispatch.role === 'coder') {
+    if (!(await read($, autoOpened))) {
+      await update($, autoOpened, () => true)
+      if (isFullscreen) await $.ui.open({ id: PANE, title: PANE_TITLE }).catch(() => undefined)
+    }
     const key = `${dispatch.plan}#${dispatch.taskId}`
     await update($, attempts, (counts) => ({ ...counts, [key]: (counts[key] ?? 0) + 1 }))
     const tier = dispatch.tier
@@ -191,6 +198,14 @@ function background(work: Promise<unknown>): void {
 }
 
 export const register: Register = (on) => {
+  // the layout the surface last reported while drawing; undefined until it does
+  let isFullscreen: boolean | undefined
+
+  on('ui.render', async ($, e, next) => {
+    isFullscreen = e.viewport?.isFullscreen
+    return next(e)
+  })
+
   on('session.start', async ($, e, next) => {
     const started = await next(e)
     // awaited, so the switch stands before the first dispatch; the refresh it starts is not
@@ -201,7 +216,7 @@ export const register: Register = (on) => {
   on('agent.spawn', async ($, e, next) => {
     const started = await next(e)
     const dispatch = parseDispatch(e.subagentType, e.prompt, e.model)
-    if (dispatch !== undefined && started.agentId !== undefined) background(dispatched($, started.agentId, dispatch))
+    if (dispatch !== undefined && started.agentId !== undefined) background(dispatched($, started.agentId, dispatch, isFullscreen === true))
     return started
   })
 

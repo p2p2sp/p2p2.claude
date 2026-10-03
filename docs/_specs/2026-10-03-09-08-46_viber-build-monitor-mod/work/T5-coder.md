@@ -1,0 +1,6 @@
+- The layout the surface last reported is a closure variable of `register` (not an atom): C5 has no key for it and widening the contract was off limits. A reload drops it, as it drops the clock.
+- The recorder is a matcher-less `ui.render` hook registered first; it records `e.viewport?.isFullscreen` and returns `next(e)`. Only a literal `true` opens the pane.
+- `autoOpened` is consumed by the first coder dispatch whatever the layout was, so a layout reported later never opens the pane (per Delivers: first coder dispatch only).
+- A reviewer dispatch never opens the pane and does not consume `autoOpened`.
+- worldOf in register.test.tsx now has a base `ui.render` hook (draws "drawn beneath"), needed to mount any pane the mod does not draw itself.
+- Not done (outside Files): viber/hooks/CLAUDE.md and viber/CLAUDE.md still do not mention the monitor module.

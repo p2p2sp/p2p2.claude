@@ -128,6 +128,10 @@ function worldOf(on: On, setup: Setup = {}): World {
     world.panes.push({ id: e.id, title: e.title })
     return { value: { isPlaced: true as const } }
   })
+  on('ui.render', ($, e) => {
+    const { Text } = $.ui.resolve(e)
+    return <Text>drawn beneath</Text>
+  })
   on('session.start', ($, e) => {
     world.received.push(e)
     return { cwd: e.cwd }
@@ -413,3 +417,83 @@ for (const surface of ['terminal', 'desktop'] as const) {
     })
   })
 }
+
+const DOCKS = { columns: 160, rows: 40, isFullscreen: true }
+
+/** The surface drawing a pane of another plugin and reporting its layout while it does. */
+async function reportLayout($: Engine, viewport?: { columns: number; rows: number; isFullscreen?: boolean }): Promise<void> {
+  await $.ui.mount({ plugin: 'viber', surface: 'terminal', component: 'Pane', requestId: 'elsewhere', props: PANE_PROPS, viewport })
+}
+
+test('the first coder dispatch opens the viber-build pane when the surface last reported a fullscreen layout', async ($, on) => {
+  const world = worldOf(on)
+  await $.session.start(SESSION)
+  await reportLayout($, DOCKS)
+
+  await $.agent.spawn(spawnOf(PLAN_A, 'T2', 'viber:task-coder', 'opus', 'tu1'))
+  await world.clock.settle()
+
+  expect(world.panes).toEqual([{ id: 'viber-build', title: 'viber build' }])
+})
+
+const NOT_DOCKED: readonly (readonly [report: string, viewport: { columns: number; rows: number; isFullscreen?: boolean } | undefined])[] = [
+  ['a non-fullscreen layout', { columns: 200, rows: 40, isFullscreen: false }],
+  ['a viewport saying nothing of the layout', { columns: 200, rows: 40 }],
+  ['no viewport', undefined],
+]
+
+for (const [report, viewport] of NOT_DOCKED) {
+  test(`the first coder dispatch opens no pane when the surface last reported ${report}`, async ($, on) => {
+    const world = worldOf(on)
+    await $.session.start(SESSION)
+    await reportLayout($, viewport)
+
+    await $.agent.spawn(spawnOf(PLAN_A, 'T2', 'viber:task-coder', 'opus', 'tu1'))
+    await world.clock.settle()
+
+    expect(world.panes).toEqual([])
+  })
+}
+
+test('the first coder dispatch opens no pane when the surface reported no layout at all', async ($, on) => {
+  const world = worldOf(on)
+  await $.session.start(SESSION)
+
+  await $.agent.spawn(spawnOf(PLAN_A, 'T2', 'viber:task-coder', 'opus', 'tu1'))
+  await world.clock.settle()
+
+  expect(world.panes).toEqual([])
+})
+
+test('a later coder dispatch in the same session opens no second pane', async ($, on) => {
+  const world = worldOf(on)
+  await $.session.start(SESSION)
+  await reportLayout($, DOCKS)
+  await $.agent.spawn(spawnOf(PLAN_A, 'T2', 'viber:task-coder', 'opus', 'tu1'))
+  await world.clock.settle()
+
+  await $.agent.spawn(spawnOf(PLAN_A, 'T2', 'viber:task-coder', 'opus', 'tu2'))
+  await world.clock.settle()
+
+  expect(world.panes.length).toBe(1)
+})
+
+test('with build.monitor false a first coder dispatch on a fullscreen layout opens no pane', async ($, on) => {
+  const world = worldOf(on, { monitor: false })
+  await $.session.start(SESSION)
+  await reportLayout($, DOCKS)
+
+  await $.agent.spawn(spawnOf(PLAN_A, 'T2', 'viber:task-coder', 'opus', 'tu1'))
+  await world.clock.settle()
+
+  expect(world.panes).toEqual([])
+})
+
+test('the drawing hook that learns the layout returns what next returned for a drawing it does not own', async ($, on) => {
+  worldOf(on)
+  await $.session.start(SESSION)
+
+  const ui = await $.ui.mount({ plugin: 'viber', surface: 'terminal', component: 'Pane', requestId: 'elsewhere', props: PANE_PROPS, viewport: DOCKS })
+
+  expect((await ui.find({ type: 'Text', text: 'drawn beneath' }))?.text).toBe('drawn beneath')
+})
