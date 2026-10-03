@@ -1,7 +1,10 @@
 # tests/viber/ - viber's script suite
 
 One file per viber script (the six under `skills/code-auditor/scripts/` included), plus
-`help.test.ts` and `profiler.test.ts` (no script). Every fixture helper is local to its
+`help.test.ts` and `profiler.test.ts` (no script); the build monitor has `monitor.test.ts`
+(`hooks/monitor/monitor.ts`, pure), `monitor-engine.test.ts` (`claude plugin validate`/`test` on a
+copy under `.temp/`, one skip without a `claude` of 2.1.287+) and `monitor/register.test.tsx`
+(engine tests, outside the `node --test` glob). Every fixture helper is local to its
 file: plan, status and run-directory builders (`planBody`, `seed`, `sourcePlan`, `seedRun`,
 `withBranchRepo`) are hand-built per file, so a plan or `status.md` format change moves the
 builders of `plan-index`, `plan-path`, `commit-task` and `archive-run` together.

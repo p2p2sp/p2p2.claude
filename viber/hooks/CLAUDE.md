@@ -1,8 +1,11 @@
-# viber hooks - session start, plan gate, plan hints and kill guard
+# viber hooks - session start, plan gate, plan hints, kill guard and build monitor
 
 `content/manifest.md` names two skills only to scope rules (`viber:fixer`'s reproduction test,
 `viber:intent`'s fast path, where a design approved in chat counts as an approved plan);
 renaming either skill renames it there too, or the rule silently stops covering it.
+
+Read `CLAUDE.monitor.md` before touching `monitor/` (the `build.monitor` function-hook module, the
+`modules` entry of `hooks.json`); the sections below are the four command hooks.
 
 ## Session start
 

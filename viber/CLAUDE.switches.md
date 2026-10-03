@@ -26,6 +26,8 @@
   colon) in `config.sh` and `bootstrap.sh`'s merge, where a key one reads and the other misses is
   appended again, overriding the user's value; `directories.*` parsing in `config.sh`,
   `plan-path.sh`, `archive-run.sh`.
+- `build.monitor` reaches only the function-hook module (`hooks/CLAUDE.monitor.md`): no fragment, no
+  `switch-text.sh` entry, not overridable from `viber.local.yml`; absent (a schema 2 file) = off.
 - Switches reaching planning: `build.memory` (`plan-rules.md`'s Memory-owned rule, the `memory:`
   line to `planner-review`); `planning.adr` (`planner` follows `skills/planner/references/adr-tasks.md` once the plan is written and `plan-index.sh` exits 0, dispatching `adr-screener`);
   `build.qa` (`planner`'s e2e hand-off line); `branching.mode` (`CLAUDE.run-branch.md`).
