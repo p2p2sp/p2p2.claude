@@ -555,6 +555,20 @@ for (const [end, change, toast] of ENDS) {
   })
 }
 
+test('the observed run settling while another run is unsettled still toasts its last task and its build end', async ($, on) => {
+  const two: readonly Row[] = [['T1', 'done', 'One'], ['T2', 'todo', 'Two']]
+  const world = await observing($, on, {
+    runs: { [PLAN_A]: two, [PLAN_B]: two },
+    planPath: { exitCode: 0, stdout: planPathOut(PLAN_A, [PLAN_B]) },
+  })
+  world.rows[PLAN_A] = [['T1', 'done', 'One'], ['T2', 'done', 'Two']]
+
+  await $.tool.call(COMMIT)
+  await world.clock.settle()
+
+  expect(world.toasts).toEqual(['viber: T2 done (2/2)', 'viber build finished: 2/2 done'])
+})
+
 test('an AskUserQuestion call during an observed build toasts the question', async ($, on) => {
   const world = await observing($, on)
 

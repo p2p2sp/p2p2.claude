@@ -75,23 +75,24 @@ async function changedMs($: EngineInterface, root: string, plan: string): Promis
   return Math.max(...times)
 }
 
-/** What one refresh read: the active run's index as S2 picks it (undefined for no view) and every index it loaded, by plan. */
+/** What one refresh read: the active run's index as S2 picks it (undefined for no view) and a reader of any plan's own index (undefined: archived), reusing what the refresh already loaded. */
 interface Reading {
   view: RunIndex | undefined
-  loaded: Map<string, RunIndex | undefined>
+  load: (plan: string) => Promise<RunIndex | undefined>
 }
 
 async function activeIndex($: EngineInterface): Promise<Reading> {
   const loaded = new Map<string, RunIndex | undefined>()
   const root = await repoRoot($)
-  if (root === undefined) return { view: undefined, loaded }
-  const listed = await script($, root, 'plan-path')
-  if (listed === undefined) return { view: undefined, loaded }
-  const list = parseRunList(listed)
   const load = async (plan: string) => {
+    if (root === undefined) return undefined
     if (!loaded.has(plan)) loaded.set(plan, parseIndex((await script($, root, 'plan-index', plan)) ?? ''))
     return loaded.get(plan)
   }
+  if (root === undefined) return { view: undefined, load }
+  const listed = await script($, root, 'plan-path')
+  if (listed === undefined) return { view: undefined, load }
+  const list = parseRunList(listed)
   const candidates: Candidate[] = []
   // every "open:" plan is unsettled by plan-path.sh's own count; the newest one is judged by its index
   for (const plan of new Set([...(list.newest === undefined ? [] : [list.newest]), ...list.open])) {
@@ -100,7 +101,7 @@ async function activeIndex($: EngineInterface): Promise<Reading> {
     candidates.push({ plan, settled, changedMs: settled ? 0 : await changedMs($, root, plan) })
   }
   const chosen = pickRun(candidates, (await read($, lastDispatchPlan)) ?? undefined)
-  return { view: chosen === undefined ? undefined : await load(chosen), loaded }
+  return { view: chosen === undefined ? undefined : await load(chosen), load }
 }
 
 // the latest refresh started; an older one finishing after it writes nothing
@@ -109,7 +110,7 @@ let generation = 0
 /** Re-reads the active run and pins its status line, toasting what an observed build did since the last read; with no view the build is no longer observed. */
 async function refresh($: EngineInterface): Promise<void> {
   const mine = ++generation
-  const { view, loaded } = await activeIndex($)
+  const { view, load } = await activeIndex($)
   if (mine !== generation) return
   const seen: { before?: RunIndex } = {}
   await update($, index, (known) => {
@@ -117,8 +118,9 @@ async function refresh($: EngineInterface): Promise<void> {
     return view ?? null
   })
   if (await read($, observed)) {
-    // a run that settled leaves the view; its own final index still tells how far it got (absent: archived)
-    const now = view ?? (seen.before === undefined ? undefined : loaded.get(seen.before.plan))
+    // a run that settled leaves the view, another run may take it; the observed run's own index still tells how far it got (absent: archived)
+    const before = seen.before
+    const now = before !== undefined && view?.plan !== before.plan ? await load(before.plan) : view
     for (const event of diffEvents(seen.before, now)) $.ui.toast(toastText(event))
   }
   if (view === undefined) await update($, observed, () => false)

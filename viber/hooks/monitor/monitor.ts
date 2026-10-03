@@ -1,7 +1,7 @@
 /*
  * monitor.ts - the build monitor's pure logic, with no engine import, so
  * `node --test` loads it directly. It reads the stdout of viber's own scripts
- * (`plan-path.sh`, `plan-index.sh --split`) and a coder or reviewer dispatch,
+ * (`plan-path.sh`, `plan-index.sh`) and a coder or reviewer dispatch,
  * and turns them into what the mod draws: the active run, the status line, the
  * panel rows, the events between two views and their toast texts. It runs no
  * process and touches no file; register.tsx does both.
