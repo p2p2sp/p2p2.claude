@@ -219,7 +219,7 @@ Any agent of this step returning `VERDICT: DENIED` -> `AskUserQuestion` naming t
 
 Commit what the memory and rules dispatches above return, one call: memory and rule paths, through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore "<plan>" "<file>" ["<file>"...]`, only once every writer of this step has returned. No writer returned a path, or only `VERDICT: NONE` -> no call.
 
-Then `TaskUpdate` -> completed for each entry, the `memory` and `rules` entries only after the `--chore` call, when one is due, returned.
+`TaskUpdate` -> completed for each entry in the message answering its own writer's return, never held for another writer or the `--chore` call: the `memory` and `rules` entries on that return, the QA entry with its `--qa` call, or on that return when no call is due.
 
 ## 7. Archive and close
 
