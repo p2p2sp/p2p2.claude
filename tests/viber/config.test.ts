@@ -144,7 +144,6 @@ test("no config file: the block is every switch off, both title defaults, no ext
       "github.issues: false",
       "github.issue-title: {summary}",
       "github.pr-title: [{issue-number}] {summary}",
-      "build.extensions-parallel: false",
       "build.extensions: none",
       "build.extensions-missing: none",
       "directories.runs: _specs",
@@ -913,30 +912,115 @@ function writeAgent(root: string, relative: string): void {
   fs.writeFileSync(file, "---\nname: x\n---\n");
 }
 
-/** The two extension list lines alone, under short names. */
+/** One agent file per name, `.claude/agents/<name>.md`. */
+function writeAgents(root: string, ...names: string[]): void {
+  for (const name of names) writeAgent(root, `agents/${name}.md`);
+}
+
+/** A `build:` group holding the extension map: each line given sits under `extensions:`, an
+ *  entry as `<name>:` and its option as `  parallel: <value>`, both relative to the entry depth. */
+function extensionMap(...lines: string[]): string {
+  return ["build:", "  extensions:", ...lines.map((line) => `    ${line}`), ""].join("\n");
+}
+
+/** The two extension lines alone, under short names. */
 function extensions(stdout: string): Record<string, string | undefined> {
   const all = config(stdout);
   return { found: all["build.extensions"], missing: all["build.extensions-missing"] };
 }
 
-test("a list naming two existing agents prints both on `build.extensions` in listed order, not sorted (the list is the run order)", async () => {
+test("a map naming two existing agents prints both on `build.extensions` in listed order, not sorted (the map is the run order)", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    writeAgent(dir, "agents/write-help.md");
-    writeAgent(dir, "agents/audit-docs.md");
-    writeConfig(dir, inGroup("build", "extensions: write-help, audit-docs"));
+    writeAgents(dir, "write-help", "audit-docs");
+    writeConfig(dir, extensionMap("write-help:", "audit-docs:"));
 
     assert.deepEqual(extensions((await run(dir)).stdout), { found: "write-help, audit-docs", missing: "none" });
   });
 });
 
-test("a listed name with no agent file prints on `build.extensions-missing` alone, an existing sibling still on `build.extensions`", async () => {
+test("a map entry with no agent file prints on `build.extensions-missing` alone, an existing sibling still on `build.extensions`", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    writeAgent(dir, "agents/write-help.md");
-    writeConfig(dir, inGroup("build", "extensions: ghost, write-help"));
+    writeAgents(dir, "write-help");
+    writeConfig(dir, extensionMap("ghost:", "write-help:"));
 
     assert.deepEqual(extensions((await run(dir)).stdout), { found: "write-help", missing: "ghost" });
   });
 });
+
+test("three found entries `a` and `b` parallel and `c` with no option print `build.extensions: a + b, c` (consecutive parallel entries share one step)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeAgents(dir, "a", "b", "c");
+    writeConfig(dir, extensionMap("a:", "  parallel: true", "b:", "  parallel: true", "c:"));
+
+    assert.equal(printedLine((await run(dir)).stdout, "build.extensions"), "build.extensions: a + b, c");
+  });
+});
+
+test("`parallel: TRUE` joins its `parallel: true` neighbour while `parallel: yes` stands alone and splits the run after it (only `true`, in any letter case, is parallel)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeAgents(dir, "a", "b", "c", "d");
+    writeConfig(dir, extensionMap("a:", "  parallel: TRUE", "b:", "  parallel: true  # with a", "c:", "  parallel: yes", "d:", "  parallel: true"));
+
+    assert.equal(printedLine((await run(dir)).stdout, "build.extensions"), "build.extensions: a + b, c, d");
+  });
+});
+
+test("two parallel runs split by a `parallel: false` entry print as two joined steps around it", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeAgents(dir, "a", "b", "c", "d", "e");
+    writeConfig(dir, extensionMap("a:", "  parallel: true", "b:", "  parallel: true", "c:", "  parallel: false", "d:", "  parallel: true", "e:", "  parallel: true"));
+
+    assert.equal(printedLine((await run(dir)).stdout, "build.extensions"), "build.extensions: a + b, c, d + e");
+  });
+});
+
+test("a missing name between two parallel entries prints on `build.extensions-missing` while its neighbours stay one step (a missing name never splits a run)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeAgents(dir, "a", "b");
+    writeConfig(dir, extensionMap("a:", "  parallel: true", "ghost:", "b:", "  parallel: true"));
+
+    assert.deepEqual(extensions((await run(dir)).stdout), { found: "a + b", missing: "ghost" });
+  });
+});
+
+test("a duplicate entry counts once, at its first place, with its first option (a later `parallel: true` cannot make it join a run)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeAgents(dir, "a", "b");
+    writeConfig(dir, extensionMap("a:", "b:", "  parallel: true", "a:", "  parallel: true"));
+
+    assert.deepEqual(extensions((await run(dir)).stdout), { found: "a, b", missing: "none" });
+  });
+});
+
+test("a CRLF map resolves like an LF one, no stray CR in a name or an option", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeAgents(dir, "a", "b");
+    writeConfig(dir, extensionMap("a:", "  parallel: true", "b:", "  parallel: true", "ghost:").split("\n").join("\r\n"));
+
+    assert.deepEqual(extensions((await run(dir)).stdout), { found: "a + b", missing: "ghost" });
+  });
+});
+
+test("`extensions-parallel: true` inside `build:` prints no `build.extensions-parallel` line (each entry carries its own option)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeConfig(dir, inGroup("build", "extensions-parallel: true"));
+
+    assert.equal(printedLine((await run(dir)).stdout, "build.extensions-parallel"), undefined);
+  });
+});
+
+for (const [label, body, expected] of [
+  ["`memory: true` written below the map", extensionMap("memory:", "  parallel: true") + "  memory: true\n", "build.memory: true"],
+  ["no `memory:` line", extensionMap("memory:", "  parallel: true"), "build.memory: false"],
+] as const) {
+  test(`an entry named \`memory\` under the map, with ${label}, prints \`${expected}\` (a map line is never a \`build:\` switch)`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
+      writeConfig(dir, body);
+
+      assert.equal(printedLine((await run(dir)).stdout, "build.memory"), expected);
+    });
+  });
+}
 
 for (const [name, file] of [
   ["Upper", "agents/Upper.md"],
@@ -947,17 +1031,17 @@ for (const [name, file] of [
   test(`an invalid name \`${name}\` prints on \`build.extensions-missing\` even when \`.claude/agents/${name}.md\` resolves to a file (a name is never a path)`, async () => {
     await withTempDir("p2p2-viber-", async (dir) => {
       writeAgent(dir, file);
-      writeConfig(dir, inGroup("build", `extensions: ${name}`));
+      writeConfig(dir, extensionMap(`${name}:`));
 
       assert.deepEqual(extensions((await run(dir)).stdout), { found: "none", missing: name });
     });
   });
 }
 
-test("a name listed twice prints once on its line, found and missing alike", async () => {
+test("a name entered twice prints once on its line, found and missing alike", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    writeAgent(dir, "agents/write-help.md");
-    writeConfig(dir, inGroup("build", "extensions: write-help, ghost, write-help, ghost"));
+    writeAgents(dir, "write-help");
+    writeConfig(dir, extensionMap("write-help:", "ghost:", "write-help:", "ghost:"));
 
     assert.deepEqual(extensions((await run(dir)).stdout), { found: "write-help", missing: "ghost" });
   });
@@ -965,14 +1049,15 @@ test("a name listed twice prints once on its line, found and missing alike", asy
 
 for (const [label, body] of [
   ["the key absent", inGroup("build", "memory: true")],
-  ["an empty value", inGroup("build", "extensions:")],
-  ["a comment alone", inGroup("build", "extensions:   # none yet")],
-  ["only commas", inGroup("build", "extensions: , ,")],
-  ["the key under another group", inGroup("planning", "extensions: write-help")],
+  ["an empty map", inGroup("build", "extensions:")],
+  ["a comment alone after the key", inGroup("build", "extensions:   # none yet")],
+  ["an inline `extensions: write-help, audit-docs` value", inGroup("build", "extensions: write-help, audit-docs")],
+  ["an inline value above map entries", inGroup("build", "extensions: write-help", "  audit-docs:")],
+  ["the map under another group", ["planning:", "  extensions:", "    write-help:", ""].join("\n")],
 ] as const) {
   test(`a config with ${label} prints \`none\` on both extension lines`, async () => {
     await withTempDir("p2p2-viber-", async (dir) => {
-      writeAgent(dir, "agents/write-help.md");
+      writeAgents(dir, "write-help", "audit-docs");
       writeConfig(dir, body);
 
       assert.deepEqual(extensions((await run(dir)).stdout), { found: "none", missing: "none" });
@@ -980,61 +1065,19 @@ for (const [label, body] of [
   });
 }
 
-for (const [value, expected] of [
-  ["true", "true"],
-  ["TRUE", "true"],
-  ["true  # all at once", "true"],
-  ["false", "false"],
-  ["yes", "false"],
-  ["trueish", "false"],
-  ["", "false"],
-] as const) {
-  test(`\`extensions-parallel: ${value}\` inside \`build:\` prints \`build.extensions-parallel: ${expected}\``, async () => {
-    await withTempDir("p2p2-viber-", async (dir) => {
-      writeConfig(dir, inGroup("build", `extensions-parallel: ${value}`));
-
-      assert.equal(printedLine((await run(dir)).stdout, "build.extensions-parallel"), `build.extensions-parallel: ${expected}`);
-    });
-  });
-}
-
-test("a flat `extensions-parallel: true` at column 0 prints `build.extensions-parallel: false` (a key counts only inside its group)", async () => {
+test("a comment after the map key and after an entry stays out of every name", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    writeConfig(dir, "extensions-parallel: true\n");
+    writeAgents(dir, "write-help", "audit-docs");
+    writeConfig(dir, ["build:", "  extensions:   # run these last", "    write-help:  # first", "    # ghost:", "    audit-docs:", ""].join("\n"));
 
-    assert.equal(printedLine((await run(dir)).stdout, "build.extensions-parallel"), "build.extensions-parallel: false");
+    assert.deepEqual(extensions((await run(dir)).stdout), { found: "write-help, audit-docs", missing: "none" });
   });
 });
 
-for (const [label, line] of [
-  ["a spaced trailing comment", "extensions: write-help, audit-docs   # run these last"],
-  ["a comment right after a comma", "extensions: write-help, audit-docs, # ghost"],
-] as const) {
-  test(`a list line with ${label} keeps the comment out of every name`, async () => {
-    await withTempDir("p2p2-viber-", async (dir) => {
-      writeAgent(dir, "agents/write-help.md");
-      writeAgent(dir, "agents/audit-docs.md");
-      writeConfig(dir, inGroup("build", line));
-
-      assert.deepEqual(extensions((await run(dir)).stdout), { found: "write-help, audit-docs", missing: "none" });
-    });
-  });
-}
-
-test("a CRLF list line yields its names without a stray CR", async () => {
+test("the first `extensions` key inside `build:` owns the map, so a later duplicate key cannot quietly add entries", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    writeAgent(dir, "agents/write-help.md");
-    writeConfig(dir, "build:\r\n  extensions: write-help, ghost\r\n  extensions-parallel: true\r\n");
-
-    assert.deepEqual(extensions((await run(dir)).stdout), { found: "write-help", missing: "ghost" });
-  });
-});
-
-test("the first `extensions` assignment inside `build:` wins, so a later duplicate cannot quietly override it", async () => {
-  await withTempDir("p2p2-viber-", async (dir) => {
-    writeAgent(dir, "agents/write-help.md");
-    writeAgent(dir, "agents/audit-docs.md");
-    writeConfig(dir, inGroup("build", "extensions: write-help", "extensions: audit-docs"));
+    writeAgents(dir, "write-help", "audit-docs");
+    writeConfig(dir, ["build:", "  extensions:", "    write-help:", "  extensions:", "    audit-docs:", ""].join("\n"));
 
     assert.deepEqual(extensions((await run(dir)).stdout), { found: "write-help", missing: "none" });
   });
@@ -1043,7 +1086,7 @@ test("the first `extensions` assignment inside `build:` wins, so a later duplica
 test("the agent files are looked up under the repository root, so a session started in a subdirectory finds them", async () => {
   await withGitRepo(async (repo) => {
     writeAgent(repo.dir, "agents/write-help.md");
-    writeConfig(repo.dir, inGroup("build", "extensions: write-help"));
+    writeConfig(repo.dir, extensionMap("write-help:"));
     const nested = path.join(repo.dir, "src", "deep");
     fs.mkdirSync(nested, { recursive: true });
 
@@ -1082,7 +1125,6 @@ const DEFAULT_BLOCK = [
   "github.issues: false",
   "github.issue-title: {summary}",
   "github.pr-title: [{issue-number}] {summary}",
-  "build.extensions-parallel: false",
   "build.extensions: none",
   "build.extensions-missing: none",
   "directories.runs: _specs",
@@ -1117,7 +1159,6 @@ test("a local file setting all four keys prints the local value on those four li
       "github.issues: true",
       "github.issue-title: {summary}",
       "github.pr-title: [{issue-number}] {summary}",
-      "build.extensions-parallel: false",
       "build.extensions: none",
       "build.extensions-missing: none",
       "directories.runs: _specs",

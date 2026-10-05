@@ -54,16 +54,28 @@
 #            closing pair -> everything between the two, kept whole; otherwise
 #            cut at the first blank followed by `#`, trailing blanks dropped.
 #            Empty, a comment alone or absent -> the default.
-#            build.extensions-parallel - a switch read like the ten above, its
-#            line printed after the titles.
-#            build.extensions - a list of agent names, a child of `build:`: the
-#            first assignment, cut at a `#` opening the value or following a
-#            blank, split on commas, each name trimmed, an empty one dropped. A
-#            name matching `^[a-z0-9][a-z0-9-]*$` whose file
-#            <repo root>/.claude/agents/<name>.md exists is found; every other
-#            name (no such file, or an invalid name) is missing. Each name counts
-#            once, at its first place in the list. Empty, a comment alone, absent
-#            or outside `build:` -> no name.
+#            build.extensions - a map of agent entries, owned by the first
+#            `extensions:` key line among the indented lines of `build:`:
+#              build:
+#                extensions:          # empty or a comment after the colon
+#                  <name>:            # an entry
+#                    parallel: true   # an option of that entry
+#            A value after the key other than a comment -> no entry. Map lines
+#            run from the line after the key up to the first line that is
+#            neither blank nor a comment and is indented no deeper than the key
+#            (a column-0 line included); no map line is a child of `build:` for
+#            any other key. The first key line of the map sets the entry depth:
+#            a key line there is an entry named by its trimmed key, any inline
+#            value ignored; a deeper key line is an option of the entry above,
+#            a shallower one is ignored. `parallel` reading `true` in any letter
+#            case (cut at a blank or a `#`) makes the entry parallel; any other
+#            value, an absent option or another option key -> not parallel, and
+#            the first `parallel` of an entry wins. A name counts once, at its
+#            first entry, with that entry's option. A name matching
+#            `^[a-z0-9][a-z0-9-]*$` whose file <repo root>/.claude/agents/<name>.md
+#            exists is found; every other name (no such file, or an invalid
+#            name) is missing. A CR is never part of a key or a value. Absent,
+#            an empty map or a map outside `build:` -> no name.
 #            directories.runs (default `_specs`) and
 #            directories.specifications (default `specs`) - the directory names
 #            under docs/ holding the open runs and the archived ones. Read ONLY
@@ -100,7 +112,7 @@
 #            `--branching` never reads this file.
 #   stdout : a header line, then one `<group>.<key>: <true|false>` line per
 #            switch (`build.baseline-tests: <off|fast|full>`), one `github.<key>: <pattern>` line per title,
-#            the three extension lines, one
+#            the two extension lines, one
 #            `directories.<key>: <name>` line per directory key, one
 #            `tiers.<key>: <tier>` line per tier key and the
 #            `branching.mode: <mode>` line - dotted, so the block reads the
@@ -118,17 +130,23 @@
 #              github.issues: false
 #              github.issue-title: {summary}
 #              github.pr-title: [{issue-number}] {summary}
-#              build.extensions-parallel: false
-#              build.extensions: <name>, <name> | none
+#              build.extensions: <step>, <step> | none
 #              build.extensions-missing: <name>, <name> | none
 #              directories.runs: _specs
 #              directories.specifications: specs
 #              tiers.min: haiku
 #              tiers.max: opus
 #              branching.mode: off
-#            build.extensions holds the found names, build.extensions-missing
-#            the missing ones, each in listed order joined by `, `, `none` when
-#            there is none.
+#            Missing names are dropped before the found ones are grouped, so a
+#            missing name never splits a run. A <step> is a run of consecutive
+#            found parallel entries joined by ` + `, or one found entry that is
+#            not parallel, alone (a parallel entry with no parallel neighbour is
+#            a step of one name). build.extensions holds the steps,
+#            build.extensions-missing the missing names, each in listed order
+#            joined by `, `, `none` when there is none. Example: `a` and `b`
+#            parallel, `c`, `d` parallel, `ghost` missing, `e` parallel ->
+#            `build.extensions: a + b, c, d + e` and
+#            `build.extensions-missing: ghost`.
 #            When the local file exists, one line follows the header:
 #              # local: <overridden> | ignored: <ignored>
 #            <overridden> is the keys that took a local value, in block order,
@@ -179,10 +197,40 @@ else
 fi
 local_cfg="$(dirname "$cfg")/viber.local.yml"
 
+# The extension map lines, told apart by one function both passes share, fed
+# every line with its CR dropped. It returns 2 for the first `extensions:` key
+# line among the indented lines of `build:`, 1 for a map line below it (up to the
+# first line neither blank nor a comment indented no deeper than that key line)
+# and 0 for any other line.
+map_prog='
+function mapline(line) {
+  if (mapstate == 1) {
+    if (line ~ /^[[:space:]]*(#|$)/) return 1
+    match(line, /^[[:space:]]*/)
+    if (RLENGTH > mapind) return 1
+    mapstate = 2
+  }
+  if (line ~ /^[^[:space:]#]/) { mapgrp = (line ~ /^build[[:space:]]*:/); return 0 }
+  if (mapstate == 0 && mapgrp && line ~ /^[[:space:]]+extensions[[:space:]]*:/) {
+    match(line, /^[[:space:]]*/)
+    mapind = RLENGTH
+    mapstate = 1
+    return 2
+  }
+  return 0
+}
+'
+
 # The switch and title lines of the block, in their fixed order, from one pass
 # over the file. A column-0 key opens its group; a blank line or a column-0
-# comment leaves it open. The first assignment of each child wins.
+# comment leaves it open. The first assignment of each child wins; a map line
+# is no child.
 switches_prog='
+{
+  line = $0
+  sub(/\r$/, "", line)
+  if (mapline(line) == 1) next
+}
 /^[^[:space:]#]/ {
   grp = ""
   if (match($0, /^[A-Za-z0-9_-]+[[:space:]]*:/)) { grp = substr($0, 1, RLENGTH); sub(/[[:space:]]*:$/, "", grp) }
@@ -223,34 +271,55 @@ END {
   }
   print "github.issue-title: " title(raw["github.issue-title"], "{summary}")
   print "github.pr-title: " title(raw["github.pr-title"], "[{issue-number}] {summary}")
-  v = raw["build.extensions-parallel"]
-  sub(/[[:space:]#].*$/, "", v)
-  print "build.extensions-parallel: " (tolower(v) == "true" ? "true" : "false")
 }
 '
 
-# The build.extensions names, one line each in listed order, each once: `V <name>`
-# for a valid name, `X <name>` for any other. The value is the first assignment
-# inside `build:`, cut at a `#` opening it or following a blank, split on commas,
-# each name trimmed; an empty name is dropped.
+# The build.extensions entries, one line each in listed order, each once at its
+# first entry: `<V|X> <P|S> <name>`, V for a valid name and X for any other, P
+# for an entry whose first `parallel` option reads `true` in any letter case and
+# S for any other. A value after the map key other than a comment empties the
+# map; a key line shallower than the entry depth is ignored.
 ext_prog='
-/^[^[:space:]#]/ { inbuild = ($0 ~ /^build[[:space:]]*:/); next }
-inbuild && !done && /^[[:space:]]+extensions[[:space:]]*:/ {
-  done = 1
-  v = $0
-  sub(/\r$/, "", v)
+{
+  line = $0
+  sub(/\r$/, "", line)
+  m = mapline(line)
+}
+m == 2 {
+  v = line
   sub(/^[^:]*:/, "", v)
-  v = " " v
-  if (match(v, /[[:space:]]#/)) v = substr(v, 1, RSTART - 1)
-  n = split(v, names, ",")
-  for (i = 1; i <= n; i++) {
-    name = names[i]
-    sub(/^[[:space:]]+/, "", name)
-    sub(/[[:space:]]+$/, "", name)
-    if (name == "" || (name in seen)) continue
-    seen[name] = 1
-    print (name ~ /^[a-z0-9][a-z0-9-]*$/ ? "V " : "X ") name
+  sub(/^[[:space:]]+/, "", v)
+  noentry = (v != "" && v !~ /^#/)
+  next
+}
+m != 1 || noentry || line ~ /^[[:space:]]*(#|$)/ { next }
+{
+  match(line, /^[[:space:]]*/)
+  ind = RLENGTH
+  rest = substr(line, ind + 1)
+  c = index(rest, ":")
+  if (c == 0) next
+  key = substr(rest, 1, c - 1)
+  sub(/[[:space:]]+$/, "", key)
+  if (key == "") next
+  if (entind == 0) entind = ind
+  if (ind == entind) {
+    cur = 0
+    if (key in seen) next
+    seen[key] = 1
+    nm[++n] = key
+    cur = n
+    next
   }
+  if (ind < entind || !cur || key != "parallel" || (cur in parset)) next
+  parset[cur] = 1
+  v = substr(rest, c + 1)
+  sub(/^[[:space:]]+/, "", v)
+  sub(/[[:space:]#].*$/, "", v)
+  par[cur] = (tolower(v) == "true")
+}
+END {
+  for (i = 1; i <= n; i++) print (nm[i] ~ /^[a-z0-9][a-z0-9-]*$/ ? "V " : "X ") (par[i] ? "P " : "S ") nm[i]
 }
 '
 
@@ -462,8 +531,8 @@ fi
 
 src="$cfg"
 [ -f "$src" ] || src=/dev/null
-block="$(awk -v sq="'" "$switches_prog" "$src" 2>/dev/null || true)"
-[ -n "$block" ] || block="$(awk -v sq="'" "$switches_prog" /dev/null)"
+block="$(awk -v sq="'" "$map_prog$switches_prog" "$src" 2>/dev/null || true)"
+[ -n "$block" ] || block="$(awk -v sq="'" "$map_prog$switches_prog" /dev/null)"
 
 loc_bt=""
 loc_gi=""
@@ -510,13 +579,21 @@ fi
 agents_dir="$(dirname "$cfg")/agents"
 ext_found=""
 ext_missing=""
-while IFS=' ' read -r tag name; do
+ext_run=""
+while IFS=' ' read -r tag par name; do
   if [ "$tag" = V ] && [ -f "$agents_dir/$name.md" ]; then
-    ext_found="${ext_found:+$ext_found, }$name"
+    if [ "$par" = P ]; then
+      ext_run="${ext_run:+$ext_run + }$name"
+    else
+      [ -z "$ext_run" ] || ext_found="${ext_found:+$ext_found, }$ext_run"
+      ext_run=""
+      ext_found="${ext_found:+$ext_found, }$name"
+    fi
   else
     ext_missing="${ext_missing:+$ext_missing, }$name"
   fi
-done < <(awk "$ext_prog" "$src" 2>/dev/null || true)
+done < <(awk "$map_prog$ext_prog" "$src" 2>/dev/null || true)
+[ -z "$ext_run" ] || ext_found="${ext_found:+$ext_found, }$ext_run"
 printf 'build.extensions: %s\n' "${ext_found:-none}"
 printf 'build.extensions-missing: %s\n' "${ext_missing:-none}"
 
