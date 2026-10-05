@@ -1,4 +1,0 @@
-- `bootstrap.sh` repeats C1's map-line rule in its own awk (state `ms`/`mind` inside the `build:` child scan); it cannot call `config.sh`'s `mapline()`. A change to the rule goes to both.
-- A restored child lands after the last content line of the map (a trailing comment or blank inside the map stays above it), with the template's own comment lines.
-- The template's example entry is commented, so the merge and `templateKeyPaths` never see it as a key.
-- `viber/skills/setup/assets/help.html` still names `key-build-extensions-parallel`: `tests/viber/help.unit.test.ts` stays red until the help task removes it (not in T4's Files).

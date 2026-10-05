@@ -1,5 +1,0 @@
-- `config.sh` holds the map-line rule once, as the awk function `mapline()` in `map_prog`, and prepends it to both `switches_prog` and `ext_prog`. That keeps the extension reader and the switch reader agreeing on where the map ends. A third reader of the map has to prepend the same string.
-- `ext_prog` prints `<V|X> <P|S> <name>`, and the shell loop does the grouping: missing names drop out before runs are joined, and the last open run is flushed after the loop.
-- A map line is any line with a colon. Its key is the text before the first colon, trimmed, so `../escape:` gives the name `../escape`, which ends up on the missing line as an invalid name.
-- With an inline value after `extensions:`, the deeper lines are still consumed as map lines (C1 defines map lines without regard to the value). They produce no entry and never become `build:` children.
-- Expected red until their owning tasks land: the `serial`/`parallel` cases of `tests/viber/switch-text.test.ts` and the comma-line cases of `tests/viber/extension.test.ts`. They still read the removed `build.extensions-parallel` line or the comma line.

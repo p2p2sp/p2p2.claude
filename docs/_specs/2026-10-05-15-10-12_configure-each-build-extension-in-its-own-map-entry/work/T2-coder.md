@@ -1,4 +1,0 @@
-- The portability sweep reads the git index (`git ls-files -s`), so with `extensions.on.md` still untracked, "every switch-text.sh call names a fragment file that exists" (DoD.6 of an earlier task) reads red on `implementor/SKILL.md:225`; it turns green once `commit-task.sh` stages the new fragment. Every other portability case and all of `switch-text.test.ts` pass.
-- `off` has no fragment: the switch-text cases write no `close.off.md`, and an empty map prints nothing.
-- `extensions.on.md` keeps the `run:`/`spec:`/`notes:`/`out:` line order of the deleted fragments.
-- Left for later tasks: `viber/CLAUDE.switches.md`, `viber/README.md`, `help.html`, the `viber.yml` template and `bootstrap.test.ts` still name `build.extensions-parallel`.
