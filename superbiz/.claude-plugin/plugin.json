@@ -1,7 +1,7 @@
 {
   "name": "superbiz",
   "version": "0.78.1",
-  "description": "Super Biz ecosystem for Claude Code.",
+  "description": "Checks a side-project idea with sourced research and a Go / Pivot / No-Go report.",
   "author": {
     "name": "Dariusz Lenartowicz",
     "email": "dariusz.lenartowicz@p2p2.com.pl"

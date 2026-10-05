@@ -9,22 +9,22 @@
     {
       "name": "superui",
       "source": "./superui",
-      "description": "Super UI Designer ecosystem for Claude Code."
+      "description": "Professional UI/UX design standards, applied whenever you build or review an interface."
     },
     {
       "name": "superbiz",
       "source": "./superbiz",
-      "description": "Super Biz ecosystem for Claude Code."
+      "description": "Checks a side-project idea with sourced research and a Go / Pivot / No-Go report."
     },
     {
       "name": "supercc",
       "source": "./supercc",
-      "description": "Super Claude Code ecosystem - authoring skills and agents."
+      "description": "Writes, audits and tunes Claude Code skills and agents."
     },
     {
       "name": "viber",
       "source": "./viber",
-      "description": "Viber ecosystem for Claude Code - interview, plan, build."
+      "description": "From idea to committed code: interview, reviewed plan, task-by-task build, project memory that grows with every build."
     }
   ]
 }

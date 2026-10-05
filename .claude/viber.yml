@@ -9,7 +9,7 @@
 # The layout this file follows. /viber:setup raises it when it brings the file
 # up to a newer layout, and a session start tells you when it lags behind the
 # installed viber. Leave it as it is.
-schema: 2
+schema: 3
 
 # The two directories under docs/: where an open run lives, and where the
 # archive of a finished one lands. Directory NAMES, not paths - a value with a
@@ -84,6 +84,16 @@ build:
   # into the archive below and dropping the plan, the state file and the trail -
   # git keeps them.
   cleanup: true
+  # The agents of this project's own .claude/agents/ that implementor runs at the
+  # close of a build, just before the run is archived: one entry per agent under
+  # `extensions:`, named after its file, in run order. Empty runs none. An entry
+  # runs alone, one step after the one before it, unless it says `parallel: true`:
+  # consecutive entries that do run together in one message, as one step. An
+  # entry with no `parallel` option, or any other value, is a step of its own.
+  # One entry, indented under `extensions:`:
+  #   help-builder:
+  #     parallel: true
+  extensions:
 
 # GitHub issues and pull requests.
 github:

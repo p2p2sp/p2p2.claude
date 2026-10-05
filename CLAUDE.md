@@ -55,6 +55,7 @@ Readme files are for human. Should be short, simple and contain only essential i
 .claude-plugin/marketplace.json   Co-lists the four plugins by subdir source
 superui/ superbiz/ supercc/ viber/   One dir per plugin, each with README.md
 README.md            Catalog page for humans (install commands, requirements)
+LICENSE, CONTRIBUTING.md, SECURITY.md   MIT; issues welcome, outside PRs not accepted; vulnerability reports
 .github/             CI, release workflow + scripts/release.sh, CODEOWNERS
 .claude/             Dev-time rules/, settings, viber.yml switches for building THIS repo
 tests/               Dev-time regression suites for plugin scripts (outside every plugin)

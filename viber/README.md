@@ -5,6 +5,25 @@ From an idea to committed code in four steps: understand it, plan it, build it, 
 No code is written before you approve a plan that a reviewer has already passed, and every task
 lands as its own commit, so the history reads like the plan.
 
+## Why viber
+
+- **It gets to know your project.** By default every build ends by writing down what it
+  learned: confirmed conventions go to `.claude/rules/`, knowledge about each area to its own
+  `CLAUDE.md`. The next run starts from there, so the longer you use it, the less you explain.
+- **It spends tokens where they count.** Before building, viber sizes every task and gives it the
+  cheapest model that can do it: Haiku for a rename or a config change, a stronger model for real
+  logic. Only a task that fails moves one model up. Your usage limits last longer, and you set
+  the floor and the ceiling yourself.
+- **It works while you do something else.** Once you approve the plan, the build runs task by
+  task, reviews each one and commits it. Where it would usually stop and ask, a separate agent
+  picks a way forward and writes down why, so you can check every such decision afterwards.
+- **It looks harder than it is.** The diagram below has many boxes, but you never have to
+  remember them: each step tells you what comes next, and viber suggests the interview or the bug
+  trace when you need one. In practice it is `/viber:setup` once, then `/viber:intent`, and you
+  answer questions.
+- **Nothing gets lost.** The plan and its progress are committed, so a build interrupted halfway
+  resumes in a new session or on another machine.
+
 ## Install
 
 ```
