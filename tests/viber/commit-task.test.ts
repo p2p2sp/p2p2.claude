@@ -1705,6 +1705,7 @@ const RULE_CARRIERS: Array<[form: string, arrange: (repo: GitRepo) => string[] |
   ["--repair", (repo) => (write(repo.dir, "src/z.ts", "fix\n"), ["--repair", PLAN_REL, "1", "src/z.ts"])],
   ["fix-number", (repo) => (write(repo.dir, "src/a.ts", "fix\n"), [PLAN_REL, "T1", "2", "src/a.ts"])],
   ["--outside", (repo) => (write(repo.dir, "src/legacy.ts", "hand edit\n"), ["--outside", PLAN_REL, "src/legacy.ts"])],
+  ["--extension", (repo) => (write(repo.dir, "docs/help/a.md", "help\n"), ["--extension", PLAN_REL, "user-help-writer", "docs/help/a.md"])],
   [
     "--landed",
     async (repo) => {
@@ -2043,6 +2044,176 @@ test("--outside with named paths producing no change exits 4 and commits nothing
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.match(result.stderr, /no changes to commit/);
     assert.deepEqual(await subjects(repo), ["already recorded", "seed"]);
+  });
+});
+
+// --- --extension: the files of a host project's own closing agent -------------
+
+const EXTENSION_SUBJECT = "chore(viber): extension user-help-writer";
+
+test("--extension commits only the named file under a subject derived from the extension's name, leaving a changed file it was not given out", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "docs/help/a.md", "help\n");
+    write(repo.dir, "docs/help/b.md", "changed, but never named\n");
+
+    const result = await run(repo.dir, repo.env, ["--extension", PLAN_REL, "user-help-writer", "docs/help/a.md"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal((await subjects(repo))[0], EXTENSION_SUBJECT);
+    assert.deepEqual(await committedFiles(repo), [STATUS_REL, "docs/help/a.md"].sort());
+  });
+});
+
+test("--extension closes its message on the run's close Refs line, and adds the issue link when the plan names an issue", async () => {
+  await withGitRepo(async (repo) => {
+    await seedWithFrontmatter(repo, [`issue: ${ISSUE_URL}`]);
+    write(repo.dir, "docs/help/a.md", "help\n");
+
+    const result = await run(repo.dir, repo.env, ["--extension", PLAN_REL, "user-help-writer", "docs/help/a.md"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(await lastParagraph(repo), `Refs: ${PLAN_REL} close\nRefs: #42`);
+  });
+});
+
+test("--extension on a plan with no issue closes its message on the close Refs line alone", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "docs/help/a.md", "help\n");
+
+    const result = await run(repo.dir, repo.env, ["--extension", PLAN_REL, "user-help-writer", "docs/help/a.md"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(await lastParagraph(repo), `Refs: ${PLAN_REL} close`);
+  });
+});
+
+test("--extension records the extension on status.md's closed line, in the commit itself", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "docs/help/a.md", "help\n");
+
+    const result = await run(repo.dir, repo.env, ["--extension", PLAN_REL, "user-help-writer", "docs/help/a.md"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match((await repo.git("show", `HEAD:${STATUS_REL}`)).stdout, /^closed: extension:user-help-writer$/m);
+  });
+});
+
+test("--extension called twice for one extension keeps one entry on the closed line", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "docs/help/a.md", "help\n");
+    await run(repo.dir, repo.env, ["--extension", PLAN_REL, "user-help-writer", "docs/help/a.md"]);
+    write(repo.dir, "docs/help/a.md", "help, revised\n");
+
+    const result = await run(repo.dir, repo.env, ["--extension", PLAN_REL, "user-help-writer", "docs/help/a.md"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(readStatus(repo), /^closed: extension:user-help-writer$/m);
+  });
+});
+
+test("--extension adds its entry beside the entries the close already holds", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "CLAUDE.md", "memory\n");
+    await run(repo.dir, repo.env, ["--chore", PLAN_REL, "CLAUDE.md"]);
+    write(repo.dir, "docs/help/a.md", "help\n");
+
+    const result = await run(repo.dir, repo.env, ["--extension", PLAN_REL, "user-help-writer", "docs/help/a.md"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(readStatus(repo), /^closed: memory extension:user-help-writer$/m);
+  });
+});
+
+test("--extension prints exactly the committed and subject lines", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "docs/help/a.md", "help\n");
+
+    const result = await run(repo.dir, repo.env, ["--extension", PLAN_REL, "user-help-writer", "docs/help/a.md"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^committed: [0-9a-f]{7,}\nsubject: chore\(viber\): extension user-help-writer\n$/);
+  });
+});
+
+test("--extension refuses a .temp path with the existing warning and commits the other named paths", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "docs/help/a.md", "help\n");
+    write(repo.dir, ".temp/viber/ext/log.txt", "machine state\n");
+
+    const result = await run(repo.dir, repo.env, ["--extension", PLAN_REL, "user-help-writer", "docs/help/a.md", ".temp/viber/ext/log.txt"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /refused \.temp\/viber\/ext\/log\.txt - \.temp is machine state, never committed/);
+    assert.deepEqual(await committedFiles(repo), [STATUS_REL, "docs/help/a.md"].sort());
+  });
+});
+
+const EXTENSION_BAD_NAMES: Array<[name: string, value: string]> = [
+  ["an empty name", ""],
+  ["a name holding a space", "user help"],
+  ["a name holding a colon", "a:b"],
+  ["a name holding a path separator", "../x"],
+  ["a name opening with a dash", "-x"],
+];
+
+for (const [name, value] of EXTENSION_BAD_NAMES) {
+  test(`--extension refuses ${name} with exit 2 and commits nothing`, async () => {
+    await withGitRepo(async (repo) => {
+      await seed(repo);
+      write(repo.dir, "docs/help/a.md", "help\n");
+      const before = readStatus(repo);
+
+      const result = await run(repo.dir, repo.env, ["--extension", PLAN_REL, value, "docs/help/a.md"]);
+      assert.equal(result.status, 2, `stderr: ${result.stderr}`);
+      assert.deepEqual(await subjects(repo), ["seed"]);
+      assert.equal(readStatus(repo), before);
+    });
+  });
+}
+
+test("--extension with no file exits 2 and commits nothing", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "docs/help/a.md", "help\n");
+
+    const result = await run(repo.dir, repo.env, ["--extension", PLAN_REL, "user-help-writer"]);
+    assert.equal(result.status, 2, `stderr: ${result.stderr}`);
+    assert.deepEqual(await subjects(repo), ["seed"]);
+  });
+});
+
+test("--extension with named paths producing no change exits 4, commits nothing and records no close", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "docs/help/a.md", "already committed\n");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "already recorded");
+    const before = readStatus(repo);
+
+    const result = await run(repo.dir, repo.env, ["--extension", PLAN_REL, "user-help-writer", "docs/help/a.md"]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.deepEqual(await subjects(repo), ["already recorded", "seed"]);
+    assert.equal(readStatus(repo), before);
+  });
+});
+
+test("a refused git commit of --extension rolls the closed entry back", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "docs/help/a.md", "help\n");
+    await breakCommit(repo);
+    const before = readStatus(repo);
+
+    const result = await run(repo.dir, repo.env, ["--extension", PLAN_REL, "user-help-writer", "docs/help/a.md"]);
+    assert.equal(result.status, 5, `stderr: ${result.stderr}`);
+    assert.equal(readStatus(repo), before);
+  });
+});
+
+test("the usage text lists the --extension form", async () => {
+  await withGitRepo(async (repo) => {
+    const result = await run(repo.dir, repo.env, []);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /--extension <plan-file> <name> <file> \[<file>\.\.\.\]/);
   });
 });
 

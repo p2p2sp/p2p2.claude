@@ -17,6 +17,7 @@
 #   commit-task.sh --e2e <file> [<file>...]
 #   commit-task.sh --review <plan-file> <file> [<file>...]
 #   commit-task.sh --outside <plan-file> <file> [<file>...]
+#   commit-task.sh --extension <plan-file> <name> <file> [<file>...]
 #
 # The two positional forms take the commit subject from the task's own heading
 # line ("### T1 - <title>") in the plan, so the plan's title is literally what
@@ -99,6 +100,14 @@
 # takes the plan for its Refs footer and the register only: no trail, no
 # status entry, progress left alone.
 #
+# --extension commits the files one of the host project's own closing agents
+# wrote just before the run is archived. <name> is the extension's name (letters,
+# digits, "-" and "_", opening with a letter or digit; else exit 2). The subject
+# is DERIVED ("chore(viber): extension <name>"), the footer is the close line
+# ("Refs: <plan> close"), and "status.md" gains "extension:<name>" on its
+# "closed:" line in the same commit (once, however often it is called), so a
+# resumed build does not run that extension again. Progress is left alone.
+#
 # Every form that takes the plan closes its message on a "Refs: <plan> ..." line
 # naming the run. A plan whose frontmatter carries "issue: <GitHub issue URL>"
 # (a run tied to an issue) adds "Refs: #<N>" beneath it in the same paragraph,
@@ -130,7 +139,8 @@
 #   skipped: T3          --skip, the user or an arbiter ruling dropped that task
 #   unreviewed: T7       --unreviewed, the user or an arbiter ruling waived the review gate
 #   deferred: T7:src/a.ts   --defer, T7 owes that path the test that proves it
-#   closed: memory qa    --chore / --qa, that part of the close is done
+#   closed: memory qa extension:<name>
+#                        --chore / --qa / --extension, that part of the close is done
 #   decision: T3: <text> --decide, the build's ruling on a stalled task; one
 #                        line per decision, appended after the keys above
 #
@@ -172,7 +182,7 @@
 #   <fix-number>:                "committed: <sha>", "progress: unchanged"
 #   --repair:                    "committed: <sha>", "subject: <line>", "progress: unchanged"
 #   --chore, --qa, --e2e:        "committed: <sha>", "subject: <line>"
-#   --review, --outside:         "committed: <sha>", "subject: <line>"
+#   --review, --outside, --extension: "committed: <sha>", "subject: <line>"
 #   --skip:                      "skipped: <id>", "progress: unchanged" (no commit)
 #   --decide:                    "decided: <id>", "progress: unchanged" (no commit)
 #   --rule:                      "ruled: <subject>", "progress: unchanged" (no commit)
@@ -183,7 +193,7 @@
 #         "took <path> - claimed by committed task <ids>" per owned --with path
 #
 # exit != 0:
-#   2 - bad arguments / missing plan; for --decide also an empty or multi-line
+#   2 - bad arguments / missing plan; for --extension also an invalid <name>; for --decide also an empty or multi-line
 #       <text>, or a task on the done or skipped list (status.md untouched);
 #       for --rule an empty or multi-line field, or a subject that is neither
 #       a task id of the plan nor a fixed subject (rulings.md untouched)
@@ -203,7 +213,7 @@ shopt -s nullglob
 export GIT_LITERAL_PATHSPECS=1
 
 usage() {
-  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] [--defer <task-id>:<path> [...]] [--landed <sha>] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --decide <plan-file> <task-id> <text> | --rule <plan-file> <subject> <ruling> <why> <cost> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...] | --review <plan-file> <file> [<file>...] | --outside <plan-file> <file> [<file>...]" >&2
+  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] [--defer <task-id>:<path> [...]] [--landed <sha>] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --decide <plan-file> <task-id> <text> | --rule <plan-file> <subject> <ruling> <why> <cost> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...] | --review <plan-file> <file> [<file>...] | --outside <plan-file> <file> [<file>...] | --extension <plan-file> <name> <file> [<file>...]" >&2
   exit 2
 }
 
@@ -793,11 +803,12 @@ fi
 
 # --- the forms no task owns: a post-test fix outside the plan's file map, and
 # --- the knowledge, QA and test files a run produced beside its task map ---
-if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "${1:-}" == "--e2e" || "${1:-}" == "--review" || "${1:-}" == "--outside" ]]; then
+if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "${1:-}" == "--e2e" || "${1:-}" == "--review" || "${1:-}" == "--outside" || "${1:-}" == "--extension" ]]; then
   form="$1"
   shift
 
   round=""
+  ext=""
   plan=""
   if [[ "$form" != "--e2e" ]]; then
     plan="${1:-}"
@@ -810,6 +821,14 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
     if [[ "$form" == "--repair" ]]; then
       round="${1:-}"
       [[ "$round" =~ ^[0-9]+$ ]] || usage
+      shift
+    fi
+    if [[ "$form" == "--extension" ]]; then
+      ext="${1:-}"
+      if [[ ! "$ext" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]; then
+        echo "error: an extension name is letters, digits, '-' and '_', opening with a letter or digit: '$ext'" >&2
+        exit 2
+      fi
       shift
     fi
   fi
@@ -893,6 +912,10 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
     --outside)
       subject="chore(viber): commit changes made outside the plan"
       ;;
+    --extension)
+      subject="chore(viber): extension $ext"
+      closed="extension:$ext"
+      ;;
   esac
 
   if [[ -n "$closed" ]]; then
@@ -914,7 +937,7 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
 
   case "$form" in
     --repair)     commit_named -m "$subject" -m "$(footer "$plan" "Refs: $plan post-test fix $round")" -- "${paths[@]}" >&2 || exit 5 ;;
-    --chore|--qa) commit_named -m "$subject" -m "$(footer "$plan" "Refs: $plan close")" -- "${paths[@]}" >&2 || exit 5 ;;
+    --chore|--qa|--extension) commit_named -m "$subject" -m "$(footer "$plan" "Refs: $plan close")" -- "${paths[@]}" >&2 || exit 5 ;;
     --e2e)        commit_named -m "$subject" -- "${paths[@]}" >&2 || exit 5 ;;
     --review)     commit_named -m "$subject" -m "$(footer "$plan" "Refs: $plan final review")" -- "${paths[@]}" >&2 || exit 5 ;;
     --outside)    commit_named -m "$subject" -m "$(footer "$plan" "Refs: $plan outside the plan")" -- "${paths[@]}" >&2 || exit 5 ;;
