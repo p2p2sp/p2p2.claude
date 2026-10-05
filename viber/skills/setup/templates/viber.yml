@@ -1,5 +1,6 @@
 # viber switches. Every switch is `true` or `false`, except `build.baseline-tests`
-# below, and only `true` counts as on. A switch counts only inside its group.
+# below, and only `true` counts as on. `build.extensions` is no switch: its value
+# is a list of agent names. A switch counts only inside its group.
 # Turn one off with `false`: a key you delete or comment out is restored
 # at its default here the next time `/viber:setup` runs, which is how a new
 # version's switches reach this file. The exception is a child of `tiers:` or
@@ -15,7 +16,7 @@
 # The layout this file follows. /viber:setup raises it when it brings the file
 # up to a newer layout, and a session start tells you when it lags behind the
 # installed viber. Leave it as it is.
-schema: 2
+schema: 3
 
 # Switches read while a change is planned.
 planning:
@@ -56,6 +57,13 @@ build:
   # into the archive below and dropping the plan, the state file and the trail -
   # git keeps them.
   cleanup: true
+  # The agents of this project's own .claude/agents/ that implementor runs at the
+  # close of a build, just before the run is archived: one comma-separated line
+  # of agent names, in run order. Empty runs none.
+  extensions:
+  # `true` dispatches every extension in one message; `false` runs them one after
+  # another, in the order listed.
+  extensions-parallel: false
 
 # GitHub issues and pull requests.
 github:

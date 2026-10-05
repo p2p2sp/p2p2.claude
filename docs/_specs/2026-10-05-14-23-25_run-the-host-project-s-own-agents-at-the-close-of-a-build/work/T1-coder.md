@@ -1,0 +1,4 @@
+- The two new keys make 11 counted switches (extensions-parallel is a boolean, off; extensions is a list and uncounted): README and help.html now say "seven of the eleven".
+- `.claude/rules/viber/switch-count-prose.md` still quotes "seven of the ten"; it is outside Files, so left for the build's rules close.
+- bootstrap.test.ts: GROUPED is now the schema-3 fixture; GROUPED_V2 is the schema-2 layout without the keys. The "higher schema" case moved to schema 4.
+- The template's empty `extensions:` is merged as a declared key; `config.sh` does not read it yet (a later task owns it).

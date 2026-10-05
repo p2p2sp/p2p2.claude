@@ -86,12 +86,12 @@ files no task claims, and when nothing was committed for a task.
 ## Optional switches
 
 `/viber:setup` writes `.claude/viber.yml` with its switches in three groups - `planning:`,
-`build:` and `github:` - seven of the ten on and `build.qa`, `github.issues` and
-`build.baseline-tests` off. A switch counts only inside its group. Edit that file to change any of
+`build:` and `github:` - seven of the eleven on and `build.qa`, `github.issues`,
+`build.baseline-tests` and `build.extensions-parallel` off. A switch counts only inside its group. Edit that file to change any of
 them - only `true` counts as on, so turn a switch off with `false` rather than by deleting it;
 `build.baseline-tests` alone takes `off`, `fast` or `full`, and `setup` rewrites an older `true` to
-`full` and `false` to `off`.
-Without the file all ten are off. Run `/viber:setup` again after an upgrade: any switch the new
+`full` and `false` to `off`. `build.extensions` is no switch: it holds a list of agent names.
+Without the file all eleven are off. Run `/viber:setup` again after an upgrade: any switch the new
 version added is merged into your file, a switch written outside its group is moved into it, and
 every value you set is left as it is. A session start tells you when the file's `schema:` number
 says it needs that run.
@@ -107,6 +107,8 @@ says it needs that run.
 | `build.rules` | on | The build closes by recording a convention it confirmed in `.claude/rules/`. |
 | `build.qa` | **off** | The build closes by writing test scenarios for what it delivered, which `/viber:e2e` can then automate. |
 | `build.cleanup` | on | The build ends by noting anything it delivered that the specification does not promise, then archiving the run with its build summary and dropping the working files. |
+| `build.extensions` | empty | A comma-separated list of agents from your project's own `.claude/agents/`, run in that order at the close of a build, just before the run is archived. Empty runs none. |
+| `build.extensions-parallel` | **off** | `true` dispatches all of the `build.extensions` agents in one message; off, they run one after another. |
 | `github.issues` | **off** | `/viber:intent`, `/viber:fixer` and `/viber:prototype` can start from a GitHub issue's number or link, and an interview that did not can save its conclusions as a new one; `/viber:prototype` can post its mockup to the issue it started from; `/viber:triage` can fetch and publish to a GitHub issue instead of pasted text alone. |
 
 To change a few settings for yourself only, create an optional `.claude/viber.local.yml` in the

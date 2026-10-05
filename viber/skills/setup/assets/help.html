@@ -2968,7 +2968,7 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
 <h3 class="sub" id="ref-config-title"><span lang="en">Configuration</span><span lang="pl">Konfiguracja</span> <code>.claude/viber.yml</code><a class="self" href="#ref-config-title">#</a></h3>
 <dl>
   <div id="key-schema">
-    <dt><code>schema</code> <span class="tag">2</span></dt>
+    <dt><code>schema</code> <span class="tag">3</span></dt>
     <dd><span lang="en">The layout the file follows. <a href="#skill-setup"><code>/viber:setup</code></a> writes it and
     raises it whenever it brings the file up to a newer layout; a session start tells you when the number lags
     behind the installed viber. Leave it as it is.</span><span lang="pl">Układ, w jakim zapisany jest plik.
@@ -2978,18 +2978,22 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   </div>
 </dl>
 <p lang="en">Every switch counts only inside its group: <code>planning:</code> holds the ones read while a change
-is planned, <code>build:</code> the ones a build reads, <code>github:</code> the GitHub ones. Seven of the ten
-start on; <code>build.qa</code>, <code>github.issues</code> and <code>build.baseline-tests</code> start off. To
+is planned, <code>build:</code> the ones a build reads, <code>github:</code> the GitHub ones. Seven of the eleven
+start on; <code>build.qa</code>, <code>github.issues</code>, <code>build.baseline-tests</code> and
+<code>build.extensions-parallel</code> start off. To
 change any of them, edit <code>.claude/viber.yml</code>: every key has a comment there, and only
 <code>true</code> counts as on. Turn a switch off with <code>false</code> instead of deleting it. Only
-<code>build.baseline-tests</code> takes <code>off</code>, <code>fast</code> or <code>full</code>.</p>
+<code>build.baseline-tests</code> takes <code>off</code>, <code>fast</code> or <code>full</code>, and
+<code>build.extensions</code> is no switch: it holds a list of agent names.</p>
 <p lang="pl">Każdy przełącznik liczy się tylko wewnątrz swojej grupy: <code>planning:</code> trzyma te czytane
 podczas planowania zmiany, <code>build:</code> te czytane przez build, <code>github:</code> te dotyczące GitHuba.
-Siedem z dziesięciu jest domyślnie włączonych; <code>build.qa</code>, <code>github.issues</code>
-i <code>build.baseline-tests</code> startują wyłączone. Zmienisz to w <code>.claude/viber.yml</code>: każdy
+Siedem z jedenastu jest domyślnie włączonych; <code>build.qa</code>, <code>github.issues</code>,
+<code>build.baseline-tests</code> i <code>build.extensions-parallel</code> startują wyłączone. Zmienisz to w
+<code>.claude/viber.yml</code>: każdy
 klucz ma tam komentarz, a za włączony liczy się tylko <code>true</code>. Przełącznik wyłączaj wartością
 <code>false</code>, nie usuwaj go. Tylko <code>build.baseline-tests</code> przyjmuje <code>off</code>,
-<code>fast</code> lub <code>full</code>.</p>
+<code>fast</code> lub <code>full</code>, a <code>build.extensions</code> nie jest przełącznikiem: trzyma listę
+nazw agentów.</p>
 <p lang="en">To change a few settings for yourself only, create an optional
 <code>.claude/viber.local.yml</code> in the same layout. It overrides four keys, <code>tiers.min</code>,
 <code>tiers.max</code>, <code>build.baseline-tests</code> and <code>github.issues</code>, and nothing else; an
@@ -3128,6 +3132,22 @@ wartość.</p>
     potem przez <a href="#agent-closeout"><code>closeout</code></a> archiwizuje przebieg z podsumowaniem buildu
     w <code>outcome.md</code> i usuwa plan, plik stanu
     i ślad pracy. Wszystko to zostaje w historii gita.</span></dd>
+  </div>
+  <div id="key-build-extensions">
+    <dt><code>build.extensions</code> <span class="tag"><span lang="en">empty</span><span lang="pl">puste</span></span></dt>
+    <dd><span lang="en">A list, not a switch: the names of agents from this project's own <code>.claude/agents/</code>,
+    comma-separated on one line, in run order. The build runs each of them at its close, just before the run is
+    archived. Empty, the build runs none.</span><span lang="pl">Lista, nie przełącznik: nazwy agentów z
+    katalogu <code>.claude/agents/</code> tego projektu, po przecinku w jednej linii, w kolejności uruchamiania.
+    Build uruchamia każdego z nich na swoim zakończeniu, tuż przed archiwizacją przebiegu. Gdy lista jest pusta,
+    build nie uruchamia żadnego.</span></dd>
+  </div>
+  <div id="key-build-extensions-parallel">
+    <dt><code>build.extensions-parallel</code> <span class="tag"><span lang="en">off</span><span lang="pl">wył.</span></span></dt>
+    <dd><span lang="en">On, all the agents of <a href="#key-build-extensions"><code>build.extensions</code></a> are
+    dispatched in one message. Off, they run one after another, in the order listed.</span><span lang="pl">Gdy
+    włączony, wszyscy agenci z <a href="#key-build-extensions"><code>build.extensions</code></a> są wysyłani w jednej
+    wiadomości. Gdy wyłączony, działają jeden po drugim, w podanej kolejności.</span></dd>
   </div>
 </dl>
 
