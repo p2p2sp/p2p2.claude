@@ -2,7 +2,7 @@
 name: memory
 description: Reviews and repairs the host project's CLAUDE.md cascade - maps every node with its own size and the size of the chain a reader loads with it, creates the nodes a project with none needs, verifies each existing node against the code of the area it describes, brings every node within budget, and resets the layer on demand. Use whenever the user wants to create, bootstrap, initialize, refresh, audit or reset project memory, or asks which nodes went stale, lost their area or grew past their budget.
 argument-hint: "[review, extend, reset, or nothing]"
-allowed-tools: AskUserQuestion, Agent, SendMessage, Bash(${CLAUDE_SKILL_DIR}/scripts/memory-map.sh:*), Bash(${CLAUDE_SKILL_DIR}/scripts/memory-map.sh --reset:*)
+allowed-tools: AskUserQuestion, Agent, SendMessage, Bash(${CLAUDE_SKILL_DIR}/scripts/memory-map.sh:*), Bash(${CLAUDE_SKILL_DIR}/scripts/memory-map.sh --reset:*), Read(${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/claude-md-prompt.txt)
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -17,13 +17,13 @@ The block above is this host project's memory layer as the script measured it: t
 
 It is self-verifying and trusted. Never re-measure a node, never walk the tree for a candidate of your own, never run git to decide what is dirty: every fact you route on is already above.
 
-Your whole tool set is `AskUserQuestion`, `Agent`, `SendMessage` and the two map lines of step 3. You open no file and you write none: every byte of the cascade is written by `viber:memory-node-writer`, nothing here is staged and nothing is committed.
+Your whole tool set is `AskUserQuestion`, `Agent`, `SendMessage`, the two map lines of step 3 and `Read` on `${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/claude-md-prompt.txt` alone, in step 9. You open no other file and you write none: every byte of the cascade is written by `viber:memory-node-writer`, nothing here is staged and nothing is committed.
 
 ## 1. Report the layer
 
 Before any question, one line per fact worth deciding on:
 
-- each `node:` line with its two sizes and its flag. `OVER-NODE` is past 12000 bytes, `OVER-CHAIN` past 32000 over the chain. A node already over a budget is reported here and brought within it by its writer, never by you.
+- each `node:` line with its two sizes and its flag. `OVER-NODE` is past 12000 bytes, past 4000 for the root `CLAUDE.md`; `OVER-CHAIN` past 32000 over the chain. A node already over a budget is reported here and brought within it by its writer, never by you.
 - each `section:` line with its size and flag, under its node when one exists. A section never counts toward a chain.
 - each `unlinked:` line, named as a section no reader can reach.
 - each `orphan:` line, named as a node left alone in a directory whose other files are gone.
@@ -43,7 +43,7 @@ Otherwise one `AskUserQuestion`, the four modes in that single call:
 
 An argument naming one of the four is that answer already: take it and ask nothing. On `state: complete` lead with the flags and the orphans; on `state: partial` lead with how many candidates carry no node.
 
-`reset` goes to step 3. Every other mode goes to step 4, its target list being the `node:` lines on `review`, the `cand:` lines plus the directory of each `unlinked:` section with no `node:` line beside it on `extend`, and both on `both`, each directory once.
+`reset` goes to step 3. Every other mode goes to step 4, its target list being the `node:` lines on `review`, the `cand:` lines plus the directory of each `unlinked:` section with no `node:` line beside it on `extend`, and both on `both`, each directory once. Under `extend` and `both`, the repository root joins the list as a create target when the map carries no `node: CLAUDE.md` line.
 
 ## 3. Reset
 
@@ -127,15 +127,16 @@ Keep account while the waves return, counting only paths whose file name is `CLA
 
 ## 8. Reconcile the lists of nodes
 
-After the last wave, a node that exists is off when the nodes that now exist below its directory differ from the part of `planned:` below it plus the nodes its own dispatch created, or, when no dispatch wrote it, when any dispatch created or deleted a node below its directory; the root's directory covers the whole repository. Each node off gets one more `viber:memory-node-writer`: `mode: fix`, `node:` its path, `findings: none`, `planned:` the nodes that now exist, `refs:` as above. One wave per depth, the deepest first, each wave's `planned:` counting what the waves before it created or deleted. No node off -> dispatch nothing here.
+After the last wave, a node that exists, the root excepted (it carries no list of nodes), is off when the nodes that now exist below its directory differ from the part of `planned:` below it plus the nodes its own dispatch created, or, when no dispatch wrote it, when any dispatch created or deleted a node below its directory; the root's directory covers the whole repository. Each node off gets one more `viber:memory-node-writer`: `mode: fix`, `node:` its path, `findings: none`, `planned:` the nodes that now exist, `refs:` as above. One wave per depth, the deepest first, each wave's `planned:` counting what the waves before it created or deleted. No node off -> dispatch nothing here.
 
 ## 9. Report
 
 Repeat what the writers returned and add nothing to it:
 
-- each `FILES:`, `DELETED:`, `DROPPED:`, `LIFT:` and `CHAIN:` line, verbatim.
+- each `FILES:`, `DELETED:`, `DROPPED:`, `LIFT:`, `CHAIN:` and `SUGGEST:` line, verbatim.
 - each `NO-NODE` target, named as an area that needs no node.
 - each target skipped or dropped on `VERDICT: DENIED`, with its `REASON:` line.
 - every call returned `VERDICT: NONE` -> nothing in the layer needed changing.
+- each `MISSING:` line of a created root, verbatim, then, when there was one, the content of `${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/claude-md-prompt.txt`, read with `Read`, verbatim in a code block.
 
 Close on one line: those files sit in the working tree, unstaged and uncommitted, and committing them is the user's next step.

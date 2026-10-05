@@ -33,6 +33,8 @@ The node's area is the directory holding `node`. Its sections are the `CLAUDE.<t
 
 Read `<refs>/node-doctrine.md` before you judge the first fact in either mode: it owns the budgets, what a node carries, the ancestor rule, sections and the compact, split and section steps.
 
+When `node` is `CLAUDE.md` at the repository root, `## Root` governs in place of both modes and Budget.
+
 ## Fix mode
 
 Read `node` and its sections, then `findings` when it names a path. A finding's quoted sentence may sit in either. Act on every finding line:
@@ -52,6 +54,17 @@ Read the tracked files of the area and author the facts a reader landing there w
 - `node` already exists -> keep every fact in it and its sections and author only what they lack.
 - `node` does not exist but a section does -> verify each sentence of the section against the area first, as a `STALE`/`GONE` finding would. Nothing true left and nothing else rising to a node -> delete the section and return `VERDICT: UPDATED` with `FILES:` and `DELETED:`, and skip Budget.
 - Nothing in the area rises to what a node carries, `node` does not exist and no section sits beside it -> write nothing and return `VERDICT: NO-NODE`.
+
+## Root
+
+The root belongs to the user: you write it once, only when it does not exist.
+
+- `node` exists -> write nothing, sections included, and return `VERDICT: NONE`.
+- `node` does not exist and `mode` is `create` -> `Write` it with the doctrine's Root content in its order, within 4000 bytes, measured with `wc -c`. Take each command from the project's own scripts and config (build manifests, script tables, task runners, CI workflows, test configuration) as the exact command, and the layer marker convention from how its tests are tagged: never a guess, never a flag you did not find. Keep only repository-wide traps the code does not show. Never write a directory map, an index of nodes or a list of sections.
+- An item you find no exact command or convention for stays out of the file, with no placeholder, and returns on one `MISSING:` line.
+- Over 4000 bytes -> leave out the traps first, then the sentence on the project, and return each on `DROPPED:`.
+- A section beside the new root (`CLAUDE.<topic>.md` in the repository root) stays untouched, and each one returns on a `SUGGEST:` line saying it is unreachable from the new root and the user may name it there or remove it.
+- Return `VERDICT: UPDATED` with `FILES: CLAUDE.md`, never `NO-NODE`.
 
 ## Budget
 
@@ -74,6 +87,8 @@ DROPPED: <path>: <fact>             one per fact left out to stay within budget,
 LIFT: <fact>                        one per fact shared with a sibling area
 CHAIN: <ancestor path> <bytes>      one per ancestor outside this run that leaves the chain over budget
 DELETED: <path>                     one per node or section deleted, each also named on FILES:
+SUGGEST: <CLAUDE.md | CLAUDE.<topic>.md>: <change to make>   one per root section left unreachable by a root you created
+MISSING: <build command | whole test suite command | single test file command | fast command | layer marker convention>   one per item a created root lacks
 ```
 
 `NONE` means `node` needed no change.
