@@ -1,5 +1,5 @@
 /*
- * portability.test.ts - a static cross-OS invariant sweep over every shipped
+ * portability.unit.test.ts - a static cross-OS invariant sweep over every shipped
  * script (`*.sh` / `*.ts` outside `tests/` and `docs/`, enumerated from the git index so
  * only tracked, shipped files count): every script has a shebang on line 1
  * (`.ts` exempt - a module with none is only ever `import`ed, never
@@ -21,7 +21,7 @@
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is
  * run directly by Node's native test runner + TypeScript type stripping:
- *   node --test tests/portability.test.ts
+ *   node --test tests/portability.unit.test.ts
  */
 
 import { test } from "./harness/test.ts";

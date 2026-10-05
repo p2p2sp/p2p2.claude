@@ -1,5 +1,5 @@
 /*
- * orphan-tags.test.ts - a static sweep proving no tracked file carries an
+ * orphan-tags.unit.test.ts - a static sweep proving no tracked file carries an
  * ORPHAN closing tag: a line that is nothing but `</name>` while no `<name`
  * opener exists anywhere in that same file.
  *
@@ -33,7 +33,7 @@
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
- *   node --test tests/orphan-tags.test.ts
+ *   node --test tests/orphan-tags.unit.test.ts
  */
 
 import { test } from "./harness/test.ts";

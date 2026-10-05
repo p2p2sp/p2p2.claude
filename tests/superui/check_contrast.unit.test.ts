@@ -1,12 +1,12 @@
 /*
- * check_contrast.test.ts - locks down input validation on the WCAG contrast
+ * check_contrast.unit.test.ts - locks down input validation on the WCAG contrast
  * gate: an out-of-range rgb() component and a non-string JSON fg/bg must be
  * rejected with exit 2 (usage/bad-input), never silently coerced or thrown
  * as an uncaught TypeError - reserving exit 1 for a genuine AA failure.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is
  * run directly by Node's native test runner + TypeScript type stripping:
- *   node --test tests/superui/check_contrast.test.ts
+ *   node --test tests/superui/check_contrast.unit.test.ts
  */
 
 import { test } from "../harness/test.ts";

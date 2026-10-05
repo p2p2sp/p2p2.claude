@@ -1,12 +1,12 @@
 /*
- * import-safety.test.ts - proves the guarded superui CLI script is safe to
+ * import-safety.unit.test.ts - proves the guarded superui CLI script is safe to
  * `import` from a test module: importing it must not invoke its `main()`
  * (no CLI parsing, no process.exit, no stdout usage banner) and its
  * documented library export must come through as a real function.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
- *   node --test tests/superui/import-safety.test.ts
+ *   node --test tests/superui/import-safety.unit.test.ts
  */
 
 import { test } from "../harness/test.ts";

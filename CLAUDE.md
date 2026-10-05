@@ -26,9 +26,9 @@ No application code ships: artifacts are markdown (skills, agents, references) +
 no test tooling inside any plugin. The only automated checks are the dev-time suites under
 `tests/` (per-plugin suites for superui and viber - supercc and superbiz have none -
 plus `github/` for `release.sh` and the root-level `harness`, `portability` and `orphan-tags`
-sweeps): run only the ones a change reaches (`tests/CLAUDE.md` maps
-them), the whole suite only before handover; every other contract between files is enforced by
-a human reading carefully.
+sweeps): locally only the unit tier (`*.unit.test.ts`, seconds), the integration tier in CI only
+(`tests/CLAUDE.md` defines both); every other contract between files is enforced by a human
+reading carefully.
 
 All four plugins are **stack-agnostic on purpose**: skills read project-specific knowledge (test
 framework, build tool, naming, how to launch the app) from the HOST project's `CLAUDE.md` /
@@ -124,7 +124,7 @@ cutting a release.
     `task-reviewer` gates it before `commit-task.sh`.
 - **No orphan closing tag in a written file.** Writer agents sometimes end a created file with a
   bare `</content>` leaked from their own write call; the read-back guard in every writing agent
-  lowers the rate but never removes it. `tests/orphan-tags.test.ts` fails CI on any tracked file
+  lowers the rate but never removes it. `tests/orphan-tags.unit.test.ts` fails CI on any tracked file
   outside `docs/` holding a closing tag with no opener.
 - **Self-documentation.** A skill add/remove/rename updates the owning `plugin.json` `skills[]`,
   an agent one its `agents[]`, and the owning `<plugin>/CLAUDE.md` in the same edit (this root

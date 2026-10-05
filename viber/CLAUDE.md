@@ -162,7 +162,7 @@ and the move are one commit.
 - `references/qa-format.md`, the format authority for `qa-writer`, `e2e-writer` and `e2e` (which
   routes on its `##` headings). `e2e-writer` edits its scenario's `## Automation` line, `e2e`
   reads each ID's state there and dispatches one scenario at a time, never two at once.
-- `help.html`'s full reference and `tests/viber/help.test.ts`: every user-visible change (a
+- `help.html`'s full reference and `tests/viber/help.unit.test.ts`: every user-visible change (a
   skill, an argument, a switch, a write location, the flow) updates the help page in the same
   edit, and the test enforces the page against `plugin.json`, the skills' frontmatter and the
   `viber.yml` template.

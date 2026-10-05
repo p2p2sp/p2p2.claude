@@ -41,5 +41,5 @@ reasons about a host's own design system and never overwrites it.
 - Its printed lines mimic Python `str`/`repr`/float formatting through the `py*` helpers
   (`3.0`, `'#abc'`, `True`, `None`). Keep them when editing, or the output format shifts.
 - Its `main()` runs only behind the `import.meta.url` guard; `parseColor`, `contrastRatio` and
-  `main` are exports the tests import. `tests/superui/import-safety.test.ts` fails if importing
+  `main` are exports the tests import. `tests/superui/import-safety.unit.test.ts` fails if importing
   runs the CLI.

@@ -1,7 +1,7 @@
 # tests/viber/ - viber's script suite
 
 One file per viber script (the six under `skills/code-auditor/scripts/` included), plus
-`help.test.ts` and `profiler.test.ts` (no script). Every fixture helper is local to its
+`help.unit.test.ts` and `profiler.test.ts` (no script). Every fixture helper is local to its
 file: plan, status and run-directory builders (`planBody`, `seed`, `sourcePlan`, `seedRun`,
 `withBranchRepo`) are hand-built per file, so a plan or `status.md` format change moves the
 builders of `plan-index`, `plan-path`, `commit-task` and `archive-run` together.
@@ -85,7 +85,7 @@ pins: change the header with the contract.
 - `gh` is always a `withStub` or absent; `open-page` also stubs `uname` and the opener on
   `coreUtilsPath()`, so no real browser opens.
 
-## help.test.ts contract
+## help.unit.test.ts contract
 
 Every rule is a pure function with a self-check on a synthetic bad sample; a new rule gets one
 too. The page `skills/setup/assets/help.html` must carry:

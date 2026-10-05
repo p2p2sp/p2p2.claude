@@ -77,7 +77,7 @@ const SUT = path.resolve(import.meta.dirname, "../../viber/scripts/commit-task.s
 // commit-task.sh ships mode 100755 and the implementor invokes it directly as
 // `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" ...`, never through bash; the
 // harness below still runs it via shell: "bash" because it is testing the
-// script's content, not its exec bit (portability.test.ts covers that).
+// script's content, not its exec bit (portability.unit.test.ts covers that).
 function run(dir: string, env: Record<string, string>, args: string[], timeout?: number) {
   return runScript(SUT, args, { cwd: dir, env, shell: "bash", timeout });
 }

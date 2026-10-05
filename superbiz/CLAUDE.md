@@ -27,7 +27,7 @@ not the others breaks the report silently or fails validation.
 - `DEFAULT_LABELS` in the script is the English fallback merged under the run's `labels` (the
   template reads them as `L.<key>`); a label key added to the template needs an entry there too.
 - It exits 1 listing every problem, and the skill fixes the JSON and reruns, never the HTML.
-- The template holds legitimate closing tags with their openers; `tests/orphan-tags.test.ts`
+- The template holds legitimate closing tags with their openers; `tests/orphan-tags.unit.test.ts`
   names it as an allowed precedent.
 
 ## Rules duplicated between markdown and the validator

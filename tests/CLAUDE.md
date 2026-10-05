@@ -8,34 +8,31 @@ a file is shaped live in `.claude/rules/tests-running.md` and `tests-structure.m
 ## Layout
 
 - `tests/<plugin>/` (and `tests/github/` for `.github/scripts/`) - one file per tested script,
-  named after the script's basename. Three files test no script: `tests/superui/import-safety.test.ts`
+  named after the script's basename. Three files test no script: `tests/superui/import-safety.unit.test.ts`
   (`check_contrast.ts` imports without firing its guarded `main()`), `tests/viber/profiler.test.ts`
   (runs the fenced git command lifted verbatim from `viber/agents/profiler.md`) and
-  `tests/viber/help.test.ts` (checks `skills/setup/assets/help.html` against `plugin.json`, the
+  `tests/viber/help.unit.test.ts` (checks `skills/setup/assets/help.html` against `plugin.json`, the
   `SKILL.md` frontmatter and the `viber.yml` template).
 - `tests/harness/` - the shared helpers every script test uses; `tests/harness.test.ts` asserts
   `runScript`, `withTempDir`, `withGitRepo`, `withStub`, `forEachShell("posix")`,
   `denyRead`/`restoreRead` and `writePng`; `slash`, `canSymlinkDir`, `coreUtilsPath` and `test` (which every file runs through) have no
   test there.
-- `tests/portability.test.ts`, `tests/orphan-tags.test.ts` - static sweeps over the whole repo.
+- `tests/portability.unit.test.ts`, `tests/orphan-tags.unit.test.ts` - static sweeps over the whole repo.
   Each rule is a pure function with a self-check test proving it fires on a synthetic bad sample;
   a new rule gets its self-check too, or its green run proves nothing.
 
-## Which suite a change runs
+## Two tiers: local unit, CI integration
 
-Run only what the change reaches, each line with
-`node --test --test-concurrency=12 --test-reporter=dot <files>`, the files quoted when a glob:
-
-- Always: `tests/orphan-tags.test.ts tests/portability.test.ts`. Prose in an agent, a reference, a
-  `CLAUDE.md`, a README or `.claude/rules/` reaches nothing else, except
-  `viber/agents/profiler.md`, which reaches `tests/viber/profiler.test.ts`.
-- A plugin's script, a `SKILL.md`, its `plugin.json`, or viber's `hooks/content/`,
-  `skills/setup/assets/help.html` or `skills/setup/templates/viber.yml`: plus
-  `"tests/<plugin>/*.test.ts"`. superui's `check_contrast.ts` also reaches
-  `tests/viber/help.test.ts`, which imports `contrastRatio`/`parseColor` from it. `supercc` and
-  `superbiz` have no suite, and `viber/scripts/run-branch.sh` no test file.
-- `.github/scripts/`: plus `tests/github/release.test.ts`.
-- `tests/harness/`, and every handover: the whole `"tests/**/*.test.ts"`.
+- **Unit** - `*.unit.test.ts`: in-process only, no `withTempDir`/`withGitRepo`/`withStub`, no
+  spawned script (one read-only `git ls-files` of this repo is the limit). The whole tier runs
+  locally in seconds and is the only suite a developer machine runs, on every change:
+  `node --test --test-reporter=dot "tests/**/*.unit.test.ts"`. It must stay under one minute.
+- **Integration** - every other `*.test.ts`: a real subprocess of a shipped script, a temp-dir or
+  git fixture, a stub. CI only: `ci.yml` runs `"tests/**/*.test.ts"`, which matches both tiers. A
+  case spawning a script costs 1-2 s on Windows, so this tier never joins the local run; a new
+  test needing a fixture or a subprocess is an integration test by definition.
+- Debugging one red CI file locally stays possible by naming it:
+  `node --test tests/viber/config.test.ts`.
 
 ## Harness contract
 
@@ -84,7 +81,7 @@ Run only what the change reaches, each line with
   the reason instead of failing.
 - The static sweeps and the exec-bit checks read the git index (`git ls-files -s`), not the working
   tree: a new script is invisible to them, and its `100755` mode unchecked, until it is staged.
-- `portability.test.ts`'s `bashismViolations` sweep is text matching, not syntax-aware: an awk
+- `portability.unit.test.ts`'s `bashismViolations` sweep is text matching, not syntax-aware: an awk
   `function name(...)` definition, or any bare `((` not preceded by `$` (even from nested parens
   in an `if`), reads as bash-only under a `#!/bin/sh` shebang. A POSIX-sh script embedding an awk
   block must avoid both.

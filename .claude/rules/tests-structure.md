@@ -5,6 +5,7 @@ paths:
 
 # Test file structure
 
+- Name a file by its tier (`tests/CLAUDE.md`): `<name>.unit.test.ts` only when no case spawns a script or builds a `withTempDir`/`withGitRepo`/`withStub` fixture, else `<name>.test.ts` (integration, CI only). A unit file that gains a fixture or a subprocess is renamed to `.test.ts`, never left in the local tier.
 - Open every test file with a `/* ... */` header block naming the file, stating what it proves, and carrying any repo reality the reader needs. Every test file has one.
 - Import `test` from the harness and the strict assert entry point: `import { test } from "../harness/test.ts"` (never `node:test` directly - the harness one runs a file's cases concurrently) and `import assert from "node:assert/strict"`, never plain `node:assert`.
 - Write flat top-level `test()` calls, all registered synchronously at load (no top-level `await`). `describe()` is used zero times in the suite - do not introduce it.

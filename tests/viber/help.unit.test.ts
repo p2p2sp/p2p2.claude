@@ -1,5 +1,5 @@
 /*
- * help.test.ts - keeps viber/skills/setup/assets/help.html, the help page
+ * help.unit.test.ts - keeps viber/skills/setup/assets/help.html, the help page
  * `/viber:help` and `/viber:setup` open, from falling behind the plugin.
  *
  * Every rule is a pure function over the page text (plus the source texts it
@@ -10,7 +10,7 @@
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
- *   node --test tests/viber/help.test.ts
+ *   node --test tests/viber/help.unit.test.ts
  */
 
 import { test } from "../harness/test.ts";

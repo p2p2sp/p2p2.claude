@@ -2,10 +2,10 @@
 
 ## What each file drives
 
-- `check_contrast.test.ts` and `import-safety.test.ts` import `check_contrast.ts` in-process and
+- `check_contrast.unit.test.ts` and `import-safety.unit.test.ts` import `check_contrast.ts` in-process and
   call `main(argv)` directly, never through `runScript`. This holds only while `main` RETURNS its
   exit code and the `import.meta.url` guard alone assigns `process.exitCode`: a `main` that calls
-  `process.exit` kills the test process, and `import-safety.test.ts` reads a non-zero
+  `process.exit` kills the test process, and `import-safety.unit.test.ts` reads a non-zero
   `process.exitCode` after import as the CLI having fired.
 - The contrast cases assert exit codes only (2 for bad input, 1 for a genuine AA failure, 2 when a
   failure is followed by a malformed pair). Nothing here asserts the printed lines or the
