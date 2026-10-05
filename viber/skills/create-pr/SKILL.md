@@ -1,7 +1,7 @@
 ---
 name: create-pr
 description: Opens a pull request for the current branch per the project's branching - title from github.pr-title, body from the work entry's pull request template, after a preview.
-allowed-tools: Read, Edit(./.temp/viber/create-pr/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pr-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pr-create.sh:*)
+allowed-tools: Read, Edit(./.temp/viber/create-pr/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pr-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pr-create.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh:*)
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -25,7 +25,7 @@ Every later run of a bundled script is one literal Bash line, `"${CLAUDE_PLUGIN_
 - `detached`: HEAD is detached; check out a branch.
 - `dirty`: uncommitted changes to tracked files; commit them first.
 - `on-base`: `BRANCH=` is the default branch or a work entry's base or target; a pull request needs its own branch.
-- `pr-exists`: the branch already has an open pull request; give its `PR_URL=`.
+- `pr-exists`: the branch already has an open pull request. With `QA=` set, go to step 7. Otherwise give its `PR_URL=`.
 - `no-commits`: nothing on the branch is ahead of its target.
 - `unknown-entry`: the entry named is not a `branching.work` entry.
 
@@ -60,14 +60,22 @@ End the body with one line per `ISSUE=` value, after a blank line: `Closes #<n>`
 
 ## 5. Preview
 
-Print the title, the target (`TARGET=`) and the body exactly as it will be written, then one `AskUserQuestion`: create, create as draft or cancel. A correction typed as the answer -> apply it and preview again. Cancel -> stop, nothing created.
+Print the title, the target (`TARGET=`) and the body exactly as it will be written, plus, when `QA=` is set, one line saying the build's QA document (`QA=`) will be posted as a comment on the new pull request, then one `AskUserQuestion`: create, create as draft or cancel. A correction typed as the answer -> apply it and preview again. Cancel -> stop, nothing created.
 
 ## 6. Create
 
 `Write` the body to `<root>/.temp/viber/create-pr/body.md` (`<root>` the project root; `Read` the file first when it exists), then run `"${CLAUDE_PLUGIN_ROOT}/scripts/pr-create.sh" "<file>" "<title>" --base "<TARGET>"`, plus ` --draft` for the draft answer.
 
-- Exit 0 -> report `PR_URL=`.
+- Exit 0 -> report `PR_URL=`, then, when `QA=` is set, run `"${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh" "<QA>" --pr "<PR_URL>"` with that `PR_URL=` and report the result as step 7 says. Never retry it.
 - Exit 1 -> report its `ERROR` line. Never retry.
 - Exit 2 -> report its `ERROR` line; nothing was pushed.
 
-You run no test and change no code: the pull request is the only output. End on its `PR_URL=` or on the reason there is none.
+## 7. QA comment of an existing pull request
+
+Only on a `pr-exists` stop with `QA=` set, asked no question: run `"${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh" "<QA>" --pr "<PR_URL>"`, the stop's `PR_URL=`. Never retry. Either call's result:
+
+- Exit 0, `STATUS=posted` -> report `COMMENT_URL=`.
+- Exit 0, `STATUS=skip` -> report its `REASON=` in one line.
+- Exit 1 or 2 -> report its `ERROR` line.
+
+You run no test and change no code: the pull request and its QA comment are the only output. End on the `COMMENT_URL=` or the skip reason of a `pr-exists` stop's call, else on the `PR_URL=` and the comment's result, or on the reason there is none.
