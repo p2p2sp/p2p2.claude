@@ -1,6 +1,6 @@
 ---
 name: memory
-description: Reviews and repairs the host project's CLAUDE.md cascade - maps every node with its own size and the size of the chain a reader loads with it, creates the nodes a project with none needs, verifies each existing node against the code of the area it describes, brings every node within budget, and resets the layer on demand. Use whenever the user wants to create, bootstrap, initialize, refresh, audit or reset project memory, or asks which nodes went stale, lost their area or grew past their budget.
+description: Reviews and repairs the host project's CLAUDE.md cascade - maps every node with its own size and the size of the chain a reader loads with it, creates the nodes a project with none needs, verifies each existing node against the code of the area it describes, brings every node below the root within budget, and resets the layer on demand. Use whenever the user wants to create, bootstrap, initialize, refresh, audit or reset project memory, or asks which nodes went stale, lost their area or grew past their budget.
 argument-hint: "[review, extend, reset, or nothing]"
 allowed-tools: AskUserQuestion, Agent, SendMessage, Bash(${CLAUDE_SKILL_DIR}/scripts/memory-map.sh:*), Bash(${CLAUDE_SKILL_DIR}/scripts/memory-map.sh --reset:*), Read(${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/claude-md-prompt.txt)
 user-invocable: true
@@ -23,7 +23,7 @@ Your whole tool set is `AskUserQuestion`, `Agent`, `SendMessage`, the two map li
 
 Before any question, one line per fact worth deciding on:
 
-- each `node:` line with its two sizes and its flag. `OVER-NODE` is past 12000 bytes, past 4000 for the root `CLAUDE.md`; `OVER-CHAIN` past 32000 over the chain. A node already over a budget is reported here and brought within it by its writer, never by you.
+- each `node:` line with its two sizes and its flag. `OVER-NODE` is past 12000 bytes, past 4000 for the root `CLAUDE.md`; `OVER-CHAIN` past 32000 over the chain. A node below the root already over a budget is reported here and brought within it by its writer, never by you; the root belongs to the user, so its writer only suggests what to trim.
 - each `section:` line with its size and flag, under its node when one exists. A section never counts toward a chain.
 - each `unlinked:` line, named as a section no reader can reach.
 - each `orphan:` line, named as a node left alone in a directory whose other files are gone.
@@ -127,13 +127,13 @@ Keep account while the waves return, counting only paths whose file name is `CLA
 
 ## 8. Reconcile the lists of nodes
 
-After the last wave, a node that exists, the root excepted (it carries no list of nodes), is off when the nodes that now exist below its directory differ from the part of `planned:` below it plus the nodes its own dispatch created, or, when no dispatch wrote it, when any dispatch created or deleted a node below its directory; the root's directory covers the whole repository. Each node off gets one more `viber:memory-node-writer`: `mode: fix`, `node:` its path, `findings: none`, `planned:` the nodes that now exist, `refs:` as above. One wave per depth, the deepest first, each wave's `planned:` counting what the waves before it created or deleted. No node off -> dispatch nothing here.
+After the last wave, a node that exists, the root never counted as off (it carries no list of nodes), is off when the nodes that now exist below its directory differ from the part of `planned:` below it plus the nodes its own dispatch created, or, when no dispatch wrote it, when any dispatch created or deleted a node below its directory; the root's directory covers the whole repository. Each node off gets one more `viber:memory-node-writer`: `mode: fix`, `node:` its path, `findings: none`, `planned:` the nodes that now exist, `refs:` as above. One wave per depth, the deepest first, each wave's `planned:` counting what the waves before it created or deleted. No node off -> dispatch nothing here.
 
 ## 9. Report
 
 Repeat what the writers returned and add nothing to it:
 
-- each `FILES:`, `DELETED:`, `DROPPED:`, `LIFT:`, `CHAIN:` and `SUGGEST:` line, verbatim.
+- each `FILES:`, `DELETED:`, `DROPPED:`, `LIFT:`, `CHAIN:` and `SUGGEST:` line, verbatim: a `SUGGEST:` line is a change to the root or a section beside it that the user makes, never you.
 - each `NO-NODE` target, named as an area that needs no node.
 - each target skipped or dropped on `VERDICT: DENIED`, with its `REASON:` line.
 - every call returned `VERDICT: NONE` -> nothing in the layer needed changing.

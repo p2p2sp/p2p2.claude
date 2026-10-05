@@ -117,7 +117,7 @@ Repeat what the writer returned and add nothing to it:
 
 - `FILES:` -> the rules it created, corrected, moved or removed, one path per line.
 - `OVER:` -> repeat each line verbatim.
-- `MOVE:` -> repeat each line verbatim: a fact removed from a rule that its `CLAUDE.md` node does not hold yet. This run never writes that node; `/viber:memory` over those paths records it.
+- `MOVE:` -> repeat each line verbatim: a fact removed from a rule that its `CLAUDE.md` node does not hold yet. This run never writes that node; `/viber:memory` over those paths records it, except the root `CLAUDE.md`, which is the user's to record: `/viber:memory` only suggests a change to it.
 - `VERDICT: NONE` -> nothing in the layer needed changing.
 - `VERDICT: DENIED` -> its `REASON:` line verbatim.
 - each target dropped in step 5 on `VERDICT: DENIED`, with its `REASON:` line.
