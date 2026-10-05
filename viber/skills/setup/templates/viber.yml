@@ -43,7 +43,8 @@ build:
   # where per-task review and the test suite cannot see; one coder fixes
   # everything it finds, once, and the suite still runs once.
   final-review: true
-  # implementor updates the project's CLAUDE.md nodes at the close of a build.
+  # implementor updates the project's CLAUDE.md nodes below the root at the
+  # close of a build; a change the root needs comes back as a suggestion.
   memory: true
   # implementor updates .claude/rules/ at the close of a build.
   rules: true
