@@ -43,6 +43,8 @@ Read `${CLAUDE_SKILL_DIR}/templates/extension.md` now.
 - Adapt -> `Read` the agent, then `Edit` it, never a rewrite: keep its own role and rules, and add or correct only what the template carries that the file lacks (marker line, input lines, the way to find the build's commits, the output vocabulary, the bans, the refused-tool paragraph, `Stop what you started`, the read-back). Its `description` gains the closing sentence.
 - Write only under `.claude/agents/`. Read the file's tail back after the write and delete a leaked bare closing tag.
 
+When the interview answers describe phases that must run one after another, suggest one forked skill per phase (`context: fork` in `.claude/skills/<phase>/SKILL.md`), each writing its result under the agent's `out:` for the next phase to read, invoked by the agent in order through `Skill`, so no phase's tool output fills the agent's context. The agent then needs `Skill` in its `tools:` and in its opening tool list. Those skills are the user's to write: create none.
+
 When `supercc:skill-designer` is in this session's skill listing, invoke it through `Skill` on the agent file, then apply what it approves. When it is not listed, skip this and install nothing.
 
 ## 5. Register
