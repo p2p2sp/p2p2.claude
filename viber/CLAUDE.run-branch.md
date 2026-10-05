@@ -17,7 +17,7 @@
   spelling in every skill's call. A `Work:` line means no question; without one it reads
   `plan-path.sh --branch <plan>` (`suggested:`, one `entry:` per usable entry, `current-is-base:`,
   `error:` on a missing/unmapped type with mappings set) and asks, "stay" under `required` only
-  on `current-is-base: no`. It alone names the `work:`/`branch:` keys (`plan_field()`; the spec
+  on `current-is-base: no`; under `allowed` every `new: -` records `branch: none` unasked. It alone names the `work:`/`branch:` keys (`plan_field()`; the spec
   templates carry none). A draft round carries both; a title, issue or `Repro:` change
   recomputes the name, never overriding "stay" or `Work: none` (an `allowed` line only).
 - `--checkout` (`branch_checkout`) reads no mode, puts HEAD on an existing local branch, never

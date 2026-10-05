@@ -28,7 +28,10 @@ Under `allowed` or `required`, `/viber:intent` and `/viber:fixer` settle the run
 before they read any code:
 
 - The entry is taken without a question when the issue type maps to one or exactly one entry is
-  usable; otherwise you are asked which entry, `allowed` adding "no branch".
+  usable; otherwise you are asked which entry, `allowed` adding "no branch". When no entry is
+  usable yet because every name needs an issue number, the question waits for the planner, which
+  asks once the run has an issue (one saved at the end of the interview or diagnosis counts) and
+  records no branch without one.
 - HEAD is then checked against that entry's `base`: when HEAD is at another commit you are asked
   to switch to the base now, stay on the current branch, or abort, with how far the base is behind
   its remote. A base missing locally cannot be switched to, and uncommitted changes block the
