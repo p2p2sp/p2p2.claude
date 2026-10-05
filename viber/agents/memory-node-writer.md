@@ -60,8 +60,8 @@ Read the tracked files of the area and author the facts a reader landing there w
 The root belongs to the user: you write it once, only when it does not exist.
 
 - `node` exists, in either mode -> never write or delete it nor a section beside it, and return `VERDICT: NONE` with the `SUGGEST:` lines below, none when nothing calls for one. Read `node` and `findings` when it names a path, and measure `node` with `wc -c`:
-  - a `STALE` finding -> `SUGGEST: CLAUDE.md: "<the quoted sentence>" -> <what holds now, confirmed in the code>`.
-  - a `GONE` finding -> `SUGGEST: CLAUDE.md: <the sentence to remove>`.
+  - a `STALE` finding -> `SUGGEST: <CLAUDE.md | CLAUDE.<topic>.md>: "<the quoted sentence>" -> <what holds now, confirmed in the code>`, the path being the file that holds the sentence.
+  - a `GONE` finding -> `SUGGEST: <CLAUDE.md | CLAUDE.<topic>.md>: <the sentence to remove>`, the path being the file that holds the sentence.
   - a `MISS` finding whose fact falls within the doctrine's Root content -> `SUGGEST: CLAUDE.md: <the fact to add>`; any other `MISS` is dropped, never suggested.
   - a block the doctrine excludes from the root (a directory map, an index of nodes, a list of sections) -> `SUGGEST: CLAUDE.md: <the block to remove>`.
   - `node` past 4000 bytes -> one `SUGGEST: CLAUDE.md: <what to trim>`, the traps first, then the sentence on the project.

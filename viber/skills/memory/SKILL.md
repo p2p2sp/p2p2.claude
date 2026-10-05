@@ -136,7 +136,7 @@ Repeat what the writers returned and add nothing to it:
 - each `FILES:`, `DELETED:`, `DROPPED:`, `LIFT:`, `CHAIN:` and `SUGGEST:` line, verbatim: a `SUGGEST:` line is a change to the root or a section beside it that the user makes, never you.
 - each `NO-NODE` target, named as an area that needs no node.
 - each target skipped or dropped on `VERDICT: DENIED`, with its `REASON:` line.
-- every call returned `VERDICT: NONE` -> nothing in the layer needed changing.
+- every call returned `VERDICT: NONE` with no `SUGGEST:` line -> nothing in the layer needed changing; with `SUGGEST:` lines -> the layer was left as it is and the listed suggestions are the user's to apply.
 - each `MISSING:` line of a created root, verbatim, then, when there was one, the content of `${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/claude-md-prompt.txt`, read with `Read`, verbatim in a code block.
 
-Close on one line: those files sit in the working tree, unstaged and uncommitted, and committing them is the user's next step.
+Close on one line, only when some `FILES:` line came back: those files sit in the working tree, unstaged and uncommitted, and committing them is the user's next step.
