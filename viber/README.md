@@ -34,6 +34,7 @@ after a later reply of yours in the conversation rely on; without it each of tho
 | `/viber:create-pr` | A pull request for the branch you are on, titled per `github.pr-title` and filled in from your pull request template, previewed and pushed and created (or drafted) only on your yes; the run's `qa.md` is posted on it as a QA comment, once per run. |
 | `/viber:memory` | Reviews or extends your project's `CLAUDE.md` cascade on your own schedule. |
 | `/viber:rules` | Reviews or extends your project's `.claude/rules/` on your own schedule. |
+| `/viber:extension` | An agent of your own in `.claude/agents/` that a build runs at its close, just before the run is archived: created or adapted with you, then registered in `build.extensions`. |
 | `/viber:code-auditor` | A large codebase audited for bugs, tech debt or another job you pick: cheap agents rank every file and file pair, and only the places worth it get a deep investigation whose findings are replayed on a clean checkout. Needs Node.js 22.6 or newer. |
 | `/viber:help` | This usage guide opened in your browser. |
 | `/viber:handoff` | The conversation so far saved as one file (where to look, what is done, the decisions, what comes next, open problems) so a fresh session picks up where this one stopped. Name a directory or a `.md` path to save it elsewhere. |
@@ -204,3 +205,7 @@ written once, only where none exists; no build or review rewrites it afterwards,
 change there arrives as suggestions. Both also offer a
 `reset` mode, which deletes the whole layer and starts from zero; it is refused while a target
 holds uncommitted work.
+
+`/viber:extension` writes an agent of your own into `.claude/agents/` and adds its name to
+`build.extensions` in `.claude/viber.yml`, leaving both uncommitted. A build then runs that agent at
+its close and commits what it wrote, in a commit of its own.

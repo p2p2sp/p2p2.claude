@@ -1,0 +1,4 @@
+- `grep -n "skill-extension" help.html` prints 4 lines, not one: the `id="skill-extension"` card plus three links to it (cheat sheet, close list en and pl). Only the card carries the id.
+- `plugin.json` lists `extension` right after `rules`; `.claude/rules/plugin-manifests.md` still names the order without it (outside Files, left as it is).
+- Both SVGs grew by 164px (viewBox, background rect, closeout and e2e blocks shifted down) to fit the new "your extensions" box between the writers' merge line and `closeout`; the PL one reads "twoje rozszerzenia".
+- The `build.extensions` / `build.extensions-parallel` help entries and the README switch row already existed from earlier tasks; the "N of M on" switch-count sentences are unchanged because neither key is a switch.

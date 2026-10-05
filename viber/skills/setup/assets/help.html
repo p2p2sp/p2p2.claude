@@ -913,6 +913,12 @@ oknie<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="current
     rozbudowuje .claude/rules/ projektu.</span></dd>
   </div>
   <div>
+    <dt><a href="#skill-extension"><code data-copy>/viber:extension</code></a></dt>
+    <dd><span lang="en">Creates or adapts an agent of your project that the build runs at its close, and
+    registers it.</span><span lang="pl">Tworzy albo dostosowuje agenta twojego projektu, którego build uruchamia na
+    swoim zakończeniu, i go rejestruje.</span></dd>
+  </div>
+  <div>
     <dt><a href="#skill-code-auditor"><code data-copy>/viber:code-auditor</code></a></dt>
     <dd><span lang="en">Audits a large codebase, investigating only where impact and opportunity are both
     high.</span><span lang="pl">Audytuje duży kod, badając tylko miejsca, gdzie wpływ i szansa są
@@ -1646,6 +1652,15 @@ uruchamia te części zamknięcia, które włączają twoje przełączniki:</p>
   <code>qa.e2e.md</code>, plik przekazania dla <code>/viber:e2e</code>, gdy zmienił się interfejs albo
   endpointy; zmiana bez żadnego z nich nie zapisuje nic. Potem build publikuje <code>qa.md</code> jako komentarz
   do pull requesta gałęzi przebiegu, gdy go ma, raz na przebieg;</span></li>
+  <li><span lang="en"><a href="#key-build-extensions"><code>build.extensions</code></a>: each agent of your own
+  <code>.claude/agents/</code> that the list names runs after the writers above and before the archive, and the
+  files it writes land in a commit of their own. A failed extension is named in the summary and never stops the
+  archive, and an aborted build skips this part. <a href="#skill-extension"><code>/viber:extension</code></a>
+  creates and registers one;</span><span lang="pl"><a href="#key-build-extensions"><code>build.extensions</code></a>:
+  każdy agent z twojego katalogu <code>.claude/agents/</code>, którego nazywa lista, działa po powyższych
+  writerach i przed archiwizacją, a pliki, które zapisuje, trafiają do osobnego commita. Nieudane rozszerzenie
+  jest wymienione w podsumowaniu i nigdy nie wstrzymuje archiwizacji, a przerwany build pomija tę część.
+  <a href="#skill-extension"><code>/viber:extension</code></a> tworzy i rejestruje takiego agenta;</span></li>
   <li><span lang="en"><a href="#key-build-cleanup"><code>build.cleanup</code></a>: <a href="#agent-closeout"><code>closeout</code></a>
   notes on the specification what the build delivered beyond it, then archives the run. An aborted build
   skips this part.</span><span lang="pl"><a href="#key-build-cleanup"><code>build.cleanup</code></a>:
@@ -2692,6 +2707,50 @@ z nich mówi, jak nim sterować.</p>
       is refused while a rule on its list holds uncommitted work.</span><span lang="pl">Pliki w
       <code>.claude/rules/</code>, dopiero po twojej zgodzie, zostawione poza indeksem gita. Reset jest
       odrzucany, gdy reguła z jego listy ma niezacommitowane zmiany.</span></dd>
+    </div>
+  </dl>
+</article>
+
+<article class="card" id="skill-extension">
+  <h4><code>/viber:extension</code></h4>
+  <p lang="en">Creates a new agent in your project's <code>.claude/agents/</code>, or adapts an existing one, so
+  that a build can run it at its close, just before the run is archived, then adds its name to
+  <a href="#key-build-extensions"><code>build.extensions</code></a>. It asks what the agent produces, where it
+  writes, in which language and from which inputs. A closing step of your own, such as end-user help files
+  written after every task, fits here.</p>
+  <p lang="pl">Tworzy nowego agenta w katalogu <code>.claude/agents/</code> twojego projektu albo dostosowuje
+  istniejącego, żeby build mógł go uruchomić na swoim zakończeniu, tuż przed archiwizacją przebiegu, a potem
+  dopisuje jego nazwę do <a href="#key-build-extensions"><code>build.extensions</code></a>. Pyta, co agent
+  tworzy, gdzie zapisuje, w jakim języku i z jakich danych. Mieści się tu własny krok zamykający, na przykład
+  pliki pomocy dla użytkowników końcowych pisane po wykonaniu wszystkich zadań.</p>
+  <dl>
+    <div>
+      <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>
+      <dd><span lang="en">Only by typing the command; no build needed. It needs the configuration
+      <a href="#skill-setup"><code>/viber:setup</code></a> writes, and stops without it.</span><span lang="pl">Tylko
+      przez wpisanie polecenia; build nie jest potrzebny. Potrzebuje konfiguracji zapisanej przez
+      <a href="#skill-setup"><code>/viber:setup</code></a> i bez niej się zatrzymuje.</span></dd>
+    </div>
+    <div>
+      <dt><span lang="en">Arguments</span><span lang="pl">Argumenty</span></dt>
+      <dd><span lang="en">None. One question chooses between a new agent and one of your existing agents to
+      adapt.</span><span lang="pl">Brak. Jedno pytanie wybiera między nowym agentem a jednym z twoich
+      istniejących do dostosowania.</span></dd>
+    </div>
+    <div>
+      <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
+      <dd><span lang="en">None: <a href="#key-build-extensions"><code>build.extensions</code></a> is a list the
+      command adds to.</span><span lang="pl">Brak: <a href="#key-build-extensions"><code>build.extensions</code></a>
+      jest listą, do której polecenie dopisuje.</span></dd>
+    </div>
+    <div>
+      <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
+      <dd><span lang="en">The agent file under <code>.claude/agents/</code> and the name in
+      <code>.claude/viber.yml</code>, both left uncommitted. Reload the session before a build uses a new agent:
+      Claude Code loads agent files at session start.</span><span lang="pl">Plik agenta w
+      <code>.claude/agents/</code> i nazwę w <code>.claude/viber.yml</code>, oba zostawione bez commita. Przed
+      buildem, który ma użyć nowego agenta, przeładuj sesję: Claude Code wczytuje pliki agentów przy starcie
+      sesji.</span></dd>
     </div>
   </dl>
 </article>

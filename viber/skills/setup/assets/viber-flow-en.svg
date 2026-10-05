@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 2552" width="1640" height="2552" role="img" aria-labelledby="svgTitle svgDesc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1640 2716" width="1640" height="2716" role="img" aria-labelledby="svgTitle svgDesc">
   <title id="svgTitle">viber - from an idea to committed code</title>
-  <desc id="svgDesc">Flow diagram of the viber plugin: one-time setup, the optional triage of an issue and UI prototype, the three entries (an idea through the intent interview, a bug through the fixer diagnosis, a small change through plain plan mode), the fast path out of the intent interview under the planning.fast-path switch, where a small change to existing code gets a short design in chat and, after your explicit yes, is built in your session, proven by test-runner and left for you to commit, the planner writing the plan and the planner-review agent gating it, the approval gate you pass yourself, then three ways out: a draft specification continued by a later interview round, a plain plan Claude builds in your session, or the implementor building the plan with task-coder, task-reviewer and one commit per task, its tasks in parallel where their dependencies allow, preceded, when build.baseline-tests is fast or full, by a baseline test run recording what already fails. The build closes with the final review, the fast tests plus the change's integration tests, which under build.baseline-tests treats only new failures as repair work, the optional memory, rules and QA writers and the closeout that archives the run, followed later by the e2e pass that turns the QA scenarios into Playwright tests.</desc>
+  <desc id="svgDesc">Flow diagram of the viber plugin: one-time setup, the optional triage of an issue and UI prototype, the three entries (an idea through the intent interview, a bug through the fixer diagnosis, a small change through plain plan mode), the fast path out of the intent interview under the planning.fast-path switch, where a small change to existing code gets a short design in chat and, after your explicit yes, is built in your session, proven by test-runner and left for you to commit, the planner writing the plan and the planner-review agent gating it, the approval gate you pass yourself, then three ways out: a draft specification continued by a later interview round, a plain plan Claude builds in your session, or the implementor building the plan with task-coder, task-reviewer and one commit per task, its tasks in parallel where their dependencies allow, preceded, when build.baseline-tests is fast or full, by a baseline test run recording what already fails. The build closes with the final review, the fast tests plus the change's integration tests, which under build.baseline-tests treats only new failures as repair work, the optional memory, rules and QA writers, the project's own extension agents listed in build.extensions and the closeout that archives the run, followed later by the e2e pass that turns the QA scenarios into Playwright tests.</desc>
 
   <style>
     :root {
@@ -71,7 +71,7 @@
     <marker id="ar-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="mk-a"/></marker>
   </defs>
 
-  <rect x="0" y="0" width="1640" height="2552" fill="var(--bg)"/>
+  <rect x="0" y="0" width="1640" height="2716" fill="var(--bg)"/>
 
   <!-- ============ HEADER + LEGEND ============ -->
   <text x="40" y="42" class="kicker">VIBER</text>
@@ -456,28 +456,41 @@
   <path d="M740 2308 L740 2358" class="link l-n" marker-end="url(#ar-n)"/>
   <path d="M740 2308 L740 2358" class="flow l-n"/>
 
-  <rect x="480" y="2362" width="520" height="150" rx="10" class="node agent"/>
+  <rect x="480" y="2362" width="520" height="110" rx="10" class="node agent"/>
   <rect x="856" y="2372" width="58" height="16" rx="8" class="badge-opt"/>
   <text x="885" y="2384" class="badge-o" text-anchor="middle">optional</text>
   <rect x="922" y="2372" width="58" height="16" rx="8" class="badge"/>
   <text x="951" y="2384" class="badge-t" text-anchor="middle">agent</text>
-  <text x="504" y="2392" class="mono-t">closeout</text>
-  <text x="504" y="2416" class="desc">Notes on the specification what the build delivered beyond it,</text>
-  <text x="504" y="2434" class="desc">then moves the run into the archive, in one commit.</text>
-  <text x="504" y="2456" class="desc-s">keeps the specification and the QA documents - git keeps the rest</text>
-  <text x="504" y="2478" class="mono">docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/ → docs/specs/</text>
-  <text x="504" y="2498" class="desc-s"><tspan class="sw">build.cleanup</tspan> on</text>
+  <text x="504" y="2392" class="mono-t">your extensions</text>
+  <text x="504" y="2416" class="desc">Your own agents from .claude/agents/, run in the listed order.</text>
+  <text x="504" y="2436" class="desc-s">one commit per agent; a failure never stops the archive</text>
+  <text x="504" y="2458" class="desc-s"><tspan class="sw">build.extensions</tspan> not empty</text>
+
+  <path d="M740 2472 L740 2522" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M740 2472 L740 2522" class="flow l-n"/>
+
+  <rect x="480" y="2526" width="520" height="150" rx="10" class="node agent"/>
+  <rect x="856" y="2536" width="58" height="16" rx="8" class="badge-opt"/>
+  <text x="885" y="2548" class="badge-o" text-anchor="middle">optional</text>
+  <rect x="922" y="2536" width="58" height="16" rx="8" class="badge"/>
+  <text x="951" y="2548" class="badge-t" text-anchor="middle">agent</text>
+  <text x="504" y="2556" class="mono-t">closeout</text>
+  <text x="504" y="2580" class="desc">Notes on the specification what the build delivered beyond it,</text>
+  <text x="504" y="2598" class="desc">then moves the run into the archive, in one commit.</text>
+  <text x="504" y="2620" class="desc-s">keeps the specification and the QA documents - git keeps the rest</text>
+  <text x="504" y="2642" class="mono">docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/ → docs/specs/</text>
+  <text x="504" y="2662" class="desc-s"><tspan class="sw">build.cleanup</tspan> on</text>
 
   <!-- ============ E2E ============ -->
-  <path d="M1440 2253 L1512 2253 Q1530 2253 1530 2271 L1530 2358" class="link l-n" marker-end="url(#ar-n)"/>
-  <path d="M1440 2253 L1512 2253 Q1530 2253 1530 2271 L1530 2358" class="flow l-n"/>
-  <text x="1518" y="2348" class="lbl" text-anchor="end">later, when you want them automated</text>
+  <path d="M1440 2253 L1512 2253 Q1530 2253 1530 2271 L1530 2522" class="link l-n" marker-end="url(#ar-n)"/>
+  <path d="M1440 2253 L1512 2253 Q1530 2253 1530 2271 L1530 2522" class="flow l-n"/>
+  <text x="1518" y="2512" class="lbl" text-anchor="end">later, when you want them automated</text>
 
-  <rect x="1080" y="2362" width="520" height="100" rx="10" class="node"/>
-  <rect x="1080" y="2362" width="4" height="100" rx="2" fill="var(--ok)"/>
-  <rect x="1522" y="2372" width="58" height="16" rx="8" class="badge"/>
-  <text x="1551" y="2384" class="badge-t" text-anchor="middle">skill</text>
-  <text x="1104" y="2392" class="mono-t">/viber:e2e</text>
-  <text x="1104" y="2416" class="desc">Turns the QA scenarios into Playwright tests.</text>
-  <text x="1104" y="2436" class="desc-s">runs them against your application, commits the ones that pass</text>
+  <rect x="1080" y="2526" width="520" height="100" rx="10" class="node"/>
+  <rect x="1080" y="2526" width="4" height="100" rx="2" fill="var(--ok)"/>
+  <rect x="1522" y="2536" width="58" height="16" rx="8" class="badge"/>
+  <text x="1551" y="2548" class="badge-t" text-anchor="middle">skill</text>
+  <text x="1104" y="2556" class="mono-t">/viber:e2e</text>
+  <text x="1104" y="2580" class="desc">Turns the QA scenarios into Playwright tests.</text>
+  <text x="1104" y="2600" class="desc-s">runs them against your application, commits the ones that pass</text>
 </svg>
