@@ -26,8 +26,13 @@
 #                   (value true | false, except build.baseline-tests: off |
 #                   fast | full) or
 #                   branching.mode (value off | allowed | required) - the
-#                   value config.sh prints for it. A flat key (`memory`) is
-#                   an unknown key.
+#                   value config.sh prints for it - or
+#                   build.extensions (value off | serial | parallel, derived
+#                   from three config.sh lines: off when `build.extensions`
+#                   and `build.extensions-missing` both read none; otherwise
+#                   parallel when `build.extensions-parallel` reads true, else
+#                   serial, so a list of missing names alone never reads off).
+#                   A flat key (`memory`) is an unknown key.
 #            name : [a-z0-9-]+.
 #            A missing or empty argument, an unknown key or a name outside its
 #            pattern -> nothing printed.
@@ -53,7 +58,7 @@ name="${3:-}"
 case "$key" in
   planning.adr|planning.plain-plan-review|planning.fast-path) ;;
   build.baseline-tests|build.final-review|build.memory|build.rules|build.qa|build.cleanup) ;;
-  github.issues|branching.mode) ;;
+  github.issues|branching.mode|build.extensions) ;;
   *) exit 0 ;;
 esac
 case "$name" in
@@ -62,8 +67,23 @@ esac
 [ -n "$skill_dir" ] || exit 0
 
 here="$(dirname -- "${BASH_SOURCE[0]}")"
-line="$(bash "$here/config.sh" 2>/dev/null | grep -E "^${key}: " || true)"
-value="${line#"$key: "}"
+block="$(bash "$here/config.sh" 2>/dev/null || true)"
+if [ "$key" = build.extensions ]; then
+  found="$(printf '%s\n' "$block" | grep -E '^build\.extensions: ' || true)"
+  missing="$(printf '%s\n' "$block" | grep -E '^build\.extensions-missing: ' || true)"
+  parallel="$(printf '%s\n' "$block" | grep -E '^build\.extensions-parallel: ' || true)"
+  [ -n "$found" ] && [ -n "$missing" ] || exit 0
+  if [ "${found#build.extensions: }" = none ] && [ "${missing#build.extensions-missing: }" = none ]; then
+    value=off
+  elif [ "${parallel#build.extensions-parallel: }" = true ]; then
+    value=parallel
+  else
+    value=serial
+  fi
+else
+  line="$(printf '%s\n' "$block" | grep -E "^${key}: " || true)"
+  value="${line#"$key: "}"
+fi
 case "$value" in
   ''|*[!a-z]*) exit 0 ;;
 esac

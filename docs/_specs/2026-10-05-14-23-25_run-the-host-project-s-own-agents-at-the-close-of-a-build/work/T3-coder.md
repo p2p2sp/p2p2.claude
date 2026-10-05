@@ -1,0 +1,4 @@
+- `build.extensions` derives its value from three config.sh lines (`build.extensions`, `-missing`, `-parallel`), not one `^key: ` grep; the grep anchor `^build\.extensions: ` never matches `-missing`/`-parallel`.
+- An empty `build.extensions` or `-missing` line (config.sh unreadable) prints nothing, never a guessed `serial`.
+- DoD.7 (header `Contract:`) has no test: test-strategy forbids asserting on the source text of the code under test.
+- The portability sweep now rejects a `<name>.true.md` fragment for a `build.extensions` call: only `off`, `serial`, `parallel` are valid.

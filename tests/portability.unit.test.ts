@@ -395,6 +395,7 @@ const SWITCH_VALUES: Record<string, string[]> = {
   "build.cleanup": ["true", "false"],
   "github.issues": ["true", "false"],
   "branching.mode": ["off", "allowed", "required"],
+  "build.extensions": ["off", "serial", "parallel"],
 };
 
 interface SwitchTextCall {
@@ -710,6 +711,24 @@ test("self-check: fragmentCallViolations accepts a baseline-tests call with a .f
   const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.baseline-tests "${CLAUDE_SKILL_DIR}" baseline-run\n```\n';
   const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, ["baseline-run.fast.md"]);
   assert.deepEqual(violations, []);
+});
+
+test("self-check: fragmentCallViolations accepts a build.extensions call with off, serial and parallel fragments", () => {
+  const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.extensions "${CLAUDE_SKILL_DIR}" extensions\n```\n';
+  const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, [
+    "extensions.off.md",
+    "extensions.serial.md",
+    "extensions.parallel.md",
+  ]);
+  assert.deepEqual(violations, []);
+});
+
+test("self-check: fragmentCallViolations fires on a build.extensions fragment whose value is true (not an extension state)", () => {
+  const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.extensions "${CLAUDE_SKILL_DIR}" extensions\n```\n';
+  const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, ["extensions.serial.md", "extensions.true.md"]);
+  assert.deepEqual(violations, [
+    "plugin/skills/foo/fragments/extensions.true.md: value 'true' is not valid for key 'build.extensions'",
+  ]);
 });
 
 test("self-check: fragmentCallViolations does not fire when every call resolves and every fragment file is called", () => {

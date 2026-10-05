@@ -166,6 +166,54 @@ for (const [config, mode] of [
   });
 }
 
+function writeAgent(repo: GitRepo, name: string): void {
+  const dir = path.join(repo.dir, ".claude", "agents");
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, `${name}.md`), "agent\n");
+}
+
+function writeExtensionFragments(repo: GitRepo): void {
+  writeFragment(repo, "close.off.md", "off\n");
+  writeFragment(repo, "close.serial.md", "serial\n");
+  writeFragment(repo, "close.parallel.md", "parallel\n");
+}
+
+for (const [label, config, fragment] of [
+  ["no extension listed", "build:\n  extensions-parallel: true\n", "off"],
+  ["an empty extension list", "build:\n  extensions:\n  extensions-parallel: false\n", "off"],
+  ["a dispatchable name with parallel off", "build:\n  extensions: docs\n  extensions-parallel: false\n", "serial"],
+  ["a dispatchable name with parallel absent", "build:\n  extensions: docs\n", "serial"],
+  ["a dispatchable name with parallel on", "build:\n  extensions: docs\n  extensions-parallel: true\n", "parallel"],
+  ["a missing name with parallel off", "build:\n  extensions: ghost\n  extensions-parallel: false\n", "serial"],
+  ["a missing name with parallel on", "build:\n  extensions: ghost\n  extensions-parallel: true\n", "parallel"],
+  ["a list of missing names alone, parallel off (never off)", "build:\n  extensions: ghost, phantom\n", "serial"],
+  ["a dispatchable and a missing name, parallel on", "build:\n  extensions: docs, ghost\n  extensions-parallel: true\n", "parallel"],
+] as const) {
+  test(`\`build.extensions\` with ${label} prints the ${fragment} fragment`, async () => {
+    await withGitRepo(async (repo) => {
+      writeConfig(repo, config);
+      writeAgent(repo, "docs");
+      writeExtensionFragments(repo);
+
+      const result = await run(repo, ["build.extensions", skillDir(repo), "close"]);
+
+      assert.deepEqual([result.status, result.stdout], [0, `${fragment}\n`]);
+    });
+  });
+}
+
+test("`build.extensions` whose selected fragment file is missing prints nothing and exits 0", async () => {
+  await withGitRepo(async (repo) => {
+    writeConfig(repo, "build:\n  extensions: ghost\n");
+    writeFragment(repo, "close.off.md", "off\n");
+    writeFragment(repo, "close.parallel.md", "parallel\n");
+
+    const result = await run(repo, ["build.extensions", skillDir(repo), "close"]);
+
+    assert.deepEqual([result.status, result.stdout], [0, ""]);
+  });
+});
+
 /** Every row stages the same config and fragments, and most rows name a file
  *  the fixture holds, so a row passes only because its argument is refused. */
 for (const [label, args] of [
