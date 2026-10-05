@@ -1653,11 +1653,11 @@ uruchamia te części zamknięcia, które włączają twoje przełączniki:</p>
   endpointy; zmiana bez żadnego z nich nie zapisuje nic. Potem build publikuje <code>qa.md</code> jako komentarz
   do pull requesta gałęzi przebiegu, gdy go ma, raz na przebieg;</span></li>
   <li><span lang="en"><a href="#key-build-extensions"><code>build.extensions</code></a>: each agent of your own
-  <code>.claude/agents/</code> that the list names runs after the writers above and before the archive, and the
+  <code>.claude/agents/</code> that the map has an entry for runs after the writers above and before the archive, and the
   files it writes land in a commit of their own. A failed extension is named in the summary and never stops the
   archive, and an aborted build skips this part. <a href="#skill-extension"><code>/viber:extension</code></a>
   creates and registers one;</span><span lang="pl"><a href="#key-build-extensions"><code>build.extensions</code></a>:
-  każdy agent z twojego katalogu <code>.claude/agents/</code>, którego nazywa lista, działa po powyższych
+  każdy agent z twojego katalogu <code>.claude/agents/</code>, który ma wpis w mapie, działa po powyższych
   writerach i przed archiwizacją, a pliki, które zapisuje, trafiają do osobnego commita. Nieudane rozszerzenie
   jest wymienione w podsumowaniu i nigdy nie wstrzymuje archiwizacji, a przerwany build pomija tę część.
   <a href="#skill-extension"><code>/viber:extension</code></a> tworzy i rejestruje takiego agenta;</span></li>
@@ -2714,13 +2714,15 @@ z nich mówi, jak nim sterować.</p>
 <article class="card" id="skill-extension">
   <h4><code>/viber:extension</code></h4>
   <p lang="en">Creates a new agent in your project's <code>.claude/agents/</code>, or adapts an existing one, so
-  that a build can run it at its close, just before the run is archived, then adds its name to
+  that a build can run it at its close, just before the run is archived, then adds an entry for it, with
+  <code>parallel: false</code>, to
   <a href="#key-build-extensions"><code>build.extensions</code></a>. It asks what the agent produces, where it
   writes, in which language and from which inputs. A closing step of your own, such as end-user help files
   written after every task, fits here.</p>
   <p lang="pl">Tworzy nowego agenta w katalogu <code>.claude/agents/</code> twojego projektu albo dostosowuje
   istniejącego, żeby build mógł go uruchomić na swoim zakończeniu, tuż przed archiwizacją przebiegu, a potem
-  dopisuje jego nazwę do <a href="#key-build-extensions"><code>build.extensions</code></a>. Pyta, co agent
+  dopisuje jego wpis, z <code>parallel: false</code>, do
+  <a href="#key-build-extensions"><code>build.extensions</code></a>. Pyta, co agent
   tworzy, gdzie zapisuje, w jakim języku i z jakich danych. Mieści się tu własny krok zamykający, na przykład
   pliki pomocy dla użytkowników końcowych pisane po wykonaniu wszystkich zadań.</p>
   <dl>
@@ -2739,16 +2741,16 @@ z nich mówi, jak nim sterować.</p>
     </div>
     <div>
       <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
-      <dd><span lang="en">None: <a href="#key-build-extensions"><code>build.extensions</code></a> is a list the
-      command adds to.</span><span lang="pl">Brak: <a href="#key-build-extensions"><code>build.extensions</code></a>
-      jest listą, do której polecenie dopisuje.</span></dd>
+      <dd><span lang="en">None: <a href="#key-build-extensions"><code>build.extensions</code></a> is a map the
+      command adds an entry to.</span><span lang="pl">Brak: <a href="#key-build-extensions"><code>build.extensions</code></a>
+      jest mapą, do której polecenie dopisuje wpis.</span></dd>
     </div>
     <div>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
-      <dd><span lang="en">The agent file under <code>.claude/agents/</code> and the name in
+      <dd><span lang="en">The agent file under <code>.claude/agents/</code> and its entry, holding <code>parallel: false</code>, in
       <code>.claude/viber.yml</code>, both left uncommitted. Reload the session before a build uses a new agent:
       Claude Code loads agent files at session start.</span><span lang="pl">Plik agenta w
-      <code>.claude/agents/</code> i nazwę w <code>.claude/viber.yml</code>, oba zostawione bez commita. Przed
+      <code>.claude/agents/</code> i jego wpis z <code>parallel: false</code> w <code>.claude/viber.yml</code>, oba zostawione bez commita. Przed
       buildem, który ma użyć nowego agenta, przeładuj sesję: Claude Code wczytuje pliki agentów przy starcie
       sesji.</span></dd>
     </div>
@@ -3037,22 +3039,21 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   </div>
 </dl>
 <p lang="en">Every switch counts only inside its group: <code>planning:</code> holds the ones read while a change
-is planned, <code>build:</code> the ones a build reads, <code>github:</code> the GitHub ones. Seven of the eleven
-start on; <code>build.qa</code>, <code>github.issues</code>, <code>build.baseline-tests</code> and
-<code>build.extensions-parallel</code> start off. To
+is planned, <code>build:</code> the ones a build reads, <code>github:</code> the GitHub ones. Seven of the ten
+start on; <code>build.qa</code>, <code>github.issues</code> and <code>build.baseline-tests</code> start off. To
 change any of them, edit <code>.claude/viber.yml</code>: every key has a comment there, and only
 <code>true</code> counts as on. Turn a switch off with <code>false</code> instead of deleting it. Only
 <code>build.baseline-tests</code> takes <code>off</code>, <code>fast</code> or <code>full</code>, and
-<code>build.extensions</code> is no switch: it holds a list of agent names.</p>
+<code>build.extensions</code> is no switch: it holds a map of agent entries.</p>
 <p lang="pl">Każdy przełącznik liczy się tylko wewnątrz swojej grupy: <code>planning:</code> trzyma te czytane
 podczas planowania zmiany, <code>build:</code> te czytane przez build, <code>github:</code> te dotyczące GitHuba.
-Siedem z jedenastu jest domyślnie włączonych; <code>build.qa</code>, <code>github.issues</code>,
-<code>build.baseline-tests</code> i <code>build.extensions-parallel</code> startują wyłączone. Zmienisz to w
+Siedem z dziesięciu jest domyślnie włączonych; <code>build.qa</code>, <code>github.issues</code>
+i <code>build.baseline-tests</code> startują wyłączone. Zmienisz to w
 <code>.claude/viber.yml</code>: każdy
 klucz ma tam komentarz, a za włączony liczy się tylko <code>true</code>. Przełącznik wyłączaj wartością
 <code>false</code>, nie usuwaj go. Tylko <code>build.baseline-tests</code> przyjmuje <code>off</code>,
-<code>fast</code> lub <code>full</code>, a <code>build.extensions</code> nie jest przełącznikiem: trzyma listę
-nazw agentów.</p>
+<code>fast</code> lub <code>full</code>, a <code>build.extensions</code> nie jest przełącznikiem: trzyma mapę
+wpisów agentów.</p>
 <p lang="en">To change a few settings for yourself only, create an optional
 <code>.claude/viber.local.yml</code> in the same layout. It overrides four keys, <code>tiers.min</code>,
 <code>tiers.max</code>, <code>build.baseline-tests</code> and <code>github.issues</code>, and nothing else; an
@@ -3194,19 +3195,17 @@ wartość.</p>
   </div>
   <div id="key-build-extensions">
     <dt><code>build.extensions</code> <span class="tag"><span lang="en">empty</span><span lang="pl">puste</span></span></dt>
-    <dd><span lang="en">A list, not a switch: the names of agents from this project's own <code>.claude/agents/</code>,
-    comma-separated on one line, in run order. The build runs each of them at its close, just before the run is
-    archived. Empty, the build runs none.</span><span lang="pl">Lista, nie przełącznik: nazwy agentów z
-    katalogu <code>.claude/agents/</code> tego projektu, po przecinku w jednej linii, w kolejności uruchamiania.
-    Build uruchamia każdego z nich na swoim zakończeniu, tuż przed archiwizacją przebiegu. Gdy lista jest pusta,
-    build nie uruchamia żadnego.</span></dd>
-  </div>
-  <div id="key-build-extensions-parallel">
-    <dt><code>build.extensions-parallel</code> <span class="tag"><span lang="en">off</span><span lang="pl">wył.</span></span></dt>
-    <dd><span lang="en">On, all the agents of <a href="#key-build-extensions"><code>build.extensions</code></a> are
-    dispatched in one message. Off, they run one after another, in the order listed.</span><span lang="pl">Gdy
-    włączony, wszyscy agenci z <a href="#key-build-extensions"><code>build.extensions</code></a> są wysyłani w jednej
-    wiadomości. Gdy wyłączony, działają jeden po drugim, w podanej kolejności.</span></dd>
+    <dd><span lang="en">A map, not a switch: one entry per agent from this project's own <code>.claude/agents/</code>,
+    named after its file and indented under <code>extensions:</code>, in run order. The build runs each of them at
+    its close, just before the run is archived. An entry runs alone, one step after the one before it, unless it
+    holds <code>parallel: true</code>: consecutive entries that do run together, dispatched in one message, as one
+    step. An entry with no <code>parallel</code> option, or any other value, is a step of its own. Empty, the
+    build runs none.</span><span lang="pl">Mapa, nie przełącznik: jeden wpis na agenta z katalogu
+    <code>.claude/agents/</code> tego projektu, nazwany jak jego plik i wcięty pod <code>extensions:</code>, w
+    kolejności uruchamiania. Build uruchamia każdego z nich na swoim zakończeniu, tuż przed archiwizacją
+    przebiegu. Wpis działa sam, jeden krok po poprzednim, chyba że ma <code>parallel: true</code>: kolejne takie
+    wpisy działają razem, wysyłane w jednej wiadomości, jako jeden krok. Wpis bez opcji <code>parallel</code>
+    albo z inną wartością jest osobnym krokiem. Gdy mapa jest pusta, build nie uruchamia żadnego.</span></dd>
   </div>
 </dl>
 

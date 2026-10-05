@@ -34,7 +34,7 @@ after a later reply of yours in the conversation rely on; without it each of tho
 | `/viber:create-pr` | A pull request for the branch you are on, titled per `github.pr-title` and filled in from your pull request template, previewed and pushed and created (or drafted) only on your yes; the run's `qa.md` is posted on it as a QA comment, once per run. |
 | `/viber:memory` | Reviews or extends your project's `CLAUDE.md` cascade on your own schedule. |
 | `/viber:rules` | Reviews or extends your project's `.claude/rules/` on your own schedule. |
-| `/viber:extension` | An agent of your own in `.claude/agents/` that a build runs at its close, just before the run is archived: created or adapted with you, then registered in `build.extensions`. |
+| `/viber:extension` | An agent of your own in `.claude/agents/` that a build runs at its close, just before the run is archived: created or adapted with you, then registered in `build.extensions` with `parallel: false`. |
 | `/viber:code-auditor` | A large codebase audited for bugs, tech debt or another job you pick: cheap agents rank every file and file pair, and only the places worth it get a deep investigation whose findings are replayed on a clean checkout. Needs Node.js 22.6 or newer. |
 | `/viber:help` | This usage guide opened in your browser. |
 | `/viber:handoff` | The conversation so far saved as one file (where to look, what is done, the decisions, what comes next, open problems) so a fresh session picks up where this one stopped. Name a directory or a `.md` path to save it elsewhere. |
@@ -87,12 +87,12 @@ files no task claims, and when nothing was committed for a task.
 ## Optional switches
 
 `/viber:setup` writes `.claude/viber.yml` with its switches in three groups - `planning:`,
-`build:` and `github:` - seven of the eleven on and `build.qa`, `github.issues`,
-`build.baseline-tests` and `build.extensions-parallel` off. A switch counts only inside its group. Edit that file to change any of
+`build:` and `github:` - seven of the ten on and `build.qa`, `github.issues`
+and `build.baseline-tests` off. A switch counts only inside its group. Edit that file to change any of
 them - only `true` counts as on, so turn a switch off with `false` rather than by deleting it;
 `build.baseline-tests` alone takes `off`, `fast` or `full`, and `setup` rewrites an older `true` to
-`full` and `false` to `off`. `build.extensions` is no switch: it holds a list of agent names.
-Without the file all eleven are off. Run `/viber:setup` again after an upgrade: any switch the new
+`full` and `false` to `off`. `build.extensions` is no switch: it holds a map of agent entries.
+Without the file all ten are off. Run `/viber:setup` again after an upgrade: any switch the new
 version added is merged into your file, a switch written outside its group is moved into it, and
 every value you set is left as it is. A session start tells you when the file's `schema:` number
 says it needs that run.
@@ -108,8 +108,7 @@ says it needs that run.
 | `build.rules` | on | The build closes by recording a convention it confirmed in `.claude/rules/`. |
 | `build.qa` | **off** | The build closes by writing test scenarios for what it delivered, which `/viber:e2e` can then automate. |
 | `build.cleanup` | on | The build ends by noting anything it delivered that the specification does not promise, then archiving the run with its build summary and dropping the working files. |
-| `build.extensions` | empty | A comma-separated list of agents from your project's own `.claude/agents/`, run in that order at the close of a build, just before the run is archived. Empty runs none. |
-| `build.extensions-parallel` | **off** | `true` dispatches all of the `build.extensions` agents in one message; off, they run one after another. |
+| `build.extensions` | empty | A map with one entry per agent from your project's own `.claude/agents/`, run in that order at the close of a build, just before the run is archived. An entry runs alone unless it holds `parallel: true`: consecutive such entries run together in one message, as one step. Empty runs none. |
 | `github.issues` | **off** | `/viber:intent`, `/viber:fixer` and `/viber:prototype` can start from a GitHub issue's number or link, and an interview that did not can save its conclusions as a new one; `/viber:prototype` can post its mockup to the issue it started from; `/viber:triage` can fetch and publish to a GitHub issue instead of pasted text alone. |
 
 To change a few settings for yourself only, create an optional `.claude/viber.local.yml` in the
@@ -206,6 +205,6 @@ change there arrives as suggestions. Both also offer a
 `reset` mode, which deletes the whole layer and starts from zero; it is refused while a target
 holds uncommitted work.
 
-`/viber:extension` writes an agent of your own into `.claude/agents/` and adds its name to
-`build.extensions` in `.claude/viber.yml`, leaving both uncommitted. A build then runs that agent at
+`/viber:extension` writes an agent of your own into `.claude/agents/` and adds an entry for it, holding
+`parallel: false`, to `build.extensions` in `.claude/viber.yml`, leaving both uncommitted. A build then runs that agent at
 its close and commits what it wrote, in a commit of its own.

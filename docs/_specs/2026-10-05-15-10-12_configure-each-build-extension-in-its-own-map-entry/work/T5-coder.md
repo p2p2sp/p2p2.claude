@@ -1,0 +1,2 @@
+- Removing `build.extensions-parallel` changes the switch count: both docs now say seven of the ten on, `build.qa`, `github.issues` and `build.baseline-tests` off, and "all ten are off" without the file.
+- `.claude/rules/viber/switch-count-prose.md` still quotes "seven of the eleven ... build.extensions-parallel": out of scope here, the build's rules close updates it.
