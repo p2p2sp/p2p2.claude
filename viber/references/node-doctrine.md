@@ -2,9 +2,17 @@
 
 What a `CLAUDE.md` node holds and what it can afford. A node is loaded whole by every agent that opens a file under it, its ancestors with it, so what grows here is paid by every later task.
 
+## Root
+
+The root, `CLAUDE.md` at the repository root, belongs to the user, as does every section beside it. `/viber:memory` writes it once, only where none exists; no writer rewrites an existing root or its sections: a change to either leaves as a `SUGGEST:` line for the user, the root over its cap included.
+
+It holds, in this order: one sentence naming what the project is; the build command; the whole test suite command; the single test file command; the fast command (every test but integration and end-to-end); the layer marker convention; at most a few traps spanning the whole repository that the code does not show. Never a directory map, an index of nodes or a list of sections.
+
+Every rule below but the root's cap binds the nodes below the root and their sections.
+
 ## Budget
 
-- 12000 bytes per node and per section, 32000 over the chain a reader loads: the root, every ancestor, the node. A section is read on demand and never counts toward a chain.
+- 4000 bytes for the root, 12000 per node below it and per section, 32000 over the chain a reader loads: the root, every ancestor, the node. A section is read on demand and never counts toward a chain.
 - Measure before you write: `wc -c` on the node, on each section you touch and on each ancestor up to the root.
 - A node at its cap takes a new fact only by giving one up. Growth is a decision, never the default.
 
@@ -14,7 +22,7 @@ Facts an agent cannot read off the code in a minute: invariants, contracts betwe
 
 ## Ancestor rule
 
-A child never repeats its ancestor. Where both could carry a fact, it belongs to the ancestor, except a fact about the area of one subdirectory carrying its own node: it belongs to that node, never to an ancestor.
+A child never repeats its ancestor. Where both could carry a fact, it belongs to the ancestor, except a fact about the area of one subdirectory carrying its own node: it belongs to that node, never to an ancestor. A fact spanning the whole repository belongs to the root and never to a node below it: it leaves as a `SUGGEST:` line.
 
 ## Sections
 
