@@ -54,6 +54,16 @@
 #            closing pair -> everything between the two, kept whole; otherwise
 #            cut at the first blank followed by `#`, trailing blanks dropped.
 #            Empty, a comment alone or absent -> the default.
+#            build.extensions-parallel - a switch read like the ten above, its
+#            line printed after the titles.
+#            build.extensions - a list of agent names, a child of `build:`: the
+#            first assignment, cut at a `#` opening the value or following a
+#            blank, split on commas, each name trimmed, an empty one dropped. A
+#            name matching `^[a-z0-9][a-z0-9-]*$` whose file
+#            <repo root>/.claude/agents/<name>.md exists is found; every other
+#            name (no such file, or an invalid name) is missing. Each name counts
+#            once, at its first place in the list. Empty, a comment alone, absent
+#            or outside `build:` -> no name.
 #            directories.runs (default `_specs`) and
 #            directories.specifications (default `specs`) - the directory names
 #            under docs/ holding the open runs and the archived ones. Read ONLY
@@ -89,7 +99,8 @@
 #            a key is named once however often the file repeats it.
 #            `--branching` never reads this file.
 #   stdout : a header line, then one `<group>.<key>: <true|false>` line per
-#            switch (`build.baseline-tests: <off|fast|full>`), one `github.<key>: <pattern>` line per title, one
+#            switch (`build.baseline-tests: <off|fast|full>`), one `github.<key>: <pattern>` line per title,
+#            the three extension lines, one
 #            `directories.<key>: <name>` line per directory key, one
 #            `tiers.<key>: <tier>` line per tier key and the
 #            `branching.mode: <mode>` line - dotted, so the block reads the
@@ -107,11 +118,17 @@
 #              github.issues: false
 #              github.issue-title: {summary}
 #              github.pr-title: [{issue-number}] {summary}
+#              build.extensions-parallel: false
+#              build.extensions: <name>, <name> | none
+#              build.extensions-missing: <name>, <name> | none
 #              directories.runs: _specs
 #              directories.specifications: specs
 #              tiers.min: haiku
 #              tiers.max: opus
 #              branching.mode: off
+#            build.extensions holds the found names, build.extensions-missing
+#            the missing ones, each in listed order joined by `, `, `none` when
+#            there is none.
 #            When the local file exists, one line follows the header:
 #              # local: <overridden> | ignored: <ignored>
 #            <overridden> is the keys that took a local value, in block order,
@@ -206,6 +223,34 @@ END {
   }
   print "github.issue-title: " title(raw["github.issue-title"], "{summary}")
   print "github.pr-title: " title(raw["github.pr-title"], "[{issue-number}] {summary}")
+  v = raw["build.extensions-parallel"]
+  sub(/[[:space:]#].*$/, "", v)
+  print "build.extensions-parallel: " (tolower(v) == "true" ? "true" : "false")
+}
+'
+
+# The build.extensions names, one line each in listed order, each once: `V <name>`
+# for a valid name, `X <name>` for any other. The value is the first assignment
+# inside `build:`, cut at a `#` opening it or following a blank, split on commas,
+# each name trimmed; an empty name is dropped.
+ext_prog='
+/^[^[:space:]#]/ { inbuild = ($0 ~ /^build[[:space:]]*:/); next }
+inbuild && !done && /^[[:space:]]+extensions[[:space:]]*:/ {
+  done = 1
+  v = $0
+  sub(/\r$/, "", v)
+  sub(/^[^:]*:/, "", v)
+  v = " " v
+  if (match(v, /[[:space:]]#/)) v = substr(v, 1, RSTART - 1)
+  n = split(v, names, ",")
+  for (i = 1; i <= n; i++) {
+    name = names[i]
+    sub(/^[[:space:]]+/, "", name)
+    sub(/[[:space:]]+$/, "", name)
+    if (name == "" || (name in seen)) continue
+    seen[name] = 1
+    print (name ~ /^[a-z0-9][a-z0-9-]*$/ ? "V " : "X ") name
+  }
 }
 '
 
@@ -461,6 +506,20 @@ if [ -n "$loc_bt$loc_gi" ]; then
 else
   printf '%s\n' "$block"
 fi
+
+agents_dir="$(dirname "$cfg")/agents"
+ext_found=""
+ext_missing=""
+while IFS=' ' read -r tag name; do
+  if [ "$tag" = V ] && [ -f "$agents_dir/$name.md" ]; then
+    ext_found="${ext_found:+$ext_found, }$name"
+  else
+    ext_missing="${ext_missing:+$ext_missing, }$name"
+  fi
+done < <(awk "$ext_prog" "$src" 2>/dev/null || true)
+printf 'build.extensions: %s\n' "${ext_found:-none}"
+printf 'build.extensions-missing: %s\n' "${ext_missing:-none}"
+
 printf 'directories.runs: %s\n' "$(resolve_dir runs _specs)"
 printf 'directories.specifications: %s\n' "$(resolve_dir specifications specs)"
 

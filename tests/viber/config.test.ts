@@ -126,7 +126,7 @@ function dirs(stdout: string): Record<string, string> {
   return { runs: all["directories.runs"], specifications: all["directories.specifications"] };
 }
 
-test("no config file: the block is every switch off, both title defaults, then the directory, tier and branching defaults, in the fixed order, and the exit is still 0", async () => {
+test("no config file: the block is every switch off, both title defaults, no extension, then the directory, tier and branching defaults, in the fixed order, and the exit is still 0", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
     const result = await run(dir);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
@@ -144,6 +144,9 @@ test("no config file: the block is every switch off, both title defaults, then t
       "github.issues: false",
       "github.issue-title: {summary}",
       "github.pr-title: [{issue-number}] {summary}",
+      "build.extensions-parallel: false",
+      "build.extensions: none",
+      "build.extensions-missing: none",
       "directories.runs: _specs",
       "directories.specifications: specs",
       "tiers.min: haiku",
@@ -901,6 +904,154 @@ for (const mode of ["off", "gitflow"]) {
   });
 }
 
+// --- the build extensions ---
+
+/** An agent file `.claude/agents/<name>.md`, or any other file under `.claude/`, as the host writes one. */
+function writeAgent(root: string, relative: string): void {
+  const file = path.join(root, ".claude", relative);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, "---\nname: x\n---\n");
+}
+
+/** The two extension list lines alone, under short names. */
+function extensions(stdout: string): Record<string, string | undefined> {
+  const all = config(stdout);
+  return { found: all["build.extensions"], missing: all["build.extensions-missing"] };
+}
+
+test("a list naming two existing agents prints both on `build.extensions` in listed order, not sorted (the list is the run order)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeAgent(dir, "agents/write-help.md");
+    writeAgent(dir, "agents/audit-docs.md");
+    writeConfig(dir, inGroup("build", "extensions: write-help, audit-docs"));
+
+    assert.deepEqual(extensions((await run(dir)).stdout), { found: "write-help, audit-docs", missing: "none" });
+  });
+});
+
+test("a listed name with no agent file prints on `build.extensions-missing` alone, an existing sibling still on `build.extensions`", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeAgent(dir, "agents/write-help.md");
+    writeConfig(dir, inGroup("build", "extensions: ghost, write-help"));
+
+    assert.deepEqual(extensions((await run(dir)).stdout), { found: "write-help", missing: "ghost" });
+  });
+});
+
+for (const [name, file] of [
+  ["Upper", "agents/Upper.md"],
+  ["-lead", "agents/-lead.md"],
+  ["snake_case", "agents/snake_case.md"],
+  ["../escape", "escape.md"],
+] as const) {
+  test(`an invalid name \`${name}\` prints on \`build.extensions-missing\` even when \`.claude/agents/${name}.md\` resolves to a file (a name is never a path)`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
+      writeAgent(dir, file);
+      writeConfig(dir, inGroup("build", `extensions: ${name}`));
+
+      assert.deepEqual(extensions((await run(dir)).stdout), { found: "none", missing: name });
+    });
+  });
+}
+
+test("a name listed twice prints once on its line, found and missing alike", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeAgent(dir, "agents/write-help.md");
+    writeConfig(dir, inGroup("build", "extensions: write-help, ghost, write-help, ghost"));
+
+    assert.deepEqual(extensions((await run(dir)).stdout), { found: "write-help", missing: "ghost" });
+  });
+});
+
+for (const [label, body] of [
+  ["the key absent", inGroup("build", "memory: true")],
+  ["an empty value", inGroup("build", "extensions:")],
+  ["a comment alone", inGroup("build", "extensions:   # none yet")],
+  ["only commas", inGroup("build", "extensions: , ,")],
+  ["the key under another group", inGroup("planning", "extensions: write-help")],
+] as const) {
+  test(`a config with ${label} prints \`none\` on both extension lines`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
+      writeAgent(dir, "agents/write-help.md");
+      writeConfig(dir, body);
+
+      assert.deepEqual(extensions((await run(dir)).stdout), { found: "none", missing: "none" });
+    });
+  });
+}
+
+for (const [value, expected] of [
+  ["true", "true"],
+  ["TRUE", "true"],
+  ["true  # all at once", "true"],
+  ["false", "false"],
+  ["yes", "false"],
+  ["trueish", "false"],
+  ["", "false"],
+] as const) {
+  test(`\`extensions-parallel: ${value}\` inside \`build:\` prints \`build.extensions-parallel: ${expected}\``, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
+      writeConfig(dir, inGroup("build", `extensions-parallel: ${value}`));
+
+      assert.equal(printedLine((await run(dir)).stdout, "build.extensions-parallel"), `build.extensions-parallel: ${expected}`);
+    });
+  });
+}
+
+test("a flat `extensions-parallel: true` at column 0 prints `build.extensions-parallel: false` (a key counts only inside its group)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeConfig(dir, "extensions-parallel: true\n");
+
+    assert.equal(printedLine((await run(dir)).stdout, "build.extensions-parallel"), "build.extensions-parallel: false");
+  });
+});
+
+for (const [label, line] of [
+  ["a spaced trailing comment", "extensions: write-help, audit-docs   # run these last"],
+  ["a comment right after a comma", "extensions: write-help, audit-docs, # ghost"],
+] as const) {
+  test(`a list line with ${label} keeps the comment out of every name`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
+      writeAgent(dir, "agents/write-help.md");
+      writeAgent(dir, "agents/audit-docs.md");
+      writeConfig(dir, inGroup("build", line));
+
+      assert.deepEqual(extensions((await run(dir)).stdout), { found: "write-help, audit-docs", missing: "none" });
+    });
+  });
+}
+
+test("a CRLF list line yields its names without a stray CR", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeAgent(dir, "agents/write-help.md");
+    writeConfig(dir, "build:\r\n  extensions: write-help, ghost\r\n  extensions-parallel: true\r\n");
+
+    assert.deepEqual(extensions((await run(dir)).stdout), { found: "write-help", missing: "ghost" });
+  });
+});
+
+test("the first `extensions` assignment inside `build:` wins, so a later duplicate cannot quietly override it", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    writeAgent(dir, "agents/write-help.md");
+    writeAgent(dir, "agents/audit-docs.md");
+    writeConfig(dir, inGroup("build", "extensions: write-help", "extensions: audit-docs"));
+
+    assert.deepEqual(extensions((await run(dir)).stdout), { found: "write-help", missing: "none" });
+  });
+});
+
+test("the agent files are looked up under the repository root, so a session started in a subdirectory finds them", async () => {
+  await withGitRepo(async (repo) => {
+    writeAgent(repo.dir, "agents/write-help.md");
+    writeConfig(repo.dir, inGroup("build", "extensions: write-help"));
+    const nested = path.join(repo.dir, "src", "deep");
+    fs.mkdirSync(nested, { recursive: true });
+
+    const result = await runScript(SUT, [], { cwd: nested, env: repo.env, shell: "bash" });
+    assert.deepEqual(extensions(result.stdout), { found: "write-help", missing: "none" });
+  });
+});
+
 // --- the local overrides file ---
 
 function writeLocal(root: string, body: string): void {
@@ -931,6 +1082,9 @@ const DEFAULT_BLOCK = [
   "github.issues: false",
   "github.issue-title: {summary}",
   "github.pr-title: [{issue-number}] {summary}",
+  "build.extensions-parallel: false",
+  "build.extensions: none",
+  "build.extensions-missing: none",
   "directories.runs: _specs",
   "directories.specifications: specs",
   "tiers.min: haiku",
@@ -963,6 +1117,9 @@ test("a local file setting all four keys prints the local value on those four li
       "github.issues: true",
       "github.issue-title: {summary}",
       "github.pr-title: [{issue-number}] {summary}",
+      "build.extensions-parallel: false",
+      "build.extensions: none",
+      "build.extensions-missing: none",
       "directories.runs: _specs",
       "directories.specifications: specs",
       "tiers.min: sonnet",
