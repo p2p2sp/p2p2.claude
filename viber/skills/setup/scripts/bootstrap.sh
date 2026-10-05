@@ -124,7 +124,12 @@ fi
 #    `directories:` groups inside that group, after its last child, with the
 #    child's own comment: a moved value where there is one, else the default.
 #    A group carrying a value rather than children is left untouched: only the
-#    shape the template ships can be extended safely. `tiers:` and `branching:`
+#    shape the template ships can be extended safely. The lines of the
+#    `build.extensions` map (every line below its key up to the first one that is
+#    neither blank nor a comment and sits no deeper than the key, config.sh's own
+#    rule) are no children of `build:`: an entry named like a switch never
+#    counts as that switch, and a restored child lands after the map.
+#    `tiers:` and `branching:`
 #    are appended whole when absent and never extended: a missing child
 #    resolves to its default in config.sh.
 # A config written with CRLF endings comes back with one ending throughout,
@@ -171,12 +176,20 @@ merge_config() {
         if (first == 0) first = i
         if (!(k in ext) || h[i] !~ /^[A-Za-z_][A-Za-z0-9_-]*[ \t]*:[ \t\r]*$/ || (k in last)) continue
         last[k] = i
+        ms = 0
         for (j = i + 1; j <= hn; j++) {
+          if (ms == 1) {
+            if (h[j] ~ /^[ \t]*#/ || h[j] ~ /^[ \t\r]*$/) continue
+            match(h[j], /^[ \t]*/)
+            if (RLENGTH > mind) { last[k] = j; continue }
+            ms = 2
+          }
           if (h[j] ~ /^[ \t]+[A-Za-z_][A-Za-z0-9_-]*[ \t]*:/) {
             c = h[j]; sub(/^[ \t]+/, "", c); sub(/[ \t]*:.*$/, "", c)
             have[k "." c] = 1
             if (k == "build" && c == "baseline-tests" && bt == 0) bt = j
             last[k] = j
+            if (k == "build" && c == "extensions" && ms == 0) { match(h[j], /^[ \t]*/); mind = RLENGTH; ms = 1 }
           } else if (h[j] !~ /^[ \t]*#/ && h[j] !~ /^[ \t\r]*$/) {
             break
           }

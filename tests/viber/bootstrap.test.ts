@@ -84,7 +84,7 @@ const SCHEMA_KEYS: Record<string, string[]> = {
     "schema",
     "planning", "planning-adr", "planning-plain-plan-review", "planning-fast-path",
     "build", "build-baseline-tests", "build-final-review", "build-memory", "build-rules", "build-qa", "build-cleanup",
-    "build-extensions", "build-extensions-parallel",
+    "build-extensions",
     "github", "github-issues", "github-issue-title", "github-pr-title",
     "directories", "directories-runs", "directories-specifications",
     "tiers", "tiers-min", "tiers-max",
@@ -97,7 +97,7 @@ const GROUPED = [
   "schema: 3",
   "planning:", "  adr: true", "  plain-plan-review: true", "  fast-path: true",
   "build:", "  baseline-tests: off", "  final-review: true", "  memory: true", "  rules: true", "  qa: false", "  cleanup: true",
-  "  extensions:", "  extensions-parallel: false",
+  "  extensions:",
   "github:", "  issues: false", "  issue-title: '{template-title}{summary}'", "  pr-title: '{type}: {summary}'",
   "directories:", "  runs: _specs", "  specifications: specs",
   "tiers:", "  min: haiku", "  max: opus",
@@ -105,8 +105,11 @@ const GROUPED = [
   "",
 ].join("\n");
 
-/** GROUPED as schema 2 left it: neither extension key, the layout a pre-extension setup wrote. */
-const GROUPED_V2 = GROUPED.replace("schema: 3\n", "schema: 2\n").replace("  extensions:\n  extensions-parallel: false\n", "");
+/** GROUPED as schema 2 left it: no extension key, the layout a pre-extension setup wrote. */
+const GROUPED_V2 = GROUPED.replace("schema: 3\n", "schema: 2\n").replace("  extensions:\n", "");
+
+/** The map lines of a filled extension map: two entries, the first one parallel. */
+const MAP = "    help-writer:\n      parallel: true\n    notes-writer:\n";
 
 const LOCAL = ".claude/viber.local.yml";
 
@@ -423,7 +426,7 @@ test("a flat config gains every group the template adds, each child the file did
     assert.match(after, /^schema: 3$/m);
     assert.equal(childValue(after, "build", "rules"), "false");
     assert.equal(childValue(after, "build", "extensions"), "");
-    assert.equal(childValue(after, "build", "extensions-parallel"), "false");
+    assert.doesNotMatch(after, /extensions-parallel/);
     assert.equal(childValue(after, "build", "qa"), "false");
     assert.equal(childValue(after, "build", "cleanup"), "true");
     assert.equal(childValue(after, "planning", "fast-path"), "true");
@@ -534,26 +537,28 @@ test("a config missing `github:`'s `pr-title` child gets it restored at the temp
   });
 });
 
-test("the template ships `schema: 3`, `build.baseline-tests: off` and the two extension keys, `extensions` empty and `extensions-parallel` false", () => {
+test("the template ships `schema: 3`, `build.baseline-tests: off` and an empty `build.extensions`, and no `extensions-parallel` line", () => {
   const template = read(TEMPLATE_CONFIG);
 
   assert.match(template, /^schema: 3$/m);
   assert.equal(childValue(template, "build", "baseline-tests"), "off");
   assert.equal(childValue(template, "build", "extensions"), "");
-  assert.equal(childValue(template, "build", "extensions-parallel"), "false");
+  assert.doesNotMatch(template, /extensions-parallel/);
 });
 
-test("the template's comments above `extensions` and `extensions-parallel` explain each key, and its opening comment names the list key as no switch", () => {
-  const template = read(TEMPLATE_CONFIG);
-  const above = (key: string) => new RegExp(`((?:^ *#.*\\n)+) *${key}:`, "m").exec(template)?.[1] ?? "";
-  const opening = template.split("\n\n")[0];
+test("the template's comment above `extensions` names `.claude/agents/` and `parallel: true`", () => {
+  const above = /((?:^ *#.*\n)+) *extensions:/m.exec(read(TEMPLATE_CONFIG))?.[1] ?? "";
 
-  assert.match(above("extensions"), /\.claude\/agents\/[\s\S]*comma-separated/);
-  assert.match(above("extensions-parallel"), /`true`[\s\S]*`false`/);
-  assert.match(opening, /`build\.extensions` is no switch/);
+  assert.match(above, /\.claude\/agents\/[\s\S]*parallel: true/);
 });
 
-test("a schema-2 config lacking both extension keys gains them inside `build:` at their defaults, reaches schema 3 and keeps the user's values", async () => {
+test("the template's opening comment calls `build.extensions` no switch but a map of agent entries", () => {
+  const opening = read(TEMPLATE_CONFIG).split("\n\n")[0];
+
+  assert.match(opening, /`build\.extensions` is no switch but a map[\s#]+of agent entries/);
+});
+
+test("a schema-2 config gains `build.extensions` alone inside `build:`, reaches schema 3 and keeps the user's values", async () => {
   await withGitRepo(async ({ dir, env }) => {
     const cfg = configPath(dir);
     fs.mkdirSync(path.dirname(cfg), { recursive: true });
@@ -562,29 +567,58 @@ test("a schema-2 config lacking both extension keys gains them inside `build:` a
     const result = await run(dir, env);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.match(result.stdout, /^viber\.yml: merged from the template: build\.extensions, build\.extensions-parallel \(your own values kept\)$/m);
+    assert.match(result.stdout, /^viber\.yml: merged from the template: build\.extensions \(your own values kept\)$/m);
     const after = read(cfg);
     assert.match(after, /^schema: 3$/m);
     assert.equal(childValue(after, "build", "extensions"), "");
-    assert.equal(childValue(after, "build", "extensions-parallel"), "false");
+    assert.doesNotMatch(after, /extensions-parallel/);
     assert.equal(childValue(after, "build", "qa"), "true");
     assert.equal(childValue(after, "directories", "runs"), "builds");
   });
 });
 
-test("a schema-2 config keeps the extension values it already carries, whatever the schema line says", async () => {
+test("a config whose extension map holds an entry named `qa` while `build:` lacks `qa:` gets `qa: false` restored after the map, the map's lines unchanged", async () => {
   await withGitRepo(async ({ dir, env }) => {
     const cfg = configPath(dir);
     fs.mkdirSync(path.dirname(cfg), { recursive: true });
-    fs.writeFileSync(cfg, GROUPED.replace("schema: 3\n", "schema: 2\n").replace("  extensions:\n  extensions-parallel: false\n", "  extensions: help-writer, notes-writer\n  extensions-parallel: true\n"));
+    const map = "    qa:\n      parallel: true\n    # run it first\n\n    memory:\n";
+    fs.writeFileSync(cfg, GROUPED.replace("  qa: false\n", "").replace("  extensions:\n", `  extensions:\n${map}`));
 
     const result = await run(dir, env);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^viber\.yml: merged from the template: build\.qa \(your own values kept\)$/m);
     const after = read(cfg);
-    assert.match(after, /^schema: 3$/m);
-    assert.equal(childValue(after, "build", "extensions"), "help-writer, notes-writer");
-    assert.equal(childValue(after, "build", "extensions-parallel"), "true");
+    assert.equal(after.includes(`  extensions:\n${map}`), true);
+    assert.match(after, /^ {4}memory:\n(?: *#.*\n)+ {2}qa: false\n/m);
+  });
+});
+
+test("a config at the template's schema with a filled extension map is left byte-identical and unreported", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const cfg = configPath(dir);
+    fs.mkdirSync(path.dirname(cfg), { recursive: true });
+    const before = GROUPED.replace("  extensions:\n", `  extensions:\n${MAP}`);
+    fs.writeFileSync(cfg, before);
+
+    const result = await run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^viber\.yml: already present and complete \(left untouched\)$/m);
+    assert.equal(read(cfg), before);
+  });
+});
+
+test("a schema-2 config keeps the extension entries it already carries, whatever the schema line says", async () => {
+  await withGitRepo(async ({ dir, env }) => {
+    const cfg = configPath(dir);
+    fs.mkdirSync(path.dirname(cfg), { recursive: true });
+    fs.writeFileSync(cfg, GROUPED.replace("schema: 3\n", "schema: 2\n").replace("  extensions:\n", `  extensions:\n${MAP}`));
+
+    const result = await run(dir, env);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(read(cfg), GROUPED.replace("  extensions:\n", `  extensions:\n${MAP}`));
   });
 });
 
@@ -792,7 +826,7 @@ test("a key written with blanks before its colon counts as declared, so the file
   await withGitRepo(async ({ dir, env }) => {
     const cfg = configPath(dir);
     fs.mkdirSync(path.dirname(cfg), { recursive: true });
-    const before = "schema : 3\nplanning :\n  adr: true\n  plain-plan-review : false\n  fast-path\t: true\nbuild\t:\n  baseline-tests\t: off\n  final-review\t: true\n  memory: true\n  rules: true\n  qa: true\n  cleanup: true\n  extensions\t: a\n  extensions-parallel : false\ngithub :\n  issues\t: true\n  issue-title : 'x'\n  pr-title\t: 'y'\ndirectories :\n  runs : builds\n  specifications\t: archive\ntiers:\n  min: haiku\n  max: opus\nbranching:\n  mode: off\n";
+    const before = "schema : 3\nplanning :\n  adr: true\n  plain-plan-review : false\n  fast-path\t: true\nbuild\t:\n  baseline-tests\t: off\n  final-review\t: true\n  memory: true\n  rules: true\n  qa: true\n  cleanup: true\n  extensions\t:\n    a:\ngithub :\n  issues\t: true\n  issue-title : 'x'\n  pr-title\t: 'y'\ndirectories :\n  runs : builds\n  specifications\t: archive\ntiers:\n  min: haiku\n  max: opus\nbranching:\n  mode: off\n";
     fs.writeFileSync(cfg, before);
 
     const result = await run(dir, env);
@@ -832,7 +866,7 @@ test("a config already carrying every template key is byte-identical after a run
     fs.mkdirSync(path.dirname(cfg), { recursive: true });
     // The user's own wording and ordering, not the template's: the merge reads
     // which keys are declared, never how the file is written.
-    const before = "# my own header\nbuild:\n  cleanup: false\n  final-review: false\n  baseline-tests: fast\n  qa: true\n  rules: true\n  memory: true\n  extensions-parallel: true\n  extensions: a, b\ngithub:\n  pr-title: '{type}/{summary}'\n  issues: false\n  issue-title: 'x'\nplanning:\n  fast-path: false\n  plain-plan-review: false\n  adr: true\nschema: 3\n\ndirectories:\n  specifications: archive\n  runs: open\ntiers:\n  max: sonnet\n  min: sonnet\nbranching:\n  name: '{type}/{issue}-{slug}'\n  base: develop\n  mode: required\n";
+    const before = "# my own header\nbuild:\n  cleanup: false\n  final-review: false\n  baseline-tests: fast\n  qa: true\n  rules: true\n  memory: true\n  extensions:\n    a:\n      parallel: true\n    b:\ngithub:\n  pr-title: '{type}/{summary}'\n  issues: false\n  issue-title: 'x'\nplanning:\n  fast-path: false\n  plain-plan-review: false\n  adr: true\nschema: 3\n\ndirectories:\n  specifications: archive\n  runs: open\ntiers:\n  max: sonnet\n  min: sonnet\nbranching:\n  name: '{type}/{issue}-{slug}'\n  base: develop\n  mode: required\n";
     fs.writeFileSync(cfg, before);
 
     const result = await run(dir, env);
