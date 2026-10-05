@@ -1,4 +1,0 @@
-- Valid `<name>` is `^[A-Za-z0-9][A-Za-z0-9_-]*$` (task left it open): status.md tokens are whitespace-split and carry a `:` after `extension`, so a space or colon in a name would corrupt the `closed:` line; a leading dash would read as a flag.
-- `--extension` shares the no-task-owner block with `--chore`/`--qa`: `.temp/` refusal, exit 4 before any status write, rollback on a refused commit, rulings.md ride-along (a row added to RULE_CARRIERS).
-- The header text is not asserted (a test never reads source); the usage text is, through stderr.
-- Other consumers of the `closed:` line (plan-index.sh, archive-run.sh, implementor close parts) were not touched; a new `extension:<name>` token on that line is theirs to tolerate.

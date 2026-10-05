@@ -1,5 +1,0 @@
-- `build.extensions-parallel` reads `true` in any letter case, like every other switch (the template's "only `true` counts as on" means that here); `True`/`TRUE` -> true, anything else -> false.
-- The agent dir is `$(dirname "$cfg")/agents`: the repo root's `.claude/agents/` inside a repository, the cwd's outside one, same base as `viber.yml`.
-- A name is validated before the file lookup, so `../escape` never resolves a file outside `.claude/agents/`; an invalid name lands on `-missing` verbatim (trimmed).
-- The list value is cut at a `#` opening it or following a blank; `a,b#c` keeps `b#c` as one (invalid) name.
-- DoD.7 (header) has no test: test-strategy forbids asserting on the source text of the code under test.

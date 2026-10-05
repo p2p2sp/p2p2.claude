@@ -1,4 +1,0 @@
-- The skill addresses the script through `${CLAUDE_PLUGIN_ROOT}/skills/extension/scripts/` (as `setup` does), because the task's grep verification looks for that literal path; the template is read through `${CLAUDE_SKILL_DIR}`.
-- The interview is one prose message (spec asks for prose), so the pre-approval of the `--add` pattern may lapse after the user's answer: a permission prompt there is expected, not a bug.
-- `STATUS=no-config|stale` is handled twice: from the preload's `CONFIG=` before any question, and from `--add`.
-- The template's `model: sonnet`, `effort: medium`, `color: green` are defaults the user may change; tools include `Bash` for `git log`/`git show`.

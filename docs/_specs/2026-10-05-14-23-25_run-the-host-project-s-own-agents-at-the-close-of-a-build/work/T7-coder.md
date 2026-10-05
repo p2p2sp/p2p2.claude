@@ -1,4 +1,0 @@
-- `tests/portability.unit.test.ts` reads fragments through `git ls-files`: with the two new fragments untracked, its fragment-call test is red until they are committed. Run in a scratch clone with both staged, it passes 41/41.
-- The `Run extensions` entry needs no new step 3 sentence: the existing "each ... only when its close part is loaded below" covers it; only the entry list gained the name.
-- Reload hint for a not-found agent type: reload the session so the harness loads the new agent file (same wording as the `extension` skill's closing line).
-- `abort` skip is stated inside the fragments (not step 6), since the fragment is the only text loaded for the step.
