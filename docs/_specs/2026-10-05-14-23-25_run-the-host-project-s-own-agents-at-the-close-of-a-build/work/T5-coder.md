@@ -1,0 +1,6 @@
+- LISTED/MISSING come from `config.sh` (run by `bash` from the script's own dir), so a listed name with no agent file is MISSING and an invalid one too; `--add` judges `present` on the raw list, file or not.
+- Check order of `--add`: invalid-name, then no-config, then stale, then present.
+- The edit rewrites only the `extensions:` line under `build:` (first assignment): value re-spaced to `extensions: <list>`, the blank run before a trailing comment kept as written; written through `cat tmp > cfg`, so the file mode survives.
+- A file with no final newline gains one on `--add`.
+- DoD.8 (header `Contract:`) has no test: test-strategy forbids asserting on the source text.
+- The extension.sh index entry was set 100755 with `git update-index --add --chmod=+x`.
