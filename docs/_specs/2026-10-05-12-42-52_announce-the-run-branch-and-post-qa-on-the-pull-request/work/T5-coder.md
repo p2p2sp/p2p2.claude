@@ -1,0 +1,2 @@
+- The fixer fragments sit after the diagnosis bullet list and before the issue save, so one text covers both the diagnosis line and the hand-off restatement; the third bullet is the C2 line, ordered after `Work:` / `Branch:`.
+- The save step (`issues-save`) comes after this fragment, so "a re-settle after the issue save included" is stated in the hand-off sentence rather than in the save fragment (out of scope).
