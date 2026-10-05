@@ -14,7 +14,7 @@ builders of `plan-index`, `plan-path`, `commit-task` and `archive-run` together.
   `switch-text` case run under `forEachShell("bash")`; every other file runs its bash script once (the code-auditor suites: below).
 - `commit-args.sh` is a sourced library: its test drives it through a generated bash wrapper
   printing `COMMIT_MODE` / `COMMIT_PATHS` (joined with `|`) / `COMMIT_ISSUE_REFS`.
-- Every `!` preload script's test (`config`, `bootstrap`, `check-playwright`, `handoff-path`,
+- Every `!` preload script's test (`config`, `bootstrap`, `check-playwright`, `extension`, `handoff-path`,
   `memory-map`, `rules-map`, `run-clock`, `switch-text`) expects exit 0 from the preload mode
   on every data condition; `plan-gate`, `plan-hints` and `kill-guard` assert exit 0 on every case.
 

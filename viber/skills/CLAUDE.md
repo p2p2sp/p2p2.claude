@@ -97,6 +97,14 @@ The first line of the comment is a marker keyed by the run directory's name, so 
 and `docs/specs/<key>/` count as one run and whichever caller comes second skips with
 `REASON=exists`. `qa.e2e.md` is never posted.
 
+## `extension`
+
+The `extension.sh` preload is trusted like `pr-facts.sh`: `CONFIG=no-config` or `stale` (no
+`extensions:` line under `build:`) names `/viber:setup` before any question, and `--add` repeats
+the check. The skill writes only under `.claude/agents/` and, through `--add` alone, the one
+`extensions:` line of `viber.yml`; both stay unstaged. Its interview is one prose message, so the
+`--add` pre-approval may lapse after the answer and a permission prompt there is expected.
+
 ## `commit`
 
 The fork's `<sha> | <message>` line is trusted only through `commit-selfcheck.sh`, which alone

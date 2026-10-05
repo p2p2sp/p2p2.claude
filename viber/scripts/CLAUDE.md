@@ -8,7 +8,9 @@ Each script's header `Contract:` is its interface; this node carries only what s
   `switch-text.sh` greps `^<key>: ` (a dotted key like `build.memory`) out of the block,
   `run-branch.sh` reads `config.sh --branching`, `hooks/scripts/plan-gate.sh` runs
   `../../scripts/config.sh` for `planning.plain-plan-review`, and `issue-templates.sh` and
-  `pr-facts.sh` read `github.issue-title` / `github.pr-title` from it. A change to a line's shape
+  `pr-facts.sh` read `github.issue-title` / `github.pr-title` from it, and `switch-text.sh
+  build.extensions` combines three of its lines (`build.extensions`, `-missing`, `-parallel`)
+  into one value, `skills/extension/scripts/extension.sh` reads the first two. A change to a line's shape
   or a key's spelling reaches every reader. The optional `# local:` comment line that follows the
   header when `viber.local.yml` exists matches no `^<key>: ` grep and no reader parses it.
 - Sibling calls resolve from the calling script's own directory (`dirname "${BASH_SOURCE[0]}"`)

@@ -11,4 +11,4 @@ paths:
   further down at the diagnosis handoff payload; `triage/SKILL.md` makes three separate calls
   (`issues-read`, `issues-next`, `issues-publish`) at its three matching steps; `implementor/SKILL.md`
   calls `baseline-run` at the task dispatch step and `baseline-close` at the final test run, each
-  where its own text applies, then `memory`, `rules`, `qa`, `cleanup` at the close parts.
+  where its own text applies, then `memory`, `rules`, `qa`, `extensions`, `cleanup` at the close parts.

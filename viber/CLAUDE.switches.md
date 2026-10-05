@@ -10,7 +10,7 @@
   `switch-text.sh`'s key allowlist, `README.md`, `help.html`, and the consuming skill's `fragments/<name>.<value>.md` (implementor's step 3
   `TaskCreate`s one entry per close part; step 4 preloads `baseline-run`, step 5 preloads
   `baseline-close` and `final-review`, step 6 preloads
-  `memory`, `rules`, `qa`, step 7 `cleanup`); no skill body branches on a switch,
+  `memory`, `rules`, `qa`, `extensions`, step 7 `cleanup`); no skill body branches on a switch,
   `tests/portability.unit.test.ts` sweeps every call.
   `<name>` is per call site (`issues-read`, `qa-e2e`), not the key; only a state that does
   something gets a file. `switch-text.sh` prints nothing for an absent file or unknown key,
@@ -43,6 +43,14 @@
   test failing before the build shows as new in the final run.
   `task-coder` and `task-reviewer` read `baseline:` as their own input line. The repair coder and
   `final-review.true.md` get no `baseline:` line.
+- `build.extensions` is a list of agent names, no switch: `config.sh` prints the names whose
+  `.claude/agents/<name>.md` exists as `build.extensions:` and every other listed name (no file,
+  or not `[a-z0-9][a-z0-9-]*`) as `build.extensions-missing:`, each once, `none` when empty.
+  `build.extensions-parallel` is a switch. `switch-text.sh build.extensions` derives `off`,
+  `serial` or `parallel` from those three lines (`off` only when found and missing are both
+  `none`, so a list of missing names alone still loads the fragment that names them in the
+  summary; `off` has no file) and reaches `implementor`'s step 6 only. `viber.local.yml` ignores
+  both keys.
 - `.claude/viber.local.yml` is a personal, git-ignored overlay that only `config.sh` reads. It
   replaces exactly `tiers.min`, `tiers.max`, `build.baseline-tests` and `github.issues` in the
   block, in `viber.yml`'s group layout; an invalid value leaves the shared one and the

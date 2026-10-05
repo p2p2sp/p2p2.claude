@@ -8,8 +8,8 @@ three files share. `PRODUCT.md` holds the testing assumptions that `references/p
 ## Layout
 
 ```
-skills/<name>/           17 skills: SKILL.md plus files read at one step;
-                         setup, memory, rules, handoff, commit, code-auditor bundle scripts/
+skills/<name>/           18 skills: SKILL.md plus files read at one step;
+                         setup, memory, rules, handoff, commit, extension, code-auditor bundle scripts/
 agents/                  23 agents
 scripts/                 17 plugin-wide scripts
 references/              read at runtime: by agents through `refs:`, by skills by direct path
@@ -53,15 +53,6 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   `switch-text.sh` preloads (its close parts reach it only as fragment text), `plan-path.sh`,
   `plan-index.sh`, `commit-task.sh` and `qa-comment.sh` stdout (`progress: <n>/<total>`, exit 4 naming `--landed`,
   the `refused` / `took` / `claimed by no task` warnings), and agents' return lines. Every script's stdout and agent `## Output` vocabulary is an interface: renaming one side breaks the build silently.
-- `plan-index.sh`'s index prints per task id, state, TDD, `excl`, `deps`, `feeds` (contract
-  blocks other tasks consume, `<id>:<consumer count>`), `files`, title, then a `verify:` line, plus a trailing
-  `dirty: <id> | <paths>` line per task not done whose own files changed, one
-  `orphan: <p1>,<p2>` line for changed paths (run directory excluded) claimed by no open task and `next: part <n> of <N> - <name>` only when the plan's Roadmap has an entry after
-  the `(this plan)` one. `implementor` profiles tier from TDD, file count, `feeds` (opus from 3
-  consumers) and dependents, review from `verify:` and the tier (never from a field the index does
-  not print) or a coder `EXTRA:` line; it reads `next:` only to close its summary on
-  `/viber:intent <archive or run dir>/roadmap.md`, the archive form inside `outcome.md` when the
-  run is archived: the two change together.
 - `excl` (plan `Exclusive: true`): `implementor` runs the task alone, once nothing else is ready
   or in flight, until committed; outside `--split` `plan-index.sh` rejects a task depending on it.
 - Every agent but the five `code-auditor` ones (`viber/agents/CLAUDE.code-auditor.md`) returns
@@ -94,6 +85,12 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   parallel tasks share one working tree. A coder's two git writes are `git rm -r -q` (removal)
   and `git update-index --chmod=+x` (exec bit): `commit-task.sh` commits only its named paths,
   each as the index holds it, so either rides in its own task's commit only.
+- An extension is an agent of the host's own `.claude/agents/` that `implementor` runs after the
+  memory, rules and QA commits and before `closeout` (`build.extensions`, `CLAUDE.switches.md`),
+  each commit `commit-task.sh --extension`. A `FAIL`, an agent type the harness does not know
+  (a file created mid-session loads only after a reload) and a refused commit reach the final
+  summary and never stop the archive; `DENIED` asks retry / accept / abort; a name `closed:`
+  already holds never runs again. `intent`'s fast path runs none.
 - A coder's protected files are those of tasks not on `status.md`'s `done:` line: a done task's
   file is free to change as `EXTRA:` (the reviewer re-runs its `verify:` as `recheck:`), while
   `WAIT:` and `commit-task.sh`'s `refused` guard the ones still open.
@@ -101,7 +98,7 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 ## Commit ownership
 
 - Only scripts commit: `plan-index.sh --split` (the decomposition), `commit-task.sh` (every task,
-  repair, close, e2e, final-review-fix and `--outside` commit, `--skip`, `--decide`, `--rule`, and `--landed <sha>` recording a task
+  repair, close, extension, e2e, final-review-fix and `--outside` commit, `--skip`, `--decide`, `--rule`, and `--landed <sha>` recording a task
   another commit carried in its own `chore(viber)` commit, never with `--with`), `archive-run.sh`
   (the archive), and outside a build the `commit` skill's `commit.sh`. No agent or skill runs
   `git add` or `git commit`. `planner` leaves a landed draft uncommitted; `memory` and `rules`
@@ -115,36 +112,13 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 - The exceptions to the literal-script-line form, under a bare `Bash` allow: the `commit` skill's
   inline `git rev-parse` and `cat` preloads and `code-auditor`'s `sh`/`bash`/`node` calls.
 
-## The run directory
-
-`docs/<runs>/<stamp>_<slug>/` (`docs/_specs/` by default), landed by `plan-path.sh --land`, which
-copies (never moves) the plan-mode file, a round landing into the draft its `into:` key names:
-
-- `plan.md` - frozen once it carries a task block; a draft is relanded in place each round.
-- `spec.md`, `tasks/<id>.md` - `plan-index.sh --split`, rebuilt on every call. A task
-  file is a coder's whole input; a coder never sees the plan.
-- `roadmap.md` - only when the plan has a `## Roadmap`: `plan-index.sh --split` cuts it out of
-  `spec.md` (never a model's write) and it rides into the archive as a non-scaffolding file.
-- `prototype.html` - only when the plan's `prototype:` key names an existing mockup:
-  `plan-path.sh --land` copies it (a draft round overwrites it, or removes it when the key is
-  gone), `plan-index.sh --split` commits
-  it and appends `## Prototype` with its path to every task file; it rides into the archive.
-- `status.md` - `commit-task.sh` is its only writer (`plan-index.sh` creates it empty).
-- `rulings.md` - the build's rulings, `commit-task.sh --rule` its only writer, created by the first
-  ruling; it rides in the archive.
-- `outcome.md` - the build's final summary plus a `Drift:` line, `closeout` its only writer, just
-  before the move; it rides in the archive.
-
-`archive-run.sh` moves it to `docs/<specifications>/<key>/` (`docs/specs/` by default), dropping
-only the scaffolding it enumerates, and refuses a run with a task in neither `done` nor
-`skipped`. `closeout` edits `spec.md` and writes `outcome.md` first: the drift edit, the summary
-and the move are one commit.
-
 ## Sections
 
 - Read `CLAUDE.plan-format.md` before changing the plan template, `plan-rules.md`, a plan
-  parser or how `--split` cuts a task file.
+  parser, `plan-index.sh`'s printed index or how `--split` cuts a task file.
 - Read `CLAUDE.run-branch.md` before touching `branching:`, `run-branch.sh`, `plan-path.sh --branch`.
+- Read `CLAUDE.run-directory.md` before touching a file of a run directory, `status.md`'s keys,
+  `archive-run.sh` or `closeout`.
 - Read `CLAUDE.rulings.md` before touching rulings or the arbiter.
 - Read `CLAUDE.tool-dependencies.md` before touching a `gh`, Playwright or `node` call.
 - Read `CLAUDE.switches.md` before adding or parsing a `viber.yml` key or wiring a switch into
@@ -159,6 +133,10 @@ and the move are one commit.
 - The temporary-index commit of named paths (never `git commit -- <paths>`, which drops a staged
   mode under `core.fileMode=false`): `commit-task.sh`'s `commit_named` and `commit.sh`'s paths mode.
 - An agent's `tools:` frontmatter and the tool list its opening paragraph names.
+- The extension contract: the `<!-- viber:extension -->` marker line (`extension.sh` tells a
+  contract agent from a plain one by it), the `run:`/`spec:`/`notes:`/`out:` input lines and the
+  `VERDICT: WRITTEN`/`NONE`/`FAIL`/`DENIED` plus `FILES:` output, in
+  `skills/extension/templates/extension.md` and `skills/implementor/fragments/extensions.*.md`.
 - `references/qa-format.md`, the format authority for `qa-writer`, `e2e-writer` and `e2e` (which
   routes on its `##` headings). `e2e-writer` edits its scenario's `## Automation` line, `e2e`
   reads each ID's state there and dispatches one scenario at a time, never two at once.

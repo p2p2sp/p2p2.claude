@@ -40,3 +40,13 @@ every parser.
   clause-by-clause gate and `implementor`'s short-`DOD:` retry all count those clauses: a change
   to the separator or numbering touches the splitter, `task-coder`, `task-reviewer`, `tdd` step 1
   and `implementor` together.
+
+- `plan-index.sh`'s index prints per task id, state, TDD, `excl`, `deps`, `feeds` (contract
+  blocks other tasks consume, `<id>:<consumer count>`), `files`, title, then a `verify:` line, plus a trailing
+  `dirty: <id> | <paths>` line per task not done whose own files changed, one
+  `orphan: <p1>,<p2>` line for changed paths (run directory excluded) claimed by no open task and `next: part <n> of <N> - <name>` only when the plan's Roadmap has an entry after
+  the `(this plan)` one. `implementor` profiles tier from TDD, file count, `feeds` (opus from 3
+  consumers) and dependents, review from `verify:` and the tier (never from a field the index does
+  not print) or a coder `EXTRA:` line; it reads `next:` only to close its summary on
+  `/viber:intent <archive or run dir>/roadmap.md`, the archive form inside `outcome.md` when the
+  run is archived: the two change together.
