@@ -48,7 +48,9 @@
 #           root first then depth order. The first count is `wc -c` on the
 #           file, "chain" that plus every ancestor node up to the root - what
 #           a reader loads by the time it reaches this one. OVER-NODE past
-#           12000 bytes, OVER-CHAIN past 32000 on the chain, OVER-NODE
+#           4000 bytes for the root node CLAUDE.md, which every session
+#           loads first, and past 12000 bytes for every other node,
+#           OVER-CHAIN past 32000 on the chain, OVER-NODE
 #           winning when both hold. A node deleted but not yet committed -
 #           staged with `git rm` or plainly `rm`'d - is no node at all: no
 #           line here, no dirty line, not counted toward total or state, and
@@ -94,6 +96,7 @@ set -u
 
 NL='
 '
+ROOT_BUDGET=4000
 NODE_BUDGET=12000
 CHAIN_BUDGET=32000
 MANIFESTS='package.json pyproject.toml setup.py requirements.txt go.mod Cargo.toml pom.xml build.gradle build.gradle.kts Gemfile composer.json mix.exs pubspec.yaml CMakeLists.txt Makefile'
@@ -333,13 +336,17 @@ while IFS= read -r line; do
       chain=$(( chain + $(chars_of "$ancestor") ))
     fi
   done
+  # The root is read by every session before anything else, so it gets the
+  # smallest budget; every other node keeps the node budget.
+  own_budget="$NODE_BUDGET"
+  [ "$node" != "CLAUDE.md" ] || own_budget="$ROOT_BUDGET"
   # The node's own budget wins when both are past: it is the one the reader
   # can act on, and shrinking it shortens every chain below it too.
   budget="ok"
   if [ "$chain" -gt "$CHAIN_BUDGET" ]; then
     budget="OVER-CHAIN"
   fi
-  if [ "$own" -gt "$NODE_BUDGET" ]; then
+  if [ "$own" -gt "$own_budget" ]; then
     budget="OVER-NODE"
   fi
   node_out="$node_out$(printf 'node: %s %s chain %s %s' "$node" "$own" "$chain" "$budget")$NL"

@@ -114,15 +114,63 @@ test("nodes come root first then in depth order, each chain adding every ancesto
   });
 });
 
-test("a node past the 12000 character budget reads OVER-NODE", async () => {
+test("a root CLAUDE.md past the 4000 byte root budget reads OVER-NODE", async () => {
   await withGitRepo(async (repo) => {
-    await commit(repo, { "CLAUDE.md": node(12001) });
+    await commit(repo, { "CLAUDE.md": node(4001) });
 
     const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(pick(lines(result.stdout), "node:"), [
-      "node: CLAUDE.md 12001 chain 12001 OVER-NODE",
+      "node: CLAUDE.md 4001 chain 4001 OVER-NODE",
+    ]);
+  });
+});
+
+test("a root CLAUDE.md of exactly 4000 bytes is within the root budget and reads ok", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, { "CLAUDE.md": node(4000) });
+
+    const result = await run(repo);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(pick(lines(result.stdout), "node:"), [
+      "node: CLAUDE.md 4000 chain 4000 ok",
+    ]);
+  });
+});
+
+test("a node below the root keeps the 12000 byte budget: 12000 reads ok and 12001 OVER-NODE (the root budget never reaches below the root)", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
+      "CLAUDE.md": node(40),
+      "a/CLAUDE.md": node(12000),
+      "b/CLAUDE.md": node(12001),
+    });
+
+    const result = await run(repo);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(pick(lines(result.stdout), "node:"), [
+      "node: CLAUDE.md 40 chain 40 ok",
+      "node: a/CLAUDE.md 12000 chain 12040 ok",
+      "node: b/CLAUDE.md 12001 chain 12041 OVER-NODE",
+    ]);
+  });
+});
+
+test("a section beside the root keeps the 12000 byte budget and reads ok at 12000 (the root budget is the node's alone)", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
+      "CLAUDE.md": "read CLAUDE.release.md before a release\n",
+      "CLAUDE.release.md": node(12000),
+    });
+
+    const result = await run(repo);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(pick(lines(result.stdout), "section:"), [
+      "section: CLAUDE.release.md 12000 ok",
     ]);
   });
 });
@@ -130,19 +178,21 @@ test("a node past the 12000 character budget reads OVER-NODE", async () => {
 test("a chain past the 32000 character budget reads OVER-CHAIN while each node of it stays ok", async () => {
   await withGitRepo(async (repo) => {
     await commit(repo, {
-      // 12000 is the node budget exactly, not past it
-      "CLAUDE.md": node(12000),
-      "a/CLAUDE.md": node(11000),
-      "a/b/CLAUDE.md": node(11000),
+      // each node sits exactly on its own budget, not past it
+      "CLAUDE.md": node(4000),
+      "a/CLAUDE.md": node(12000),
+      "a/b/CLAUDE.md": node(12000),
+      "a/b/c/CLAUDE.md": node(5000),
     });
 
     const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(pick(lines(result.stdout), "node:"), [
-      "node: CLAUDE.md 12000 chain 12000 ok",
-      "node: a/CLAUDE.md 11000 chain 23000 ok",
-      "node: a/b/CLAUDE.md 11000 chain 34000 OVER-CHAIN",
+      "node: CLAUDE.md 4000 chain 4000 ok",
+      "node: a/CLAUDE.md 12000 chain 16000 ok",
+      "node: a/b/CLAUDE.md 12000 chain 28000 ok",
+      "node: a/b/c/CLAUDE.md 5000 chain 33000 OVER-CHAIN",
     ]);
   });
 });
@@ -150,18 +200,20 @@ test("a chain past the 32000 character budget reads OVER-CHAIN while each node o
 test("OVER-NODE wins over OVER-CHAIN when a node is past both budgets", async () => {
   await withGitRepo(async (repo) => {
     await commit(repo, {
-      "CLAUDE.md": node(12000),
+      "CLAUDE.md": node(4000),
       "a/CLAUDE.md": node(12000),
-      "a/b/CLAUDE.md": node(12001),
+      "a/b/CLAUDE.md": node(12000),
+      "a/b/c/CLAUDE.md": node(12001),
     });
 
     const result = await run(repo);
 
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(pick(lines(result.stdout), "node:"), [
-      "node: CLAUDE.md 12000 chain 12000 ok",
-      "node: a/CLAUDE.md 12000 chain 24000 ok",
-      "node: a/b/CLAUDE.md 12001 chain 36001 OVER-NODE",
+      "node: CLAUDE.md 4000 chain 4000 ok",
+      "node: a/CLAUDE.md 12000 chain 16000 ok",
+      "node: a/b/CLAUDE.md 12000 chain 28000 ok",
+      "node: a/b/c/CLAUDE.md 12001 chain 40001 OVER-NODE",
     ]);
   });
 });
