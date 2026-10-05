@@ -1,6 +1,6 @@
 ---
 name: extension
-description: Creates or adapts an agent in the project's .claude/agents/ that a viber build runs at its close, just before the run is archived, and registers it in build.extensions of .claude/viber.yml. Use when the project needs a closing step of the project's own, for example end-user help files written after every task is committed.
+description: Creates or adapts an agent in the project's .claude/agents/ that a viber build runs at its close, just before the run is archived, and registers it as an entry of build.extensions in .claude/viber.yml. Use when the project needs a closing step of the project's own, for example end-user help files written after every task is committed.
 allowed-tools: AskUserQuestion, Skill, Read, Write(./.claude/agents/**), Edit(./.claude/agents/**), Bash(${CLAUDE_PLUGIN_ROOT}/skills/extension/scripts/extension.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/extension/scripts/extension.sh --add:*)
 user-invocable: true
 disable-model-invocation: true
@@ -12,7 +12,7 @@ disable-model-invocation: true
 "${CLAUDE_PLUGIN_ROOT}/skills/extension/scripts/extension.sh"
 ```
 
-The block above is this project's extension state as the script measured it: `CONFIG=` (`ok`, `no-config` or `stale`), `LISTED=` (the names in `build.extensions` that have an agent file), `MISSING=` (the listed names with none, or invalid) and one `AGENT=<name> | contract | plain` line per file of `.claude/agents/`, `contract` meaning it already carries the extension marker. It is trusted: never open `.claude/viber.yml`, never list `.claude/agents/` yourself.
+The block above is this project's extension state as the script measured it: `CONFIG=` (`ok`, `no-config` or `stale`), `LISTED=` (the entries of `build.extensions` that have an agent file, in run order), `MISSING=` (the entries with none, or invalid) and one `AGENT=<name> | contract | plain` line per file of `.claude/agents/`, `contract` meaning it already carries the extension marker. It is trusted: never open `.claude/viber.yml`, never list `.claude/agents/` yourself.
 
 ## 1. Gate and report
 
@@ -53,8 +53,8 @@ Run one literal line, nothing chained after it:
 "${CLAUDE_PLUGIN_ROOT}/skills/extension/scripts/extension.sh" --add <name>
 ```
 
-- `STATUS=added` -> the name joined `build.extensions`.
-- `STATUS=present` -> it was already listed: the list is left as it is.
+- `STATUS=added` -> the name became an entry of `build.extensions` holding `parallel: false`: the agent runs alone. Tell the user to set that entry's `parallel` to `true` in `.claude/viber.yml` to run the agent together with the parallel entries next to it.
+- `STATUS=present` -> the name already has an entry in `build.extensions`: the entries are left as they are.
 - `STATUS=no-config` or `STATUS=stale` -> the agent file stays, nothing was registered: name `/viber:setup` and stop.
 - `STATUS=invalid-name` -> ask for another name and rename the file, then run the line again.
 

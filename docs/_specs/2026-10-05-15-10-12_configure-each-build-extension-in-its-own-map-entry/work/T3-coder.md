@@ -1,0 +1,4 @@
+- `extension.sh` holds a copy of config.sh's `mapline()` in its own `ext_prog` (a bash function cannot share an awk string across scripts); a change to the map-line rule in `config.sh` has to be mirrored there.
+- The splice is done in the shell (`head`/`tail` around two printed lines), not in awk: the Windows Git Bash gawk and `sed` read a CRLF file in text mode and drop every CR, so awk output or `sed -n Np` loses the line ending. CR detection reads the key line through `head | tail | tr -cd '\r'` for that reason.
+- A last map line with no trailing newline gets the line ending of the key line added before the new entry; the file is otherwise byte-identical.
+- `LISTED=` is config.sh's `build.extensions` with ` + ` turned into `, `; `MISSING=` is unchanged.
