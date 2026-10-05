@@ -1,7 +1,7 @@
 ---
 name: extension
-description: Creates or adapts an agent in the project's .claude/agents/ that a viber build runs at its close, just before the run is archived, and registers it as an entry of build.extensions in .claude/viber.yml. Use when the project needs a closing step of the project's own, for example end-user help files written after every task is committed.
-allowed-tools: AskUserQuestion, Skill, Read, Write(./.claude/agents/**), Edit(./.claude/agents/**), Bash(${CLAUDE_PLUGIN_ROOT}/skills/extension/scripts/extension.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/extension/scripts/extension.sh --add:*)
+description: Creates or adapts an agent in the project's .claude/agents/ that a viber build runs at its close, just before the run is archived, with one forked skill in .claude/skills/ per phase when its work runs in phases one after another, and registers it as an entry of build.extensions in .claude/viber.yml. Use when the project needs a closing step of the project's own, for example end-user help files written after every task is committed.
+allowed-tools: AskUserQuestion, Skill, Read, Write(./.claude/agents/**), Edit(./.claude/agents/**), Write(./.claude/skills/**), Edit(./.claude/skills/**), Bash(${CLAUDE_PLUGIN_ROOT}/skills/extension/scripts/extension.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/skills/extension/scripts/extension.sh --add:*)
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -26,26 +26,26 @@ One `AskUserQuestion`: create a new agent, or adapt an existing one. Offer `crea
 
 ## 3. Interview
 
-One prose message, four questions, then wait for the answer:
+One prose message, five questions, then wait for the answer:
 
 - what the agent produces
 - where it writes, as repository-relative paths
 - in which language
 - from which inputs: the run's specification, its notes, the build's commits, files of the project
+- whether the work runs in phases one after another, and if so each phase's name and what it produces for the next
 
 On adapt, add what the agent should keep doing as it is. The name of a new agent is the user's: lowercase letters, digits and hyphens, starting with a letter or a digit. Ask nothing else.
 
-## 4. Write the agent
+## 4. Write the agent and its phase skills
 
-Read `${CLAUDE_SKILL_DIR}/templates/extension.md` now.
+Read `${CLAUDE_SKILL_DIR}/templates/extension.md` and `${CLAUDE_SKILL_DIR}/references/authoring.md` now, and write every file below by the authoring rules.
 
-- Create -> fill it into a new `.claude/agents/<name>.md` with `Write`: the `name`, a `description` that says what the agent produces and ends with the template's fixed closing sentence, and the task section from the interview answers. Keep every other line of the template as it stands.
+- Create -> fill the template into a new `.claude/agents/<name>.md` with `Write`: the `name`, a `description` that says what the agent produces and ends with the template's fixed closing sentence, and the task section from the interview answers. Keep every other line of the template as it stands.
 - Adapt -> `Read` the agent, then `Edit` it, never a rewrite: keep its own role and rules, and add or correct only what the template carries that the file lacks (marker line, input lines, the way to find the build's commits, the output vocabulary, the bans, the refused-tool paragraph, `Stop what you started`, the read-back). Its `description` gains the closing sentence.
-- Write only under `.claude/agents/`. Read the file's tail back after the write and delete a leaked bare closing tag.
+- Phases in the answers -> one forked skill per phase, so no phase's tool output fills the agent's context: `Write` each new `.claude/skills/<name>-<phase>/SKILL.md`; a phase skill that already exists is `Read`, then `Edit`ed, never rewritten. Wire the agent to them as the authoring rules' Task section says.
+- Write only under `.claude/agents/` and `.claude/skills/`. Read each file's tail back after the write and delete a leaked bare closing tag.
 
-When the interview answers describe phases that must run one after another, suggest one forked skill per phase (`context: fork` in `.claude/skills/<phase>/SKILL.md`), each writing its result under the agent's `out:` for the next phase to read, invoked by the agent in order through `Skill`, so no phase's tool output fills the agent's context. The agent then needs `Skill` in its `tools:` and in its opening tool list. Those skills are the user's to write: create none.
-
-When `supercc:skill-designer` is in this session's skill listing, invoke it through `Skill` on the agent file, then apply what it approves. When it is not listed, skip this and install nothing.
+When `supercc:skill-designer` is in this session's skill listing, invoke it through `Skill` on the agent file and on each phase skill's directory, then apply what it approves. When it is not listed, skip this and install nothing.
 
 ## 5. Register
 
@@ -62,4 +62,4 @@ Run one literal line, nothing chained after it:
 
 ## 6. Close
 
-Nothing is staged and nothing is committed: say the agent file and `.claude/viber.yml` sit in the working tree for the user to commit. End on one line telling the user to reload the session before a build uses the agent, because the harness loads a new agent file only at session start.
+Nothing is staged and nothing is committed: say the agent file, every phase skill and `.claude/viber.yml` sit in the working tree for the user to commit. End on one line telling the user to reload the session before a build uses the agent, because the harness loads a new agent file only at session start.

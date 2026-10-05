@@ -2717,13 +2717,16 @@ z nich mówi, jak nim sterować.</p>
   that a build can run it at its close, just before the run is archived, then adds an entry for it, with
   <code>parallel: false</code>, to
   <a href="#key-build-extensions"><code>build.extensions</code></a>. It asks what the agent produces, where it
-  writes, in which language and from which inputs. A closing step of your own, such as end-user help files
-  written after every task, fits here.</p>
+  writes, in which language, from which inputs and whether the work runs in phases one after another; each
+  phase becomes a skill of its own in <code>.claude/skills/</code> that the agent runs in order. A closing step
+  of your own, such as end-user help files written after every task, fits here.</p>
   <p lang="pl">Tworzy nowego agenta w katalogu <code>.claude/agents/</code> twojego projektu albo dostosowuje
   istniejącego, żeby build mógł go uruchomić na swoim zakończeniu, tuż przed archiwizacją przebiegu, a potem
   dopisuje jego wpis, z <code>parallel: false</code>, do
   <a href="#key-build-extensions"><code>build.extensions</code></a>. Pyta, co agent
-  tworzy, gdzie zapisuje, w jakim języku i z jakich danych. Mieści się tu własny krok zamykający, na przykład
+  tworzy, gdzie zapisuje, w jakim języku, z jakich danych i czy praca dzieli się na kolejne fazy; każda faza
+  staje się osobnym skillem w <code>.claude/skills/</code>, który agent uruchamia po kolei. Mieści się tu własny
+  krok zamykający, na przykład
   pliki pomocy dla użytkowników końcowych pisane po wykonaniu wszystkich zadań.</p>
   <dl>
     <div>
@@ -2747,10 +2750,12 @@ z nich mówi, jak nim sterować.</p>
     </div>
     <div>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
-      <dd><span lang="en">The agent file under <code>.claude/agents/</code> and its entry, holding <code>parallel: false</code>, in
-      <code>.claude/viber.yml</code>, both left uncommitted. Reload the session before a build uses a new agent:
+      <dd><span lang="en">The agent file under <code>.claude/agents/</code>, one skill per phase under
+      <code>.claude/skills/</code> and the agent's entry, holding <code>parallel: false</code>, in
+      <code>.claude/viber.yml</code>, all left uncommitted. Reload the session before a build uses a new agent:
       Claude Code loads agent files at session start.</span><span lang="pl">Plik agenta w
-      <code>.claude/agents/</code> i jego wpis z <code>parallel: false</code> w <code>.claude/viber.yml</code>, oba zostawione bez commita. Przed
+      <code>.claude/agents/</code>, po jednym skillu na fazę w <code>.claude/skills/</code> i wpis agenta z
+      <code>parallel: false</code> w <code>.claude/viber.yml</code>, wszystko zostawione bez commita. Przed
       buildem, który ma użyć nowego agenta, przeładuj sesję: Claude Code wczytuje pliki agentów przy starcie
       sesji.</span></dd>
     </div>

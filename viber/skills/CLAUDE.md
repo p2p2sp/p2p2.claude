@@ -101,9 +101,11 @@ and `docs/specs/<key>/` count as one run and whichever caller comes second skips
 
 The `extension.sh` preload is trusted like `pr-facts.sh`: `CONFIG=no-config` or `stale` (no
 `extensions:` key under `build:`) names `/viber:setup` before any question, and `--add` repeats
-the check. The skill writes only under `.claude/agents/` and, through `--add` alone, one new
-entry (`<name>:` with `parallel: false`) at the end of the `extensions:` map of `viber.yml`; both
-stay unstaged. Its interview is one prose message, so the
+the check. The skill writes only under `.claude/agents/`, under `.claude/skills/` (one `<name>-<phase>`
+fork skill per phase, which the agent invokes in order through `Skill`) and, through `--add`
+alone, one new entry (`<name>:` with `parallel: false`) at the end of the `extensions:` map of
+`viber.yml`; all stay unstaged. Every file it writes follows its own `references/authoring.md`,
+whether or not `supercc:skill-designer` is installed. Its interview is one prose message, so the
 `--add` pre-approval may lapse after the answer and a permission prompt there is expected.
 
 ## `commit`

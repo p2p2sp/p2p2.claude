@@ -205,6 +205,7 @@ change there arrives as suggestions. Both also offer a
 `reset` mode, which deletes the whole layer and starts from zero; it is refused while a target
 holds uncommitted work.
 
-`/viber:extension` writes an agent of your own into `.claude/agents/` and adds an entry for it, holding
-`parallel: false`, to `build.extensions` in `.claude/viber.yml`, leaving both uncommitted. A build then runs that agent at
+`/viber:extension` writes an agent of your own into `.claude/agents/`, plus one skill per phase into
+`.claude/skills/` when its work runs in phases one after another, and adds an entry for it, holding
+`parallel: false`, to `build.extensions` in `.claude/viber.yml`, leaving all of them uncommitted. A build then runs that agent at
 its close and commits what it wrote, in a commit of its own.
