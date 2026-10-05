@@ -26,7 +26,7 @@ You orchestrate and delegate: every piece of work runs inside a subagent. Open n
 - Every bundled-script run is one literal Bash line, `"${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh" "<arg>" ...`, every argument double-quoted: never prefixed with an interpreter, never assigned to a variable, never preceded by `cd`, never chained with `;`.
 - Every dispatch or call that starts or ends a task-list entry carries that entry's `TaskUpdate` in the same message.
 - Never two `commit-task.sh` calls in one message: each rewrites the git index and `status.md`.
-- A `commit-task.sh` call exiting non-zero committed nothing. Except a task's own commit, a commit outside a task, a `--rule` call and a `--skip` or `--decide` call made after an arbiter ruling (step 4 owns all four): `AskUserQuestion`: retry / abort, its paths named uncommitted in the final summary on abort.
+- A `commit-task.sh` call exiting non-zero committed nothing. Except a task's own commit, a commit outside a task, a `--rule` call, a `--skip` or `--decide` call made after an arbiter ruling (step 4 owns these four) and an `--extension` call (step 6's extension text owns it): `AskUserQuestion`: retry / abort, its paths named uncommitted in the final summary on abort.
 - An agent's completion notice saying it "stopped with background work of its own still running": hold its verdict and `SendMessage` that agent, once: `Stop every process you started that is still running, then return your output lines again.` Act on what it returns then. The same notice again -> act on the verdict and name that agent's task in the final summary.
 - An agent returning no `VERDICT:` line: `SendMessage` that agent, once: `Finish your task, then return your output lines.` Still none -> act as on its `VERDICT: FAIL` when its output defines one, else on its `VERDICT: DENIED`, with `REASON: no verdict returned`.
 
@@ -99,7 +99,7 @@ Review: the reviewer is waived only on a `sonnet` task whose `verify:` line runs
 
 Then clamp both tiers into the config block's `tiers.min` to `tiers.max` range (`haiku` < `sonnet` < `opus` < `fable`). The review waiver is decided before the clamp.
 
-`TaskCreate` the remaining tasks, then these entries in this order, each except `Final test run` only when its close part is loaded below: `Final review`, `Final test run` (step 5), `Update project memory`, `Update project rules`, `Write QA scenarios` (step 6), `Archive the run` (step 7). A plan task's subject: `<id> - <title> (<tier>)`, or `(<tier>, review <review tier>)` when reviewed, with `[TDD]` after `<id>` when its TDD is `required`: `<id> [TDD] - <title> ...`.
+`TaskCreate` the remaining tasks, then these entries in this order, each except `Final test run` only when its close part is loaded below: `Final review`, `Final test run` (step 5), `Update project memory`, `Update project rules`, `Write QA scenarios`, `Run extensions` (step 6), `Archive the run` (step 7). A plan task's subject: `<id> - <title> (<tier>)`, or `(<tier>, review <review tier>)` when reviewed, with `[TDD]` after `<id>` when its TDD is `required`: `<id> [TDD] - <title> ...`.
 
 ## 4. Run the plan
 
@@ -157,7 +157,7 @@ Arbiter dispatch: `viber:arbiter` (Agent tool, no `model`) carrying `case:`, `op
 - A `--skip` or `--decide` call exiting non-zero after a ruling -> name it in the final summary, ask nothing, and carry on.
 - `VERDICT: DENIED` -> `AskUserQuestion` naming the refused call from its `REASON:` line: retry / accept / abort.
 
-Commit outside a task: every `commit-task.sh` commit but a task's own commit - the fix-number repair form, `--repair`, `--chore`, `--qa`, `--review` and `--outside`. Exiting non-zero -> run the same call once more, asking nothing. A second refusal -> the arbiter with `case: commit`, `options: leave uncommitted`, `reason:` the error; record its ruling with subject `commit`, leave those paths uncommitted and name them in the final summary.
+Commit outside a task: every `commit-task.sh` commit but a task's own commit and `--extension` - the fix-number repair form, `--repair`, `--chore`, `--qa`, `--review` and `--outside`. Exiting non-zero -> run the same call once more, asking nothing. A second refusal -> the arbiter with `case: commit`, `options: leave uncommitted`, `reason:` the error; record its ruling with subject `commit`, leave those paths uncommitted and name them in the final summary.
 
 Start with every task whose `deps` are done, in one message. On every return, answer with ONE message carrying every dispatch now legal plus at most one commit. Never wait for a batch to drain; when a constraint forces a choice, start whatever unblocks the most tasks.
 
@@ -220,6 +220,10 @@ Any agent of this step returning `VERDICT: DENIED` -> `AskUserQuestion` naming t
 Commit what the memory and rules dispatches above return, one call: memory and rule paths, through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --chore "<plan>" "<file>" ["<file>"...]`, only once every writer of this step has returned. No writer returned a path, or only `VERDICT: NONE` -> no call.
 
 `TaskUpdate` -> completed for each entry in the message answering its own writer's return, never held for another writer or the `--chore` call: the `memory` and `rules` entries on that return, the QA entry with its `--qa` call, or on that return when no call is due.
+
+```!
+"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.extensions "${CLAUDE_SKILL_DIR}" extensions
+```
 
 ## 7. Archive and close
 
