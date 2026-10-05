@@ -451,11 +451,13 @@ branch_tail() {
 
 # The --start report for issue URL $1 ("" for none, validated by the caller):
 # the same situation as branch_report without a plan, so no run branch name is
-# proposed. Each entry is checked against HEAD instead: usable (its name needs
-# no {issue-number} or a URL was given), base-exists, at-base (HEAD is the
-# commit of the local base) and behind. Read-only like branch_report.
+# proposed: each entry shows its name pattern instead, {issue-number} filled in
+# from the URL when one is given. Each entry is checked against HEAD too:
+# usable (its name needs no {issue-number} or a URL was given), base-exists,
+# at-base (HEAD is the commit of the local base) and behind. Read-only like
+# branch_report.
 branch_start() {
-  local issue="" suggested only="" usable=0 e key rest base name target use exists at head_c entry_lines=""
+  local issue="" suggested only="" usable=0 e key rest base name shown target use exists at head_c entry_lines=""
   [[ -z "$1" ]] || issue="${1##*/issues/}"
   branch_situation "$issue" "$1"
   if [[ "$rp_mode" == off ]]; then
@@ -472,9 +474,11 @@ branch_start() {
     name="${rest%% | *}"
     target="${e##* | target: }"
     use=yes
+    shown="$name"
     if [[ "$name" == *'{issue-number}'* && -z "$issue" ]]; then
       use=no
     else
+      shown="${name//\{issue-number\}/$issue}"
       usable=$((usable + 1))
       only="$key"
     fi
@@ -484,7 +488,7 @@ branch_start() {
       exists=yes
       [[ -z "$head_c" || "$head_c" != "$(git rev-parse -q --verify "refs/heads/$base^{commit}" 2>/dev/null || true)" ]] || at=yes
     fi
-    entry_lines+="entry: $key | base: $base | target: $target | usable: $use | base-exists: $exists | at-base: $at | behind: $(base_behind "$base")"$'\n'
+    entry_lines+="entry: $key | base: $base | target: $target | name: $shown | usable: $use | base-exists: $exists | at-base: $at | behind: $(base_behind "$base")"$'\n'
   done
   [[ "$suggested" != none || "$usable" -ne 1 ]] || suggested="$only"
   printf 'mode: %s\n' "$rp_mode"

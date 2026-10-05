@@ -1,0 +1,3 @@
+- `name:` fills only `{issue-number}` (plain `${name//\{issue-number\}/$issue}`, the branch_expand form, bash 3.2 safe); no separator cleanup, so `{type}`/`{slug}` and any `-`/`.` around them reach the report exactly as configured.
+- DoD.4 is proven by the Verification grep alone: a test reading the script header as text would break the test-strategy rule against asserting on source text.
+- The `branching-start.*.md` fragments of intent and fixer read `entry:` lines by field (`usable: yes`), so the inserted `name:` field does not shift them.

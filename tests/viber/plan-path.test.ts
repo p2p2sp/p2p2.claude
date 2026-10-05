@@ -2648,7 +2648,7 @@ for (const mode of ["allowed", "required"] as const) {
           `mode: ${mode}`,
           "issue-type: none",
           "suggested: feature",
-          "entry: feature | base: main | target: main | usable: yes | base-exists: yes | at-base: yes | behind: unknown",
+          "entry: feature | base: main | target: main | name: {type}/{slug} | usable: yes | base-exists: yes | at-base: yes | behind: unknown",
           "current: main",
           "current-is-base: yes",
           "dirty: no",
@@ -2766,14 +2766,27 @@ test("start report suggests none when several entries are usable and no mapping 
   });
 });
 
-test("start report reads usable: no on an entry whose name holds {issue-number} when no URL is given (DoD.5)", async () => {
+test("start report reads the literal {issue-number} in name: and usable: no on an entry whose name holds it when no URL is given (DoD.5)", async () => {
   await withBranchRepo(GITFLOW, async (repo) => {
     const result = await startIn(repo);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(linesOf(result.stdout, "entry: "), [
-      "entry: feature | base: develop | target: develop | usable: no | base-exists: no | at-base: no | behind: unknown",
-      "entry: hotfix | base: main | target: main | usable: no | base-exists: yes | at-base: yes | behind: unknown",
+      "entry: feature | base: develop | target: develop | name: feature/issue.{issue-number} | usable: no | base-exists: no | at-base: no | behind: unknown",
+      "entry: hotfix | base: main | target: main | name: hotfix/issue.{issue-number} | usable: no | base-exists: yes | at-base: yes | behind: unknown",
     ]);
+  });
+});
+
+test("start report fills the URL's issue number into name: and reads usable: yes on an entry whose name holds {issue-number}", async () => {
+  await withBranchRepo(GITFLOW, async (repo) => {
+    await withGh("Bug-Report", 0, async (stubDir) => {
+      const result = await startIn(repo, ISSUE_URL, [stubDir]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.deepEqual(linesOf(result.stdout, "entry: "), [
+        "entry: feature | base: develop | target: develop | name: feature/issue.6759 | usable: yes | base-exists: no | at-base: no | behind: unknown",
+        "entry: hotfix | base: main | target: main | name: hotfix/issue.6759 | usable: yes | base-exists: yes | at-base: yes | behind: unknown",
+      ]);
+    });
   });
 });
 

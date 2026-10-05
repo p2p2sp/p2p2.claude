@@ -155,12 +155,14 @@
 #     mode: allowed | required
 #     issue-type: <type> | none
 #     suggested: <entry key> | none
-#     entry: <key> | base: <branch> | target: <branch> | usable: yes|no | base-exists: yes|no | at-base: yes|no | behind: <n>|unknown
+#     entry: <key> | base: <branch> | target: <branch> | name: <pattern> | usable: yes|no | base-exists: yes|no | at-base: yes|no | behind: <n>|unknown
 #     current: <branch> | detached
 #     current-is-base: yes | no
 #     dirty: yes | no
 #     error: <reason>
-#   The lines --branch prints, without a plan: "usable:" is no when the entry
+#   The lines --branch prints, without a plan: "name:" is the entry name
+#   pattern, {issue-number} replaced by the URL's issue number when one was
+#   given, {type} and {slug} as written; "usable:" is no when the entry
 #   name needs {issue-number} and no URL was given; "base-exists:" is whether
 #   the local base branch exists; "at-base:" is yes only when HEAD's commit is
 #   that base branch's commit, whatever HEAD's own branch name; the issue is
