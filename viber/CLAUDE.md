@@ -11,7 +11,7 @@ three files share. `PRODUCT.md` holds the testing assumptions that `references/p
 skills/<name>/           17 skills: SKILL.md plus files read at one step;
                          setup, memory, rules, handoff, commit, code-auditor bundle scripts/
 agents/                  23 agents
-scripts/                 16 plugin-wide scripts
+scripts/                 17 plugin-wide scripts
 references/              read at runtime: by agents through `refs:`, by skills by direct path
 hooks/                   SessionStart manifest + UserPromptSubmit plan hints + PreToolUse plan gate, kill guard
 ```
@@ -51,7 +51,7 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 
 - `implementor` opens no file and writes none. It knows only the `config.sh`, `run-clock.sh` and
   `switch-text.sh` preloads (its close parts reach it only as fragment text), `plan-path.sh`,
-  `plan-index.sh` and `commit-task.sh` stdout (`progress: <n>/<total>`, exit 4 naming `--landed`,
+  `plan-index.sh`, `commit-task.sh` and `qa-comment.sh` stdout (`progress: <n>/<total>`, exit 4 naming `--landed`,
   the `refused` / `took` / `claimed by no task` warnings), and agents' return lines. Every script's stdout and agent `## Output` vocabulary is an interface: renaming one side breaks the build silently.
 - `plan-index.sh`'s index prints per task id, state, TDD, `excl`, `deps`, `feeds` (contract
   blocks other tasks consume, `<id>:<consumer count>`), `files`, title, then a `verify:` line, plus a trailing
@@ -108,7 +108,7 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
   leave their writes unstaged.
 - `commit-task.sh` never takes a subject from its caller (a task commit is the plan's
   `T<n> - <title>` heading, no type prefix). It stages only the paths it is named, as literal
-  pathspecs (App Router `[id]` paths), refuses a `.temp/` path with a warning, and adds the run's
+  pathspecs, refuses a `.temp/` path with a warning, and adds the run's
   `work/` trail itself. `--e2e` takes no plan: the `e2e` commit carries no `Refs:` line at all.
 - Never two `commit-task.sh` calls at once: each rewrites the index and `status.md`.
 - `commit-args.sh` is the ONE selector parser.

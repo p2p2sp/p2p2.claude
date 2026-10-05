@@ -8,7 +8,13 @@
   read: preloads `fragments/branching-start.*` (run `plan-path.sh --start [<issue URL>]`, ask,
   switch through `--checkout`) and `branching-handoff.*` (the summary's `Work:` line, `Branch:`
   only after "stay"). No `off` file exists for either family. `mode: off`, any `error:` line or
-  no usable entry hands off no `Work:` line. Both ask through `AskUserQuestion`; a
+  no usable entry hands off no `Work:` line. Each `entry:` line carries `name:`, the pattern with
+  `{issue-number}` filled from the URL. The settled entry, one mapped from the issue type
+  included, is announced as one run branch line (entry, name, base, target; never opening with
+  `Work:`/`Branch:`), shown again beside `Work:` in the summary and hand-off. An issue saved after
+  the start step (`issue-create.sh`'s `ISSUE_URL=`) runs `--start` again: a `suggested:` entry
+  replaces the earlier settlement, "no branch" included, and the base check follows; `none` keeps
+  what stood. The hand-off restates the last settlement. Both ask through `AskUserQuestion`; a
   returning draft with a recorded `branch:` asks no entry question, and a
   resumed `roadmap.md` off every entry base (not detached) takes "stay" without the base question.
 - `planner` preloads `fragments/branching.*` (no `off` file), `branching-fix.*` for the re-run
@@ -17,8 +23,10 @@
   spelling in every skill's call. A `Work:` line means no question; without one it reads
   `plan-path.sh --branch <plan>` (`suggested:`, one `entry:` per usable entry, `current-is-base:`,
   `error:` on a missing/unmapped type with mappings set) and asks, "stay" under `required` only
-  on `current-is-base: no`; under `allowed` every `new: -` records `branch: none` unasked. It alone names the `work:`/`branch:` keys (`plan_field()`; the spec
-  templates carry none). A draft round carries both; a title, issue or `Repro:` change
+  on `current-is-base: no`; under `allowed` every `new: -` records `branch: none`, unasked on
+  `current-is-base: no`, after one continue/stop question on `yes` ("stop" lands nothing). Once
+  both keys are written it shows the final run branch line. It alone names the `work:`/`branch:`
+  keys (`plan_field()`; the spec templates carry none). A draft round carries both; a title, issue or `Repro:` change
   recomputes the name, never overriding "stay" or `Work: none` (an `allowed` line only).
 - `--checkout` (`branch_checkout`) reads no mode, puts HEAD on an existing local branch, never
   creates one; `current-is-base` reads the parsed entry bases, never `br_entry`, which `--branch`

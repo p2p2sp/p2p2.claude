@@ -1,7 +1,7 @@
 # Tool dependencies
 
 Read before touching `triage`, `intent`, `fixer`, `prototype`'s issue calls, `create-issue`,
-`create-pr`, `e2e`'s Playwright
+`create-pr`, `implementor`'s QA comment, `e2e`'s Playwright
 install, `setup`'s merge tool or `code-auditor`'s Node check.
 
 - `triage`, `intent`, `fixer`, `prototype`: `gh`, only through the shared issue scripts in
@@ -13,6 +13,9 @@ install, `setup`'s merge tool or `code-auditor`'s Node check.
   `create-issue`'s (after it asks what the issue is about or `issue-save.md` asks a required field).
 - `create-issue` and `create-pr`: `gh` as well (`create-pr` also `git push`, in `pr-create.sh`);
   the `STATUS=skip` / `STATUS=stop` reason is stated in one line and nothing is created.
+- `implementor`'s build close posts `qa.md` through `qa-comment.sh` (`gh`) with no question: no open
+  pull request says nothing, a missing `gh` or repository one summary line, a `gh` failure (exit
+  1) its `ERROR` once, never retried.
 - A multi-line issue or pull request body or comment travels only as a file under
   `.temp/viber/<skill>/` through `--body-file`. `intent`'s, `prototype`'s, `create-issue`'s and
   `create-pr`'s write access there is pre-approved as

@@ -8,8 +8,8 @@ builders of `plan-index`, `plan-path`, `commit-task` and `archive-run` together.
 
 ## How each script is run
 
-- The six `#!/bin/sh` scripts (`issue-create`, `issue-facts`, `issue-templates`,
-  `post-comment`, `pr-facts`, `pr-create`) run every case under `forEachShell("posix")` through `opts.shell`, never
+- The seven `#!/bin/sh` scripts (`issue-create`, `issue-facts`, `issue-templates`,
+  `post-comment`, `pr-facts`, `pr-create`, `qa-comment`) run every case under `forEachShell("posix")` through `opts.shell`, never
   executed directly. `commit`, `commit-args`, `commit-context`, `commit-selfcheck` and one
   `switch-text` case run under `forEachShell("bash")`; every other file runs its bash script once (the code-auditor suites: below).
 - `commit-args.sh` is a sourced library: its test drives it through a generated bash wrapper

@@ -39,8 +39,8 @@ Each script's header `Contract:` is its interface; this node carries only what s
 
 ## Shells
 
-- `issue-facts.sh`, `post-comment.sh`, `issue-templates.sh`, `issue-create.sh`, `pr-facts.sh` and
-  `pr-create.sh` are POSIX `#!/bin/sh`: no arrays, no `[[`, no `local`, no `< <(...)` process
+- `issue-facts.sh`, `post-comment.sh`, `issue-templates.sh`, `issue-create.sh`, `pr-facts.sh`,
+  `pr-create.sh` and `qa-comment.sh` are POSIX `#!/bin/sh`: no arrays, no `[[`, no `local`, no `< <(...)` process
   substitution (`issue-templates.sh` loops over a `mktemp` file instead), no awk `function`, and
   `run-branch.sh` invokes `issue-facts.sh` through `sh`. A POSIX script locates `config.sh` through
   `dirname -- "$0"` (no `BASH_SOURCE`) and runs it through `bash`, so `issue-templates.sh` falls

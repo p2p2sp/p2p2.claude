@@ -23,13 +23,15 @@ and renaming one on either side breaks the hand-off silently:
   request, and a returning draft's run key (written as `into:`).
 - `Issue: <URL>` - only the `URL=` of `issue-facts.sh` or the `ISSUE_URL=` of `issue-create.sh`.
 - `Work:` / `Branch:` - from the `branching-handoff.*` fragments, read by `planner`'s `branching*`
-  fragments into `work:` / `branch:`.
+  fragments into `work:` / `branch:`. The readable run branch line beside them is for the
+  user and never opens with either word: `planner` keys on those two lines only.
 - `Roadmap: <path>` - `intent` resuming a `roadmap.md`; `planner` marks every earlier entry
   `(built)` and moves this part's decisions into the specification.
 - `Prototype: <path>` - carried by `intent` into the summary exactly as `prototype` wrote it;
   `planner` writes it unchanged into the plan's `prototype:` key, read by `plan-path.sh` alone.
 
-`planner` also writes `source:` (the plan-mode file's own path, the only way back after approval
+`planner` also writes `source:` (the plan-mode file's own path, forward slashes only - `C:/...` on
+Windows, a backslash before a dot is lost in the plan view - the only way back after approval
 clears the context).
 
 ## Issue calls - duplicated on purpose, change together
@@ -87,6 +89,13 @@ re-resolved. The entry and target come from the block (`ENTRY=`/`TARGET=`), or f
 `AskUserQuestion` (`CANDIDATE=` lines, or the target under `MODE=off`) and a rerun with `--entry` /
 `--target`. Only `pr-create.sh`, after the preview's create or draft answer, pushes and opens.
 The body is filled from `SPEC=`, the `COMMIT=` lines and the conversation, never invented.
+
+A run's `qa.md` reaches the pull request as one comment through `qa-comment.sh`, trusted like
+`pr-facts.sh`: `create-pr` posts it with no question after creating, or on a `pr-exists` stop
+whose `QA=` is set; the build close (`implementor`'s `qa.true.md`) posts it after the QA commit.
+The first line of the comment is a marker keyed by the run directory's name, so `docs/_specs/<key>/`
+and `docs/specs/<key>/` count as one run and whichever caller comes second skips with
+`REASON=exists`. `qa.e2e.md` is never posted.
 
 ## `commit`
 
