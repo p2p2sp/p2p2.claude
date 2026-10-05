@@ -43,14 +43,19 @@
   test failing before the build shows as new in the final run.
   `task-coder` and `task-reviewer` read `baseline:` as their own input line. The repair coder and
   `final-review.true.md` get no `baseline:` line.
-- `build.extensions` is a list of agent names, no switch: `config.sh` prints the names whose
-  `.claude/agents/<name>.md` exists as `build.extensions:` and every other listed name (no file,
-  or not `[a-z0-9][a-z0-9-]*`) as `build.extensions-missing:`, each once, `none` when empty.
-  `build.extensions-parallel` is a switch. `switch-text.sh build.extensions` derives `off`,
-  `serial` or `parallel` from those three lines (`off` only when found and missing are both
-  `none`, so a list of missing names alone still loads the fragment that names them in the
-  summary; `off` has no file) and reaches `implementor`'s step 6 only. `viber.local.yml` ignores
-  both keys.
+- `build.extensions` is a map of agent entries (`<name>:` with an optional `parallel: true`
+  indented below it), no switch. Map lines run from the `extensions:` key to the first line that
+  is neither blank nor a comment and not deeper than the key, and are never `build:` children:
+  `config.sh` and `bootstrap.sh` each carry that rule (`mapline()` in `config.sh`, repeated in
+  `extension.sh`), so a change goes to all three. An entry not `parallel: true` (any letter case)
+  runs alone; a name counts once, at its first entry. `config.sh` prints the steps of the found
+  names (agent file exists) as `build.extensions:` (`a + b, c`: consecutive parallel entries
+  joined by ` + `, every other entry alone) and every other listed name (no file, or not
+  `[a-z0-9][a-z0-9-]*`) as `build.extensions-missing:`, `none` when empty; missing names drop out
+  before grouping, so they never split a run. `switch-text.sh build.extensions` derives `off`
+  (both lines `none`) or `on` (a list of missing names alone still loads the fragment that names
+  them in the summary; `off` has no file) and reaches `implementor`'s step 6 only
+  (`extensions.on.md` runs the steps in order). `viber.local.yml` ignores the key.
 - `.claude/viber.local.yml` is a personal, git-ignored overlay that only `config.sh` reads. It
   replaces exactly `tiers.min`, `tiers.max`, `build.baseline-tests` and `github.issues` in the
   block, in `viber.yml`'s group layout; an invalid value leaves the shared one and the

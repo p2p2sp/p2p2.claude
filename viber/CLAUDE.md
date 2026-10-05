@@ -136,7 +136,7 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 - The extension contract: the `<!-- viber:extension -->` marker line (`extension.sh` tells a
   contract agent from a plain one by it), the `run:`/`spec:`/`notes:`/`out:` input lines and the
   `VERDICT: WRITTEN`/`NONE`/`FAIL`/`DENIED` plus `FILES:` output, in
-  `skills/extension/templates/extension.md` and `skills/implementor/fragments/extensions.*.md`.
+  `skills/extension/templates/extension.md` and `skills/implementor/fragments/extensions.on.md`.
 - `references/qa-format.md`, the format authority for `qa-writer`, `e2e-writer` and `e2e` (which
   routes on its `##` headings). `e2e-writer` edits its scenario's `## Automation` line, `e2e`
   reads each ID's state there and dispatches one scenario at a time, never two at once.
