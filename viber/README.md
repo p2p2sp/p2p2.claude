@@ -103,7 +103,7 @@ says it needs that run.
 | `planning.fast-path` | on | For a small, well-scoped change to existing code, `/viber:intent` shows a short design in chat and builds it only after your explicit yes, with no plan file and no run directory. |
 | `build.baseline-tests` | **off** | Takes `off`, `fast` or `full`. `fast` or `full`: before the first task the build runs your tests once and records what already fails, then repairs only the failures it caused. `fast` runs the unit and component tests, `full` every layer but end-to-end. |
 | `build.final-review` | on | After every task is committed and before the final test run, one reviewer looks at the whole build's diff for what per-task review and the test suite cannot see, a coder fixes what it finds, a reviewer rechecks the fix, and after a failed recheck the arbiter rules on committing the fix as it stands, recorded in `rulings.md`. The build summary lists each finding with what was wrong and what the fix changed. |
-| `build.memory` | on | The build closes by updating your project's `CLAUDE.md` with what it learned. |
+| `build.memory` | on | The build closes by updating your project's `CLAUDE.md` nodes below the root with what it learned. The root stays yours: the build only suggests changes to it. |
 | `build.rules` | on | The build closes by recording a convention it confirmed in `.claude/rules/`. |
 | `build.qa` | **off** | The build closes by writing test scenarios for what it delivered, which `/viber:e2e` can then automate. |
 | `build.cleanup` | on | The build ends by noting anything it delivered that the specification does not promise, then archiving the run with its build summary and dropping the working files. |
@@ -164,7 +164,9 @@ branching:
 ## Before your first run
 
 The build and test commands come from your project's `CLAUDE.md`. If there is no such file, or it
-does not name them, every agent in the run has to guess. Write them down once.
+does not name them, every agent in the run has to guess. With no `CLAUDE.md` yet, run
+`/viber:memory`: it writes a short root once, within 4000 bytes. After that the root is yours.
+Write the commands down once.
 
 ## Where it writes
 
@@ -195,6 +197,8 @@ touches.
 
 `/viber:memory` and `/viber:rules` write the same `CLAUDE.md` cascade and the same
 `.claude/rules/` a build closes with, on your own schedule instead of a build's. Either one asks
-before writing and leaves the result unstaged, exactly like the close does. Both also offer a
+before writing and leaves the result unstaged, exactly like the close does. The root `CLAUDE.md` is
+written once, only where none exists; no build or review rewrites it afterwards, and what they would
+change there arrives as suggestions. Both also offer a
 `reset` mode, which deletes the whole layer and starts from zero; it is refused while a target
 holds uncommitted work.

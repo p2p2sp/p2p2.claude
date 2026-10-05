@@ -733,10 +733,10 @@ options and updates</a>.</p>
 <h3 class="sub" id="gs-setup"><span lang="en">2. Prepare the project</span><span lang="pl">2. Przygotowanie projektu</span><a class="self" href="#gs-setup">#</a></h3>
 <p lang="en">Open Claude Code in your project and run <a href="#skill-setup"><code>/viber:setup</code></a>. It
 sets up viber's config, permissions and ignore rule, and tells you when <code>CLAUDE.md</code> lacks what
-step 3 needs.</p>
+step 3 needs, or does not exist and <code>/viber:memory</code> must write it.</p>
 <p lang="pl">Otwórz Claude Code w swoim projekcie i uruchom <a href="#skill-setup"><code>/viber:setup</code></a>.
 Ustawia konfigurację viber, uprawnienia i regułę ignorowania, a także mówi, czego w <code>CLAUDE.md</code>
-brakuje do kroku 3.</p>
+brakuje do kroku 3 albo że pliku nie ma i <code>/viber:memory</code> musi go napisać.</p>
 
 <h3 class="sub" id="gs-claude-md"><span lang="en">3. What <code>CLAUDE.md</code> must state</span><span lang="pl">3. Co musi podawać <code>CLAUDE.md</code></span><a class="self" href="#gs-claude-md">#</a></h3>
 <p lang="en">viber knows nothing about your stack. Every <a href="#term-agent">agent</a> takes the build and test commands from this
@@ -746,12 +746,17 @@ from whatever manifest it finds, and a <a href="#term-task">task</a> can be comm
 z instrukcji tego projektu, więc bez nich <a href="#agent-test-runner"><code>test-runner</code></a> zgaduje
 na podstawie manifestu, który akurat znajdzie, a <a href="#term-task">zadanie</a> może zostać zacommitowane na testach, które
 nigdy się nie uruchomiły.</p>
-<p lang="en">No <code>CLAUDE.md</code> yet: run <code>/init</code>. Then make sure the root file states the items
-below. <a href="#skill-setup"><code>/viber:setup</code></a> checks the first five and, when one is missing,
-gives you a prompt to paste into Claude.</p>
-<p lang="pl">Nie masz jeszcze <code>CLAUDE.md</code>? Uruchom <code>/init</code>. Potem upewnij się, że główny plik
-podaje poniższe punkty. <a href="#skill-setup"><code>/viber:setup</code></a> sprawdza pierwsze pięć i, gdy
-któregoś brakuje, daje ci prompt do wklejenia do Claude.</p>
+<p lang="en">No <code>CLAUDE.md</code> yet: run <a href="#skill-memory"><code>/viber:memory</code></a>, which writes a
+short root once, within 4000 bytes, holding the items below. From then on the root is yours: no build or review
+rewrites it, and the changes they would make to it arrive as suggestions for you to apply. With a root already
+there, make sure it states the items below. <a href="#skill-setup"><code>/viber:setup</code></a> checks the first five and,
+when one is missing, gives you a prompt to paste into Claude.</p>
+<p lang="pl">Nie masz jeszcze <code>CLAUDE.md</code>? Uruchom <a href="#skill-memory"><code>/viber:memory</code></a>:
+jednorazowo napisze krótki główny plik, w granicach 4000 bajtów, z poniższymi punktami. Od tej chwili plik jest
+twój: żaden build ani przegląd go nie przepisuje, a zmiany, które by w nim zrobiły, dostajesz jako sugestie do
+samodzielnego wprowadzenia. Gdy główny plik już jest, upewnij się, że podaje poniższe punkty.
+<a href="#skill-setup"><code>/viber:setup</code></a> sprawdza pierwsze pięć i, gdy któregoś brakuje, daje ci prompt
+do wklejenia do Claude.</p>
 <ul class="musts">
   <li><span lang="en">the exact build command;</span><span lang="pl">dokładne polecenie budowania;</span></li>
   <li><span lang="en">the exact test command;</span><span lang="pl">dokładne polecenie testów;</span></li>
@@ -817,12 +822,14 @@ któregoś brakuje, daje ci prompt do wklejenia do Claude.</p>
     <p class="say"><span lang="en">The build closes</span><span lang="pl">Build się zamyka</span></p>
     <p lang="en">The fast tests and the integration tests the change reaches run, then the <a href="#term-close">close parts</a> your
     switches turn on. With the template's defaults, what the build taught goes into
-    <a href="#term-node"><code>CLAUDE.md</code></a> and <a href="#term-rule"><code>.claude/rules/</code></a>, and
+    <a href="#term-node"><code>CLAUDE.md</code></a> nodes below the root and <a href="#term-rule"><code>.claude/rules/</code></a>,
+    changes to the root arrive as suggestions, and
     the <a href="#term-run">run</a> is <a href="#term-archive">archived</a> in <code>docs/specs/</code>.</p>
     <p lang="pl">Uruchamiają się szybkie testy i testy integracyjne, których dotyka zmiana, a potem te
     <a href="#term-close">części zamknięcia</a>, które włączają twoje przełączniki. Przy domyślnych ustawieniach
-    szablonu to, czego nauczył build, trafia do <a href="#term-node"><code>CLAUDE.md</code></a>
-    i <a href="#term-rule"><code>.claude/rules/</code></a>, a <a href="#term-run">przebieg</a> ląduje
+    szablonu to, czego nauczył build, trafia do węzłów <a href="#term-node"><code>CLAUDE.md</code></a> poniżej
+    głównego pliku i do <a href="#term-rule"><code>.claude/rules/</code></a>, zmiany w głównym pliku dostajesz
+    jako sugestie, a <a href="#term-run">przebieg</a> ląduje
     w <a href="#term-archive">archiwum</a> w <code>docs/specs/</code>.</p>
   </li>
 </ol>
@@ -984,11 +991,13 @@ się krótkim projektem na czacie, a Claude buduje zmianę w twojej sesji, gdy p
   <li>
     <span class="label"><span lang="en">What is left</span><span lang="pl">Co zostaje</span></span>
     <p lang="en">One commit per task, titled <code>T1 - &lt;task title&gt;</code>. With the template's defaults
-    the build also updates <code>CLAUDE.md</code> and <code>.claude/rules/</code> and archives the run in
+    the build also updates the <code>CLAUDE.md</code> nodes below the root and <code>.claude/rules/</code>,
+    suggests changes to the root without making them, and archives the run in
     <code>docs/specs/</code>.</p>
     <p lang="pl">Po jednym commicie na zadanie, z tytułem <code>T1 - &lt;tytuł zadania&gt;</code>. Przy
-    domyślnych ustawieniach szablonu build aktualizuje też <code>CLAUDE.md</code> i <code>.claude/rules/</code>,
-    a przebieg odkłada do archiwum w <code>docs/specs/</code>.</p>
+    domyślnych ustawieniach szablonu build aktualizuje też węzły <code>CLAUDE.md</code> poniżej głównego pliku
+    i <code>.claude/rules/</code>, zmiany w głównym pliku tylko sugeruje, a przebieg odkłada do archiwum
+    w <code>docs/specs/</code>.</p>
   </li>
 </ol>
 <details>
@@ -1437,19 +1446,23 @@ mogą rozjechać się z kodem.</p>
     and lets you pick which ones to check. <a href="#agent-memory-auditor"><code>memory-auditor</code></a>
     checks each against the code of its area, and once you approve the findings,
     <a href="#agent-memory-node-writer"><code>memory-node-writer</code></a> corrects the files within their
-    budget.</p>
+    budget. It writes the root <code>CLAUDE.md</code> only when none exists; an existing root is checked
+    too, but what it finds there comes back as suggestions.</p>
     <p lang="pl"><a href="#skill-memory"><code>memory</code></a> wypisuje każdy <code>CLAUDE.md</code> z jego
     rozmiarem i pozwala wybrać, które sprawdzić. <a href="#agent-memory-auditor"><code>memory-auditor</code></a>
     porównuje każdy z kodem jego obszaru, a gdy zatwierdzisz wyniki,
     <a href="#agent-memory-node-writer"><code>memory-node-writer</code></a> poprawia pliki w granicach
-    limitu.</p>
+    limitu. Główny <code>CLAUDE.md</code> pisze tylko wtedy, gdy go nie ma; istniejący główny plik też jest
+    sprawdzany, ale to, co w nim znajdzie, wraca jako sugestie.</p>
   </li>
   <li>
     <span class="label"><span lang="en">What is left</span><span lang="pl">Co zostaje</span></span>
-    <p lang="en">Corrected <code>CLAUDE.md</code> files in your working tree, unstaged, for you to commit.
+    <p lang="en">Corrected <code>CLAUDE.md</code> files below the root in your working tree, unstaged, for you to
+    commit, and a list of suggested changes to the root, which stays yours to edit.
     <a href="#skill-rules"><code>/viber:rules review</code></a> does the same for <code>.claude/rules/</code>.</p>
-    <p lang="pl">Poprawione pliki <code>CLAUDE.md</code> w drzewie roboczym, poza indeksem, do twojego
-    commita. <a href="#skill-rules"><code>/viber:rules review</code></a> robi to samo dla
+    <p lang="pl">Poprawione pliki <code>CLAUDE.md</code> poniżej głównego pliku w drzewie roboczym, poza indeksem,
+    do twojego commita, oraz lista sugerowanych zmian w głównym pliku, który zostaje do twojej edycji.
+    <a href="#skill-rules"><code>/viber:rules review</code></a> robi to samo dla
     <code>.claude/rules/</code>.</p>
   </li>
 </ol>
@@ -1462,10 +1475,11 @@ mogą rozjechać się z kodem.</p>
     katalog ich potrzebuje, <code>both</code> sprawdza i dodaje za jednym razem, a <code>reset</code> usuwa
     pliki i zaczyna od zera. Reset jest odrzucany, gdy plik z jego listy ma niezacommitowane
     zmiany.</span></li>
-    <li><span lang="en">A <code>CLAUDE.md</code> stays within 12000 bytes, and within 32000 together with the
-    files above it. A rule stays within 4000 bytes and the whole directory within 40000.</span><span lang="pl">Plik
-    <code>CLAUDE.md</code> mieści się w 12000 bajtów, a razem z plikami nad nim w 32000. Reguła mieści się
-    w 4000 bajtów, a cały katalog w 40000.</span></li>
+    <li><span lang="en">The root <code>CLAUDE.md</code> stays within 4000 bytes. Any other <code>CLAUDE.md</code>
+    stays within 12000 bytes, and within 32000 together with the files above it. A rule stays within 4000 bytes
+    and the whole directory within 40000.</span><span lang="pl">Główny <code>CLAUDE.md</code> mieści się
+    w 4000 bajtów. Każdy inny <code>CLAUDE.md</code> mieści się w 12000 bajtów, a razem z plikami nad nim
+    w 32000. Reguła mieści się w 4000 bajtów, a cały katalog w 40000.</span></li>
     <li><span lang="en">A rule file whose name starts with <code>_</code> is frozen: never audited, reset or
     rewritten.</span><span lang="pl">Plik reguły, którego nazwa zaczyna się od <code>_</code>, jest zamrożony:
     nigdy nie jest audytowany, resetowany ani przepisywany.</span></li>
@@ -1612,10 +1626,11 @@ build runs the close parts your switches turn on:</p>
 uruchamia te części zamknięcia, które włączają twoje przełączniki:</p>
 <ul class="musts">
   <li><span lang="en"><a href="#key-build-memory"><code>build.memory</code></a>: <a href="#agent-memory-writer"><code>memory-writer</code></a>
-  folds what the build taught into your <code>CLAUDE.md</code> <a href="#term-node">nodes</a>, within their size
-  budget;</span><span lang="pl"><a href="#key-build-memory"><code>build.memory</code></a>:
+  folds what the build taught into your <code>CLAUDE.md</code> <a href="#term-node">nodes</a> below the root, within
+  their size budget, and only suggests changes to the root, which stays yours;</span><span lang="pl"><a href="#key-build-memory"><code>build.memory</code></a>:
   <a href="#agent-memory-writer"><code>memory-writer</code></a> przenosi to, czego nauczył build, do twoich
-  <a href="#term-node">węzłów</a> <code>CLAUDE.md</code>, w granicach ich limitu rozmiaru;</span></li>
+  <a href="#term-node">węzłów</a> <code>CLAUDE.md</code> poniżej głównego pliku, w granicach ich limitu rozmiaru,
+  a zmiany w głównym pliku tylko sugeruje, bo zostaje twój;</span></li>
   <li><span lang="en"><a href="#key-build-rules"><code>build.rules</code></a>: <a href="#agent-rules-writer"><code>rules-writer</code></a>
   folds the conventions the build confirmed into <code>.claude/rules/</code>, in the same commit as the
   memory update;</span><span lang="pl"><a href="#key-build-rules"><code>build.rules</code></a>:
@@ -1881,11 +1896,13 @@ followed by <code>/plugin install viber@p2p2</code> does the same as the termina
   czy jest zainstalowane <code>gh</code>, i otwiera tę stronę.</span></li>
 </ul>
 <p lang="en">It also checks whether the root <code>CLAUDE.md</code> names the build, test, single-test-file and fast
-commands and the layer marker convention (<a href="#gs-claude-md">step 3</a>). On a gap it prints a prompt to paste into Claude, after <code>/init</code>
-when the file does not exist yet. It never changes <code>CLAUDE.md</code> itself.</p>
+commands and the layer marker convention (<a href="#gs-claude-md">step 3</a>). On a gap it prints a prompt to paste into Claude. When the file
+does not exist yet it points you to <a href="#skill-memory"><code>/viber:memory</code></a>, which writes the
+short root, within 4000 bytes. It never changes <code>CLAUDE.md</code> itself.</p>
 <p lang="pl">Sprawdza też, czy główny <code>CLAUDE.md</code> podaje polecenia budowania, testów, uruchomienia
-pojedynczego pliku testów i szybkie oraz konwencję znaczników warstw (<a href="#gs-claude-md">krok 3</a>). Przy braku wypisuje prompt do wklejenia do Claude, po <code>/init</code>,
-gdy pliku jeszcze nie ma. Sam nigdy nie zmienia <code>CLAUDE.md</code>.</p>
+pojedynczego pliku testów i szybkie oraz konwencję znaczników warstw (<a href="#gs-claude-md">krok 3</a>). Przy braku wypisuje prompt do wklejenia do Claude. Gdy pliku
+jeszcze nie ma, odsyła do <a href="#skill-memory"><code>/viber:memory</code></a>, który pisze krótki główny
+plik, w granicach 4000 bajtów. Sam nigdy nie zmienia <code>CLAUDE.md</code>.</p>
 
 <h3 class="sub" id="sm-update"><span lang="en">After a plugin update</span><span lang="pl">Po aktualizacji wtyczki</span><a class="self" href="#sm-update">#</a></h3>
 <p lang="en">Run <code>/viber:setup</code> again: it adds the keys the new version brings and keeps every value
@@ -2054,12 +2071,14 @@ z nich mówi, jak nim sterować.</p>
   it adds every key the new version's template has and your config lacks, and keeps every value you set.
   It also checks that the GitHub CLI (<code>gh</code>) is installed and that the root <code>CLAUDE.md</code>
   names the build, test, single-test-file and fast commands and the layer marker convention (on a gap it
-  prints a prompt to paste into Claude instead of editing the file), then opens this page.</p>
+  prints a prompt to paste into Claude instead of editing the file; with no file it points to
+  <code>/viber:memory</code>), then opens this page.</p>
   <p lang="pl">Przygotowuje projekt do pracy z viber. Uruchom go raz na projekt i ponownie po aktualizacji
   wtyczki: dopisze każdy klucz, który ma szablon nowej wersji, a którego brakuje w twojej konfiguracji,
   i zachowa każdą ustawioną wartość. Sprawdza też, czy jest zainstalowane GitHub CLI (<code>gh</code>) i czy
   główny <code>CLAUDE.md</code> podaje polecenia budowania, testów, uruchomienia pojedynczego pliku testów
-  i szybkie oraz konwencję znaczników warstw (przy braku wypisuje prompt do wklejenia do Claude, zamiast edytować plik), a na koniec otwiera tę stronę.</p>
+  i szybkie oraz konwencję znaczników warstw (przy braku wypisuje prompt do wklejenia do Claude, zamiast edytować plik;
+  gdy pliku nie ma, odsyła do <code>/viber:memory</code>), a na koniec otwiera tę stronę.</p>
   <dl>
     <div>
       <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>
@@ -2578,12 +2597,14 @@ z nich mówi, jak nim sterować.</p>
   <h4><code>/viber:memory</code></h4>
   <p lang="en">Maps this project's <code>CLAUDE.md</code> files, has <a href="#agent-memory-auditor"><code>memory-auditor</code></a>
   check each one against the code of its area, and hands what must change to
-  <a href="#agent-memory-node-writer"><code>memory-node-writer</code></a>. A file stays within 12000 bytes, and a
-  file with the ones above it within 32000.</p>
+  <a href="#agent-memory-node-writer"><code>memory-node-writer</code></a>. It writes the root <code>CLAUDE.md</code>
+  once, where none exists, and after that only suggests changes to it. The root stays within 4000 bytes, any other file
+  within 12000, and a file with the ones above it within 32000.</p>
   <p lang="pl">Mapuje pliki <code>CLAUDE.md</code> tego projektu, zleca
   <a href="#agent-memory-auditor"><code>memory-auditor</code></a> sprawdzenie każdego z nich względem kodu jego
   obszaru i przekazuje konieczne zmiany do <a href="#agent-memory-node-writer"><code>memory-node-writer</code></a>.
-  Plik mieści się w 12000 bajtów, a plik razem z plikami nad nim w 32000.</p>
+  Główny <code>CLAUDE.md</code> pisze jednorazowo, gdy go nie ma, a potem tylko sugeruje w nim zmiany. Główny
+  plik mieści się w 4000 bajtów, każdy inny w 12000, a plik razem z plikami nad nim w 32000.</p>
   <dl>
     <div>
       <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>
@@ -2607,9 +2628,11 @@ z nich mówi, jak nim sterować.</p>
     </div>
     <div>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
-      <dd><span lang="en"><code>CLAUDE.md</code> files, only after you approve, left unstaged for you to commit.
+      <dd><span lang="en"><code>CLAUDE.md</code> files, only after you approve, left unstaged for you to commit;
+      the root only when none exists, otherwise its changes come back as suggestions.
       A reset is refused while a file on its list holds uncommitted work.</span><span lang="pl">Pliki
-      <code>CLAUDE.md</code>, dopiero po twojej zgodzie, zostawione poza indeksem gita do twojego commita.
+      <code>CLAUDE.md</code>, dopiero po twojej zgodzie, zostawione poza indeksem gita do twojego commita;
+      główny plik tylko wtedy, gdy go nie ma, w przeciwnym razie jego zmiany wracają jako sugestie.
       Reset jest odrzucany, gdy plik z jego listy ma niezacommitowane zmiany.</span></dd>
     </div>
   </dl>
@@ -2857,9 +2880,10 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
 <h4><span lang="en">Build close</span><span lang="pl">Zamknięcie buildu</span></h4>
 <ul class="agents">
   <li id="agent-memory-writer"><code>memory-writer</code> <span lang="en">folds what the build taught into the
-  project's <code>CLAUDE.md</code> files, when <a href="#key-build-memory"><code>build.memory</code></a> is
-  on.</span><span lang="pl">przenosi to, czego nauczył build, do plików <code>CLAUDE.md</code> projektu, gdy
-  <a href="#key-build-memory"><code>build.memory</code></a> jest włączony.</span></li>
+  project's <code>CLAUDE.md</code> files below the root, when <a href="#key-build-memory"><code>build.memory</code></a> is
+  on. It leaves the root to you and only suggests changes to it.</span><span lang="pl">przenosi to, czego nauczył build, do plików <code>CLAUDE.md</code> projektu poniżej głównego pliku, gdy
+  <a href="#key-build-memory"><code>build.memory</code></a> jest włączony. Główny plik zostawia tobie i tylko
+  sugeruje w nim zmiany.</span></li>
   <li id="agent-rules-writer"><code>rules-writer</code> <span lang="en">folds the conventions a build confirmed,
   or a <a href="#skill-rules"><code>/viber:rules</code></a> review found, into <code>.claude/rules/</code>.</span><span lang="pl">przenosi
   konwencje potwierdzone przez build albo znalezione w przeglądzie <a href="#skill-rules"><code>/viber:rules</code></a>
@@ -2890,8 +2914,9 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   względem kodu obszaru, który opisuje.</span></li>
   <li id="agent-memory-node-writer"><code>memory-node-writer</code> <span lang="en">writes one
   <code>CLAUDE.md</code> file within its budget: corrects it from the audit, or writes a new one from its area's
-  code.</span><span lang="pl">pisze jeden plik <code>CLAUDE.md</code> w granicach limitu: poprawia go na
-  podstawie audytu albo tworzy nowy z kodu jego obszaru.</span></li>
+  code. An existing root it never rewrites: it lists suggestions instead.</span><span lang="pl">pisze jeden plik <code>CLAUDE.md</code> w granicach limitu: poprawia go na
+  podstawie audytu albo tworzy nowy z kodu jego obszaru. Istniejącego głównego pliku nie przepisuje: zamiast tego
+  wypisuje sugestie.</span></li>
   <li id="agent-rules-auditor"><code>rules-auditor</code> <span lang="en">checks one rule against the files its
   paths match, or proposes a rule for a directory that has none.</span><span lang="pl">sprawdza jedną regułę
   względem plików, do których pasują jej ścieżki, albo proponuje regułę dla katalogu, który jej nie
@@ -3046,11 +3071,14 @@ wartość.</p>
   </div>
   <div id="key-build-memory">
     <dt><code>build.memory</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
-    <dd><span lang="en">The build closes by updating this project's <code>CLAUDE.md</code> files through
-    <a href="#agent-memory-writer"><code>memory-writer</code></a>, so no plan task edits one.</span><span lang="pl">Build
-    kończy się aktualizacją plików <code>CLAUDE.md</code> tego projektu przez
+    <dd><span lang="en">The build closes by updating this project's <code>CLAUDE.md</code> files below the root
+    through <a href="#agent-memory-writer"><code>memory-writer</code></a>, so no plan task edits one. The build
+    leaves the root to you: it only suggests changes to it, and <code>/viber:memory</code> writes it once, within
+    4000 bytes, where none exists.</span><span lang="pl">Build
+    kończy się aktualizacją plików <code>CLAUDE.md</code> tego projektu poniżej głównego pliku przez
     <a href="#agent-memory-writer"><code>memory-writer</code></a>, więc żadne zadanie planu ich nie
-    zmienia.</span></dd>
+    zmienia. Główny plik build zostawia tobie: tylko sugeruje w nim zmiany, a <code>/viber:memory</code> pisze go
+    jednorazowo, w granicach 4000 bajtów, gdy go nie ma.</span></dd>
   </div>
   <div id="key-build-rules">
     <dt><code>build.rules</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
