@@ -31,7 +31,7 @@ after a later reply of yours in the conversation rely on; without it each of tho
 | `/viber:fixer` | A bug traced to its root cause and proven by a failing test, then handed to the planner. Point it at an issue the same way to trace from that report. |
 | `/viber:prototype` | A UI change in mind becomes one working HTML mockup in your project's own look, or three alternatives to choose from, refined with you in conversation, then carried on to `/viber:intent`, onto the GitHub issue it started from, or both. The accepted mockup travels with the plan into the build. |
 | `/viber:e2e` | The build's QA scenarios become Playwright tests, run against your app. |
-| `/viber:create-pr` | A pull request for the branch you are on, titled per `github.pr-title` and filled in from your pull request template, previewed and pushed and created (or drafted) only on your yes. |
+| `/viber:create-pr` | A pull request for the branch you are on, titled per `github.pr-title` and filled in from your pull request template, previewed and pushed and created (or drafted) only on your yes; the run's `qa.md` is posted on it as a QA comment, once per run. |
 | `/viber:memory` | Reviews or extends your project's `CLAUDE.md` cascade on your own schedule. |
 | `/viber:rules` | Reviews or extends your project's `.claude/rules/` on your own schedule. |
 | `/viber:code-auditor` | A large codebase audited for bugs, tech debt or another job you pick: cheap agents rank every file and file pair, and only the places worth it get a deep investigation whose findings are replayed on a clean checkout. Needs Node.js 22.6 or newer. |

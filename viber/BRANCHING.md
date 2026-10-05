@@ -42,9 +42,18 @@ before they read any code:
 - `/viber:intent` continuing a `roadmap.md` on a branch that is no entry's base stays on it without
   asking: the next part builds on the previous part's branch.
 
+- Once the entry is settled, a line announces the run branch: the entry, the branch pattern, its
+  `base` and its pull request `target`, or that no run branch is made and commits land on the
+  current branch.
+- A run that saves a new issue after this step is settled again from that issue: an entry its type
+  maps to replaces the earlier choice, "no branch" included, and is announced and base-checked;
+  otherwise the earlier choice stays.
+
 The chosen entry, and the branch you stayed on, travel with the interview summary or the diagnosis
-to the planner, which records the branch from them instead of asking again. Under `required`,
-landing a plan whose run branch is any entry's base is refused.
+to the planner, which records the branch from them instead of asking again and announces the final
+branch once. When the planner finds no entry usable yet and HEAD is on an entry's base, it asks
+whether to continue on the current branch or stop; stopping ends it with nothing landed. Under
+`required`, landing a plan whose run branch is any entry's base is refused.
 
 ## Work entries
 
@@ -243,6 +252,9 @@ instead. Release branches, their version numbers and back-merging a hotfix into 
   body ends with `Closes #<n>` per issue when the target is the default branch, `Refs #<n>` otherwise.
 - You answer create, create as draft or cancel. Only on create does it push the branch to its
   remote and open the pull request.
+- A run's `qa.md` reaches the pull request as a comment, posted once per run by `/viber:create-pr`
+  and by the build close when the branch has an open pull request; one that already holds the
+  comment gets no second. `qa.e2e.md` is never posted.
 
 ### Template convention
 
