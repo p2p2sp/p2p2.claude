@@ -1,4 +1,0 @@
-- pr-facts.sh now asks `gh pr list` for `url` and `baseRefName` (two lines per pull request, first PR read); the test stub prints PR_LIST raw, so pr-exists cases pass `url\nbase\n`.
-- The open-run scan, tref resolution and spec lookup moved above the pr-exists check into `resolve_tref`/`find_spec`/`find_qa` so the stop and the ready block share them; stop order is unchanged and the pr-exists resolution never stops (no no-commits).
-- The pr-exists row left the STOPS table (it carries QA= now); its cases sit in the QA= block, and the table's test name says "no QA= line".
-- Callers (create-pr SKILL and its tests of the pr-exists stop text) are other tasks' files; not touched.

@@ -1,7 +1,0 @@
-- Header line (contract left it open): `QA document: \`<repo-relative path>\`` - T9/T10 callers need not parse it, only the marker line.
-- Check order: args (exit 2) -> no-repo -> missing qa file (exit 2) -> no-gh -> no-pr -> read comments -> exists -> post. no-repo must precede the file check (a relative path resolves from the root); a missing file is never hidden behind no-gh.
-- The no-gh cases run on `coreUtilsPath()` plus git's own directory: Git for Windows keeps git.exe apart from grep/bash, and without git the script answers no-repo before it looks for gh.
-- `gh pr list` failing (auth, network) folds into `REASON=no-pr`, as in pr-facts.sh; only `pr view` / `pr comment` failures exit 1, per C3.
-- `gh pr view` stderr goes to `.temp/viber/qa-comment/<run key>.err` (read only for the ERROR line), so a gh notice never mixes into the scanned comment bodies.
-- The repo-relative marker path comes from `git rev-parse --show-prefix` run in the qa file's directory, so `./` or `..` segments normalize.
-- The index holds the script at 100755 with an early skeleton blob (`git update-index --add --chmod=+x`); commit-task.sh restages the working-tree content and keeps the mode.
