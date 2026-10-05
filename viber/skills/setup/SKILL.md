@@ -37,7 +37,7 @@ Then check the project's `CLAUDE.md` against the preload's `CLAUDE.md:` line:
 - `CLAUDE.md: present - <path>` - read that file with `Read`, fresh, never from session context. Five items count. The build, the whole test suite, a single test file and the fast command (every test but the integration and end-to-end ones) each count as named only when the file contains its literal command. The layer marker convention counts as named when the file states how a test is tagged with its layer.
 - All five named - the line is `CLAUDE.md: names the build, test, single-test-file and fast commands and the layer marker convention`.
 - Any item not named - the line is `CLAUDE.md: missing <the missing items> - paste this prompt:`, followed by the content of `${CLAUDE_SKILL_DIR}/templates/claude-md-prompt.txt`, read with `Read`, verbatim in a code block.
-- `CLAUDE.md: missing` - read no `CLAUDE.md`; the line is `CLAUDE.md: missing - run /init, then paste this prompt:`, followed by the same code block.
+- `CLAUDE.md: missing` - read no `CLAUDE.md`; the line is `CLAUDE.md: missing - run /viber:memory, which writes the short root`, with no prompt block.
 
 Then open the onboarding page in the user's browser, its line trusted like the settings line:
 
@@ -45,4 +45,4 @@ Then open the onboarding page in the user's browser, its line trusted like the s
 "${CLAUDE_PLUGIN_ROOT}/scripts/open-page.sh" "${CLAUDE_SKILL_DIR}/assets/help.html"
 ```
 
-Close with one line per item: the preload's lines except its `settings.json:` and `CLAUDE.md:` ones, the settings line (the script's, or the preload's on a match), the `CLAUDE.md:` check line with its prompt block, and the page line. Never read or restate the page's content in the reply.
+Close with one line per item: the preload's lines except its `settings.json:` and `CLAUDE.md:` ones, the settings line (the script's, or the preload's on a match), the `CLAUDE.md:` check line with its prompt block when it has one, and the page line. Never read or restate the page's content in the reply.
