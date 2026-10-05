@@ -12,13 +12,13 @@ same edit.
 | `task-reviewer`, `final-reviewer` | `implementor` (`final-review.true.md` for the second) | its report only |
 | `test-runner` | `implementor`, its baseline fragments, `intent`'s fast path | its report only |
 | `arbiter` | `implementor`, `baseline-run.<value>.md`, `final-review.true.md` | nothing |
-| `qa-writer`, `memory-writer`, `rules-writer`, `closeout` | `implementor`'s `qa`, `memory`, `rules`, `cleanup` fragments; `rules-writer` also `rules` | `qa.md`/`qa.e2e.md`; nodes; `.claude/rules/`; `spec.md`, `outcome.md` |
+| `qa-writer`, `memory-writer`, `rules-writer`, `closeout` | `implementor`'s `qa`, `memory`, `rules`, `cleanup` fragments; `rules-writer` also `rules` | `qa.md`/`qa.e2e.md`; nodes below the root; `.claude/rules/`; `spec.md`, `outcome.md` |
 | `planner-review`, `adr-screener` | `planner` (`adr-screener` only under `adr: true`, once the plan is written and indexed) | nothing |
 | `plain-plan-review` | the plan gate's request | nothing |
 | `prover` | `intent --prove` | nothing (plus web) |
 | `prototype-writer` | `prototype` | its one mockup file |
 | `e2e-writer` | `e2e` | one spec file, its `## Automation` line |
-| `memory-auditor`, `memory-node-writer` | `memory` | findings file; one node and its sections |
+| `memory-auditor`, `memory-node-writer` | `memory` | findings file; one node below the root and its sections, or a missing root |
 | `rules-auditor` | `rules` | findings file |
 | `profiler`, `scout`, `edge-scout`, `detective`, `critic` | `code-auditor` | see `CLAUDE.code-auditor.md` |
 
