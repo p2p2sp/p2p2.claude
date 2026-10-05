@@ -173,23 +173,18 @@ function writeAgent(repo: GitRepo, name: string): void {
 }
 
 function writeExtensionFragments(repo: GitRepo): void {
-  writeFragment(repo, "close.off.md", "off\n");
-  writeFragment(repo, "close.serial.md", "serial\n");
-  writeFragment(repo, "close.parallel.md", "parallel\n");
+  writeFragment(repo, "close.on.md", "on\n");
 }
 
-for (const [label, config, fragment] of [
-  ["no extension listed", "build:\n  extensions-parallel: true\n", "off"],
-  ["an empty extension list", "build:\n  extensions:\n  extensions-parallel: false\n", "off"],
-  ["a dispatchable name with parallel off", "build:\n  extensions: docs\n  extensions-parallel: false\n", "serial"],
-  ["a dispatchable name with parallel absent", "build:\n  extensions: docs\n", "serial"],
-  ["a dispatchable name with parallel on", "build:\n  extensions: docs\n  extensions-parallel: true\n", "parallel"],
-  ["a missing name with parallel off", "build:\n  extensions: ghost\n  extensions-parallel: false\n", "serial"],
-  ["a missing name with parallel on", "build:\n  extensions: ghost\n  extensions-parallel: true\n", "parallel"],
-  ["a list of missing names alone, parallel off (never off)", "build:\n  extensions: ghost, phantom\n", "serial"],
-  ["a dispatchable and a missing name, parallel on", "build:\n  extensions: docs, ghost\n  extensions-parallel: true\n", "parallel"],
+for (const [label, config, printed] of [
+  ["one found entry", "build:\n  extensions:\n    docs:\n", "on\n"],
+  ["a found entry with its own parallel option", "build:\n  extensions:\n    docs:\n      parallel: true\n", "on\n"],
+  ["a map of missing names alone (never off)", "build:\n  extensions:\n    ghost:\n    phantom:\n", "on\n"],
+  ["a found and a missing entry", "build:\n  extensions:\n    docs:\n    ghost:\n", "on\n"],
+  ["an empty map (no fragment for the off state)", "build:\n  extensions:\n", ""],
+  ["no extensions key", "build:\n  memory: true\n", ""],
 ] as const) {
-  test(`\`build.extensions\` with ${label} prints the ${fragment} fragment`, async () => {
+  test(`\`build.extensions\` with ${label} prints ${printed === "" ? "nothing" : "the on fragment"}`, async () => {
     await withGitRepo(async (repo) => {
       writeConfig(repo, config);
       writeAgent(repo, "docs");
@@ -197,16 +192,16 @@ for (const [label, config, fragment] of [
 
       const result = await run(repo, ["build.extensions", skillDir(repo), "close"]);
 
-      assert.deepEqual([result.status, result.stdout], [0, `${fragment}\n`]);
+      assert.deepEqual([result.status, result.stdout], [0, printed]);
     });
   });
 }
 
 test("`build.extensions` whose selected fragment file is missing prints nothing and exits 0", async () => {
   await withGitRepo(async (repo) => {
-    writeConfig(repo, "build:\n  extensions: ghost\n");
+    writeConfig(repo, "build:\n  extensions:\n    ghost:\n");
     writeFragment(repo, "close.off.md", "off\n");
-    writeFragment(repo, "close.parallel.md", "parallel\n");
+    writeFragment(repo, "close.serial.md", "serial\n");
 
     const result = await run(repo, ["build.extensions", skillDir(repo), "close"]);
 

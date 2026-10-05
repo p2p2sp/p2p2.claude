@@ -27,11 +27,10 @@
 #                   fast | full) or
 #                   branching.mode (value off | allowed | required) - the
 #                   value config.sh prints for it - or
-#                   build.extensions (value off | serial | parallel, derived
-#                   from three config.sh lines: off when `build.extensions`
-#                   and `build.extensions-missing` both read none; otherwise
-#                   parallel when `build.extensions-parallel` reads true, else
-#                   serial, so a list of missing names alone never reads off).
+#                   build.extensions (value off | on, derived from two
+#                   config.sh lines: off when `build.extensions` and
+#                   `build.extensions-missing` both read none; otherwise on, so
+#                   a list of missing names alone never reads off).
 #                   A flat key (`memory`) is an unknown key.
 #            name : [a-z0-9-]+.
 #            A missing or empty argument, an unknown key or a name outside its
@@ -71,14 +70,11 @@ block="$(bash "$here/config.sh" 2>/dev/null || true)"
 if [ "$key" = build.extensions ]; then
   found="$(printf '%s\n' "$block" | grep -E '^build\.extensions: ' || true)"
   missing="$(printf '%s\n' "$block" | grep -E '^build\.extensions-missing: ' || true)"
-  parallel="$(printf '%s\n' "$block" | grep -E '^build\.extensions-parallel: ' || true)"
   [ -n "$found" ] && [ -n "$missing" ] || exit 0
   if [ "${found#build.extensions: }" = none ] && [ "${missing#build.extensions-missing: }" = none ]; then
     value=off
-  elif [ "${parallel#build.extensions-parallel: }" = true ]; then
-    value=parallel
   else
-    value=serial
+    value=on
   fi
 else
   line="$(printf '%s\n' "$block" | grep -E "^${key}: " || true)"

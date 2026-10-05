@@ -395,7 +395,7 @@ const SWITCH_VALUES: Record<string, string[]> = {
   "build.cleanup": ["true", "false"],
   "github.issues": ["true", "false"],
   "branching.mode": ["off", "allowed", "required"],
-  "build.extensions": ["off", "serial", "parallel"],
+  "build.extensions": ["off", "on"],
 };
 
 interface SwitchTextCall {
@@ -713,19 +713,23 @@ test("self-check: fragmentCallViolations accepts a baseline-tests call with a .f
   assert.deepEqual(violations, []);
 });
 
-test("self-check: fragmentCallViolations accepts a build.extensions call with off, serial and parallel fragments", () => {
+test("self-check: fragmentCallViolations accepts a build.extensions call with off and on fragments", () => {
   const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.extensions "${CLAUDE_SKILL_DIR}" extensions\n```\n';
-  const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, [
-    "extensions.off.md",
-    "extensions.serial.md",
-    "extensions.parallel.md",
-  ]);
+  const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, ["extensions.off.md", "extensions.on.md"]);
   assert.deepEqual(violations, []);
+});
+
+test("self-check: fragmentCallViolations fires on a build.extensions fragment named serial (no longer an extension state)", () => {
+  const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.extensions "${CLAUDE_SKILL_DIR}" extensions\n```\n';
+  const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, ["extensions.on.md", "extensions.serial.md"]);
+  assert.deepEqual(violations, [
+    "plugin/skills/foo/fragments/extensions.serial.md: value 'serial' is not valid for key 'build.extensions'",
+  ]);
 });
 
 test("self-check: fragmentCallViolations fires on a build.extensions fragment whose value is true (not an extension state)", () => {
   const content = '```!\n"${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.extensions "${CLAUDE_SKILL_DIR}" extensions\n```\n';
-  const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, ["extensions.serial.md", "extensions.true.md"]);
+  const violations = fragmentCallViolations("plugin/skills/foo/SKILL.md", content, ["extensions.on.md", "extensions.true.md"]);
   assert.deepEqual(violations, [
     "plugin/skills/foo/fragments/extensions.true.md: value 'true' is not valid for key 'build.extensions'",
   ]);

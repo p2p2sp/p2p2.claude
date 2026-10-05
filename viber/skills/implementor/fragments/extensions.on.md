@@ -1,6 +1,6 @@
 Run the project's own extensions, once every writer above has returned and the commits of its returns have landed. Skip this step, completing its `Run extensions` entry, when the build ended on `abort`.
 
-The extensions are the config block's `build.extensions:` names the index's `closed:` line does not name as `extension:<name>`. The `Run extensions` entry's `TaskUpdate` -> completed lands once every extension has returned and its commit, if any, has run, or at once when there is none.
+The steps are the config block's `build.extensions:` line, split on `, `; a step is one name or several joined by ` + `. Inside a step, skip each name the index's `closed:` line holds as `extension:<name>`. The `Run extensions` entry's `TaskUpdate` -> completed lands once every step has finished, or at once when there is none.
 
 Dispatch each extension by its bare agent name (Agent tool, no `model`) carrying these labelled lines and nothing else:
 
@@ -11,7 +11,7 @@ notes: <dir>/work/
 out: .temp/viber/extension-<name>/
 ```
 
-Dispatch the extensions one at a time, in listed order, each only once the previous one has returned and its commit, if any, has run.
+Run the steps in listed order. Dispatch every name of a step in one message, then handle the returns as they arrive: when several are waiting, one commit per message, the others held for the next. Start the next step only once every return of the current one has been handled and its commits have run.
 
 - `VERDICT: WRITTEN` -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --extension "<plan>" "<name>" "<file>" ["<file>"...]` with its `FILES:` paths, one call per message, never beside another `commit-task.sh` call.
 - `VERDICT: NONE` -> no commit, nothing recorded.
@@ -21,4 +21,4 @@ Dispatch the extensions one at a time, in listed order, each only once the previ
 - A reply with no `VERDICT:` line gets the one reminder above, then counts as `VERDICT: FAIL`.
 - An `--extension` call exiting non-zero -> its paths named uncommitted in the final summary, no retry, no arbiter, no question.
 
-A `FAIL`, a not-found agent type and a refused commit never stop the archive. Every `build.extensions-missing:` name other than `none` goes to the final summary as a listed extension with no agent file, also when no extension is dispatched. Every outcome above reaches the final summary.
+A `FAIL`, a not-found agent type and a refused commit never stop the archive. Every `build.extensions-missing:` name other than `none` goes to the final summary as a listed extension with no agent file, also when no step is dispatched. Every outcome above reaches the final summary.
