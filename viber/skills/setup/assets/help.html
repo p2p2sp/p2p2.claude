@@ -2338,16 +2338,18 @@ z nich mówi, jak nim sterować.</p>
       <a href="#key-build-qa"><code>build.qa</code></a> changes the closing note on end-to-end tests;
       <a href="#key-branching-mode"><code>branching.mode</code></a> set to allowed or required makes it take the
       branch the run works on from the interview or the diagnosis, asking only when they handed none off. It
-      announces the run branch in one line (entry, branch, base, pull request target); on an entry's base it
-      asks whether to continue there or stop, and the run branch is settled again when the run gains an
-      issue.</span><span lang="pl"><a href="#key-planning-adr"><code>planning.adr</code></a> dodaje zadania
+      announces the run branch in one line (entry, branch, base, pull request target). Under allowed, when
+      the run has no issue, no entry can name a branch and HEAD is on an entry's base, it asks whether to
+      continue on the current branch or stop. The interview or the diagnosis settles the run branch again
+      when the run gains an issue.</span><span lang="pl"><a href="#key-planning-adr"><code>planning.adr</code></a> dodaje zadania
       zapisujące decyzje architektoniczne; włączony <a href="#key-build-memory"><code>build.memory</code></a> trzyma każdy
       <code>CLAUDE.md</code> poza zadaniami; <a href="#key-build-qa"><code>build.qa</code></a> zmienia końcową uwagę o testach
       end-to-end; <a href="#key-branching-mode"><code>branching.mode</code></a> ustawiony na allowed albo required
       sprawia, że gałąź, na której pracuje przebieg, bierze z wywiadu albo z diagnozy, a pyta tylko wtedy, gdy
       żadne z nich jej nie przekazało. Ogłasza gałąź przebiegu w jednym wierszu (wpis, gałąź, baza, cel pull
-      requesta); na bazie wpisu pyta, czy kontynuować tam, czy przerwać, a gałąź przebiegu ustala ponownie, gdy
-      przebieg zyska issue.</span></dd>
+      requesta). Przy allowed, gdy przebieg nie ma issue, żaden wpis nie może nazwać gałęzi, a HEAD jest na bazie
+      wpisu, pyta, czy kontynuować na bieżącej gałęzi, czy przerwać. Wywiad albo diagnoza ustala gałąź przebiegu
+      ponownie, gdy przebieg zyska issue.</span></dd>
     </div>
     <div>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
