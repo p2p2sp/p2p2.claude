@@ -28,7 +28,8 @@
 #            .github/PULL_REQUEST_TEMPLATE/<entry>.md and
 #            .github/pull_request_template.md.
 #   gh     : `gh repo view` (repository URL and default branch) and `gh pr list
-#            --head <branch> --state open`. Never a create, never a push.
+#            --head <branch> --state open` (url and base branch). Never a create,
+#            never a push.
 #   git    : read-only. The target is resolved as refs/heads/<target>, else the
 #            remote-tracking ref of the branch's remote (`branch.<b>.remote`,
 #            else origin); nothing is fetched.
@@ -36,6 +37,7 @@
 #              STATUS=ready|stop
 #              REASON=no-gh|no-repo|detached|dirty|on-base|pr-exists|no-commits|unknown-entry   (stop only)
 #              PR_URL=<url>                        (pr-exists only)
+#              QA=<repo-relative path or empty>    (pr-exists only)
 #              REPO=<repository url>
 #              BRANCH=<current branch>
 #              DEFAULT=<default branch>
@@ -48,9 +50,11 @@
 #              ISSUE=<n>                           (0+, ascending, unique)
 #              TEMPLATE=<repo-relative path or empty>
 #              SPEC=<repo-relative path or empty>
+#              QA=<repo-relative path or empty>
 #              TITLE_PATTERN=<github.pr-title>
 #              COMMIT=<short sha> <subject>        (0+, TARGET..HEAD oldest first)
-#            A stop prints only STATUS=stop, REASON= and, on pr-exists, PR_URL=.
+#            A stop prints only STATUS=stop, REASON= and, on pr-exists, PR_URL=
+#            and QA=.
 #            Stop checks, in order: no-gh, no-repo (not a repository, or gh
 #            resolves no repository or default branch), detached, dirty
 #            (tracked changes only), on-base (BRANCH is DEFAULT, or any entry
@@ -72,8 +76,11 @@
 #            footers of the listed commits, the run's `issue:` number, a matched
 #            {issue-number}. TEMPLATE: the entry's own file when ENTRY is set,
 #            else the default file, else empty. SPEC: the run's spec.md, else the
-#            open run's plan.md, empty with no run. CLOSES: yes when TARGET
-#            equals DEFAULT.
+#            open run's plan.md, empty with no run. QA: the qa.md in the directory
+#            of SPEC (the open run, else the archived run), empty when no such
+#            file exists. On pr-exists the run resolves the same way with the
+#            existing pull request's base standing in for TARGET (no stop fires
+#            from that). CLOSES: yes when TARGET equals DEFAULT.
 #   exit   : 0 with the block (a stop included); 2 on bad arguments.
 #
 set -u
@@ -102,7 +109,7 @@ here=$(cd "$(dirname -- "$0")" 2>/dev/null && pwd)
 
 stop() {
   printf 'STATUS=stop\nREASON=%s\n' "$1"
-  [ -z "${2:-}" ] || printf 'PR_URL=%s\n' "$2"
+  [ -z "${2:-}" ] || printf 'PR_URL=%s\nQA=%s\n' "$2" "${3:-}"
   exit 0
 }
 
@@ -216,14 +223,59 @@ done)
 
 if [ -n "$entry_arg" ] && [ "$mode" != off ] && [ -z "$(entry_line_for "$entry_arg")" ]; then stop unknown-entry; fi
 
-prs=$(gh pr list --head "$branch" --state open --json url --jq '.[].url' 2>/dev/null | tr -d '\r' | sed -n 1p)
-[ -z "$prs" ] || stop pr-exists "$prs"
-
 open_plan=""
 for p in "docs/$runs"/*/plan.md; do
   [ -f "$p" ] || continue
   if [ "$(fm_field "$p" branch)" = "$branch" ]; then open_plan=$p; fi
 done
+
+# Sets tref to the ref of branch $1: refs/heads/<$1>, else the remote-tracking ref, else empty.
+resolve_tref() {
+  tref=""
+  [ -n "$1" ] || return 0
+  if git rev-parse -q --verify "refs/heads/$1^{commit}" >/dev/null 2>&1; then
+    tref=refs/heads/$1
+  else
+    rt_remote=$(git config --get "branch.$branch.remote" 2>/dev/null)
+    rt_remote=${rt_remote:-origin}
+    if git rev-parse -q --verify "refs/remotes/$rt_remote/$1^{commit}" >/dev/null 2>&1; then
+      tref=refs/remotes/$rt_remote/$1
+    fi
+  fi
+}
+
+# Sets spec and issue_file: the open run, else the archived run whose spec.md a commit of tref..HEAD touches.
+find_spec() {
+  spec=""
+  issue_file=""
+  if [ -n "$open_plan" ]; then
+    if [ -f "${open_plan%/plan.md}/spec.md" ]; then spec="${open_plan%/plan.md}/spec.md"; else spec=$open_plan; fi
+    issue_file=$open_plan
+  elif [ -n "$tref" ]; then
+    touched=$(git log --no-renames --format= --name-only "$tref..HEAD" -- "docs/$specs" 2>/dev/null | tr -d '\r' | grep -E "^docs/$specs/[^/]+/spec\.md\$" | awk '!seen[$0]++')
+    spec=$(printf '%s\n' "$touched" | while IFS= read -r f; do
+      [ -f "$f" ] || continue
+      printf '%s\n' "$f"
+      break
+    done)
+    issue_file=$spec
+  fi
+}
+
+# The qa.md beside the resolved spec (empty when there is none).
+find_qa() {
+  qa=""
+  if [ -n "$spec" ] && [ -f "${spec%/*}/qa.md" ]; then qa="${spec%/*}/qa.md"; fi
+}
+
+pr_info=$(gh pr list --head "$branch" --state open --json url,baseRefName --jq '.[] | .url + "\n" + (.baseRefName // "")' 2>/dev/null | tr -d '\r')
+prs=$(printf '%s\n' "$pr_info" | sed -n 1p)
+if [ -n "$prs" ]; then
+  resolve_tref "$(printf '%s\n' "$pr_info" | sed -n 2p)"
+  find_spec
+  find_qa
+  stop pr-exists "$prs" "$qa"
+fi
 
 entry=""
 target=""
@@ -273,18 +325,7 @@ if [ -n "$entry" ]; then
   pattern_match "$name" "$branch"
 fi
 
-tref=""
-if [ -n "$target" ]; then
-  if git rev-parse -q --verify "refs/heads/$target^{commit}" >/dev/null 2>&1; then
-    tref=refs/heads/$target
-  else
-    remote=$(git config --get "branch.$branch.remote" 2>/dev/null)
-    remote=${remote:-origin}
-    if git rev-parse -q --verify "refs/remotes/$remote/$target^{commit}" >/dev/null 2>&1; then
-      tref=refs/remotes/$remote/$target
-    fi
-  fi
-fi
+resolve_tref "$target"
 
 commits=""
 refs_issues=""
@@ -295,20 +336,8 @@ if [ -n "$tref" ]; then
   refs_issues=$(git log --format=%B "$tref..HEAD" 2>/dev/null | grep -E '^Refs:[[:space:]]*#[0-9]+' | grep -o -E '#[0-9]+' | tr -d '#')
 fi
 
-spec=""
-issue_file=""
-if [ -n "$open_plan" ]; then
-  if [ -f "${open_plan%/plan.md}/spec.md" ]; then spec="${open_plan%/plan.md}/spec.md"; else spec=$open_plan; fi
-  issue_file=$open_plan
-elif [ -n "$tref" ]; then
-  touched=$(git log --no-renames --format= --name-only "$tref..HEAD" -- "docs/$specs" 2>/dev/null | tr -d '\r' | grep -E "^docs/$specs/[^/]+/spec\.md\$" | awk '!seen[$0]++')
-  spec=$(printf '%s\n' "$touched" | while IFS= read -r f; do
-    [ -f "$f" ] || continue
-    printf '%s\n' "$f"
-    break
-  done)
-  issue_file=$spec
-fi
+find_spec
+find_qa
 spec_issue=""
 if [ -n "$issue_file" ]; then spec_issue=$(fm_issue "$issue_file"); fi
 
@@ -351,6 +380,7 @@ printf '%s\n' "$issues" | while IFS= read -r n; do
 done
 echo "TEMPLATE=$template"
 echo "SPEC=$spec"
+echo "QA=$qa"
 echo "TITLE_PATTERN=$title_pattern"
 printf '%s\n' "$commits" | while IFS= read -r c; do
   [ -n "$c" ] || continue
