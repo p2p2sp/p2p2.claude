@@ -1,5 +1,5 @@
 ---
-source: <absolute path of THIS plan file, the one plan mode named>
+source: <absolute path of THIS plan file, the one plan mode named, forward slashes only (a Windows drive as C:/)>
 into: <run key of the draft this round continues; drop the line otherwise>
 issue: <full issue URL the run is tied to; drop the line otherwise>
 prototype: <absolute path from the input's Prototype: line; drop the line otherwise>
