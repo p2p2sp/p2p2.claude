@@ -64,10 +64,13 @@ or critic, never shared.
   `LOCATION`, `CLASS`, `SEVERITY`), so the order of the head block in `synthesis.md` is load-bearing.
 - **One window per run.** The `Window:` line in `job.md`, the profiler's brief and the first argument
   of `collect_signals.sh` carry the same number of days (30 unless the user asks otherwise).
-- **Scope narrows output only.** With `--scope`, both sweep scripts still compute every signal
-  repo-wide, so a scoped record is byte-identical to the unscoped one; `collect_edges.sh` keeps a pair
-  with one endpoint outside the area on purpose. The skill validates the directory exists before
-  calling them; the scripts treat an empty match as exit 0.
+- **Scope narrows output only.** With `--scope`, a scoped record is byte-identical to the
+  unscoped one. `collect_signals.sh` computes every signal repo-wide; `collect_edges.sh` reads
+  only the scope files and every file a scope literal can reach (the `git grep -F` hits plus each
+  symlink, assume-unchanged or skip-worktree entry, every candidate when git grep fails), keeps a
+  pair with one endpoint outside the area on purpose, and counts only scope-reachable literals in
+  its stderr `literals:` line. The skill validates the directory exists before calling them; the
+  scripts treat an empty match as exit 0.
 - **The two sweep scripts share their universe verbatim**: `DENY_EXT`, `noise_filter`, the two-pass
   extension discovery, the quoted-path skip and the `--scope` validation are copied, not sourced. Edit
   both or the file and edge tracks cover different files.

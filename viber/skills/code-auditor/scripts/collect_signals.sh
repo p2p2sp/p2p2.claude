@@ -41,7 +41,9 @@
 # map does not know (a file that appeared between the two `git ls-files`
 # passes) warns on stderr and is emitted with -1/null as well. The map is built
 # once per run into a `mktemp` file removed by an EXIT trap; when `mktemp`
-# fails the script exits 1 with one stderr line and no stdout.
+# fails the script exits 1 with one stderr line and no stdout. The lookup is one
+# awk join before the probe loop (map read once, each candidate printed as
+# `path<TAB>=literal` or `path<TAB>?`), not one awk per file.
 #
 # Candidate selection is DISCOVERED, not hardcoded: pass 1 scans the tracked tree
 # for every extension actually present, drops a deny-list of no-value ones
@@ -320,7 +322,26 @@ fi
 
 # An empty candidate list still feeds this loop one empty line (`<<<` on an
 # empty string), hence the explicit emptiness guard ahead of the `-f` test.
-while IFS= read -r f; do
+loop_input="$candidates"
+if [ "$WITH_DEPENDENTS" = "yes" ] && [ -n "$candidates" ]; then
+  # One join instead of one awk per file: the map is read once, then every
+  # candidate is printed as `path<TAB>=literal` (known) or `path<TAB>?`
+  # (absent). No apostrophe in the awk block: it sits in single quotes.
+  loop_input="$(printf '%s\n' "$candidates" | MAP_FILE="$literal_map_file" awk '
+      BEGIN {
+        mf = ENVIRON["MAP_FILE"]
+        while ((getline line < mf) > 0) {
+          t = index(line, "\t")
+          if (t == 0) continue
+          p = substr(line, 1, t - 1)
+          if (!(p in lit)) lit[p] = substr(line, t + 1)
+        }
+        close(mf)
+      }
+      { if ($0 in lit) print $0 "\t=" lit[$0]; else print $0 "\t?" }')"
+fi
+
+while IFS=$'\t' read -r f lit_field; do
   [ -n "$f" ] || continue
   [ -f "$f" ] || continue
 
@@ -361,14 +382,15 @@ while IFS= read -r f; do
     # lockstep rule in the header). An empty literal is not a probe failure:
     # it means the path ran out of segments while still colliding, which the
     # contract reports as -1 / null.
-    lit_line="$(awk -F'\t' -v p="$f" '$1 == p { print "=" $2; exit }' "$literal_map_file")"
-    if [ -z "$lit_line" ]; then
+    # `lit_field` came from the one join before the loop: `=<literal>` for a
+    # known path, `?` for one the map does not hold.
+    if [ "$lit_field" = "?" ] || [ -z "$lit_field" ]; then
       # Only reachable when a file appeared between the two `git ls-files`
       # passes, i.e. it was never offered a literal at all.
       printf 'collect_signals.sh: warning: no literal for %s\n' "$f" >&2
       stem=""
     else
-      stem="${lit_line#=}"
+      stem="${lit_field#=}"
     fi
     # files that mention the literal, minus the file itself. The grep is
     # deliberately repo-wide even under --scope: a dependent outside the
@@ -392,4 +414,4 @@ while IFS= read -r f; do
 
   printf '{"path":"%s","churn":%s,"fix_commits":%s,"recency_days":%s,"loc":%s,"dependents":%s,"dependents_stem":%s}\n' \
     "$(esc "$f")" "$churn" "$fix_commits" "$recency_days" "$loc" "$dependents" "$dependents_stem_json"
-done <<< "$candidates"
+done <<< "$loop_input"

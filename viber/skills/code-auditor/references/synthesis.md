@@ -146,12 +146,13 @@ SEVERITY · LOCATION · CLASS · <title> · <report path>
 
 `N` is the number of lines in that section. Nothing is silently lost on the way there: only a `REFUTED` finding leaves the file entirely.
 
-`## Coverage notes` closes the file with its two bullets, plus one extra line when the run had no repo profile:
+`## Coverage notes` closes the file with its two bullets, plus one extra line per condition that held:
 
 ```
 - Areas given only a shallow pass: ...
 - Open fronts handed to the next wave: ...
 - repo profile unavailable
+- edge track skipped: collect_edges.sh passed its 5-minute deadline
 ```
 
 After every Phase 6 wave, regenerate the whole file from the whole pool of the run - every report and verdict so far, not just the new wave's. The cap, the ordering, the further-findings list and `N` are properties of the run, so a late high-severity finding pushes an earlier one down into the list instead of being appended below it.

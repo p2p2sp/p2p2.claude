@@ -1,13 +1,19 @@
 /*
  * collect_edges.test.ts - proves collect_edges.sh's
- * `collect_edges.sh [repo_root] [--max-fanout K] [--scope <dir>]` contract:
- * one JSONL record per candidate pair with keys a/b/via/vias/fanout/shared,
- * --max-fanout capping a linking literal as ambient once its fanout exceeds
- * it, --scope keeping exactly the pairs with at least one endpoint under it
- * (a surviving pair's fanout staying the repo-wide one) and rejecting a
- * non-repo-relative directory with exit 2, exit 1 with no stdout on an
- * unborn HEAD, and exit 0 with EMPTY stdout (not an error) when no pairs
- * are found.
+ * `collect_edges.sh [repo_root] [--max-fanout K] [--max-seconds S] [--scope <dir>]`
+ * contract: one JSONL record per candidate pair with keys
+ * a/b/via/vias/fanout/shared, --max-fanout capping a linking literal as
+ * ambient once its fanout exceeds it, --scope keeping exactly the pairs with
+ * at least one endpoint under it (its stdout string-equal to the matching
+ * lines of an unscoped run, though it reads only the scope and the files
+ * sharing a literal with it, even when its git grep fails, and printing a
+ * `pass2 <N> files to scan` progress line) and rejecting a non-repo-relative
+ * directory with exit 2,
+ * a grep process count that does not grow with the literal count,
+ * --max-seconds exiting 3 with no stdout and one deadline line once its
+ * deadline passes (0 or absent: no limit, a non-integer: exit 2), exit 1
+ * with no stdout on an unborn HEAD, and exit 0 with EMPTY stdout (not an
+ * error) when no pairs are found.
  *
  * collect_edges.sh is `#!/usr/bin/env bash` and the skill invokes it
  * explicitly as `bash "${CLAUDE_SKILL_DIR}/scripts/collect_edges.sh" ...`,
@@ -27,6 +33,7 @@ import { runScript, type RunResult } from "../harness/run.ts";
 import { withGitRepo, withTempDir, type GitRepo } from "../harness/tmp.ts";
 import { forEachShell } from "../harness/shells.ts";
 import { canDenyRead, denyRead, restoreRead } from "../harness/perms.ts";
+import { coreUtilsPath, withStub } from "../harness/stub.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../viber/skills/code-auditor/scripts/collect_edges.sh");
 
@@ -286,6 +293,219 @@ test("a trailing --scope with no value exits 2 with no stdout", async () => {
   });
 });
 
+/** A richer scope fixture for the scoped-vs-unscoped parity case: src/ (with a
+ *  nested dir), the prefix-sharing sibling srcx/, lib/ and root artifacts.
+ *  It carries a `MyValue.cs` vs `Value.cs` literal pair (a `git grep -F`
+ *  substring hit the regex must discard), sentence punctuation
+ *  (`report.md.)`, `report.md. Then`), a TAB right after a literal, a CRLF
+ *  line end, a self-reference, a denied `logo.png` literal, an over-long tail
+ *  (`com.example.UserServiceImpl`), a binary file, and `only.cfg`, a literal
+ *  shared only by two files outside the scope. */
+async function buildParityFixture(repo: GitRepo): Promise<void> {
+  const write = (rel: string, body: string) => {
+    fs.mkdirSync(path.dirname(path.join(repo.dir, rel)), { recursive: true });
+    fs.writeFileSync(path.join(repo.dir, rel), body);
+  };
+  write("shared.md", "shared config\n");
+  write("Value.cs", "class Value {}\n");
+  write("MyValue.cs", "class MyValue {}\n");
+  write("report.md", "report\n");
+  write("pair.json", "{}\n");
+  write("logo.png", "not really a png\n");
+  write("src/a.ts", "// reads shared.md and Value.cs, see report.md.)\n");
+  write("src/b.ts", "// uses MyValue.cs\tand shared.md\t\n// self a.ts b.ts logo.png\n");
+  write("src/deep/c.ts", "// reads pair.json and com.example.UserServiceImpl\r\n");
+  write("srcx/c.ts", "// report.md. Then Value.cs\n");
+  write("lib/d.ts", "// MyValue.cs and pair.json and only.cfg\n");
+  write("lib/e.ts", "// pair.json logo.png only.cfg\n");
+  write("data.dat", "bin\0shared.md\0\n");
+  await commitAt(repo, 0, "seed parity fixture");
+}
+
+function underSrc(p: string): boolean {
+  return p === "src" || p.startsWith("src/");
+}
+
+test("a scoped run prints exactly the unscoped lines whose a or b lies under the scope (scoping reads fewer files but must not change one byte)", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      await buildParityFixture(repo);
+      const unscoped = await run(bash, repo, []);
+      assert.equal(unscoped.status, 0, `stderr: ${unscoped.stderr}`);
+      const scoped = await run(bash, repo, ["--scope", "src"]);
+      assert.equal(scoped.status, 0, `stderr: ${scoped.stderr}`);
+
+      const expected = unscoped.stdout
+        .split("\n")
+        .filter((line) => line.length > 0)
+        .filter((line) => {
+          const record = JSON.parse(line);
+          return underSrc(record.a) || underSrc(record.b);
+        });
+      assert.ok(expected.length > 0, `the fixture must yield scoped pairs, got:\n${unscoped.stdout}`);
+      assert.ok(
+        recordsOf(unscoped).some((r) => r.a === "lib/d.ts" && r.b === "lib/e.ts" && r.vias.includes("only.cfg")),
+        "the fixture must hold a pair linked only outside the scope, or the filter proves nothing",
+      );
+      assert.equal(scoped.stdout, expected.map((line) => `${line}\n`).join(""));
+    });
+  });
+});
+
+test("a scoped run still counts an assume-unchanged and a skip-worktree file outside the scope (git grep reads neither from the working tree)", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      fs.mkdirSync(path.join(repo.dir, "src"), { recursive: true });
+      fs.mkdirSync(path.join(repo.dir, "lib"), { recursive: true });
+      fs.writeFileSync(path.join(repo.dir, "shared.md"), "shared config\n");
+      fs.writeFileSync(path.join(repo.dir, "src", "a.ts"), "// reads shared.md\n");
+      fs.writeFileSync(path.join(repo.dir, "lib", "b.ts"), "// nothing yet\n");
+      fs.writeFileSync(path.join(repo.dir, "lib", "c.ts"), "// nothing yet\n");
+      await commitAt(repo, 0, "seed hidden-entry fixture");
+      for (const flags of [["--assume-unchanged", "lib/b.ts"], ["--skip-worktree", "lib/c.ts"]]) {
+        const mark = await runScript("git", ["update-index", ...flags], { cwd: repo.dir, env: repo.env });
+        assert.equal(mark.status, 0, `git update-index failed: ${mark.stderr}`);
+      }
+      fs.writeFileSync(path.join(repo.dir, "lib", "b.ts"), "// now reads shared.md\n");
+      fs.writeFileSync(path.join(repo.dir, "lib", "c.ts"), "// now reads shared.md too\n");
+
+      const unscoped = await run(bash, repo, []);
+      assert.equal(unscoped.status, 0, `stderr: ${unscoped.stderr}`);
+      const scoped = await run(bash, repo, ["--scope", "src"]);
+      assert.equal(scoped.status, 0, `stderr: ${scoped.stderr}`);
+      assert.deepEqual(pairKeysOf(scoped), ["lib/b.ts|src/a.ts", "lib/c.ts|src/a.ts"]);
+      for (const record of recordsOf(scoped)) assert.equal(record.fanout, 3, `${record.a}|${record.b}`);
+      const expected = unscoped.stdout
+        .split("\n")
+        .filter((line) => line.length > 0 && (underSrc(JSON.parse(line).a) || underSrc(JSON.parse(line).b)));
+      assert.equal(scoped.stdout, expected.map((line) => `${line}\n`).join(""));
+    });
+  });
+});
+
+test("a scoped run whose git grep fails scans every candidate and still prints the unscoped lines under the scope", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      await buildParityFixture(repo);
+      const unscoped = await run(bash, repo, []);
+      assert.equal(unscoped.status, 0, `stderr: ${unscoped.stderr}`);
+      // An unparsable grep.threads makes git grep alone exit 128.
+      const broken = { ...repo.env, GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "grep.threads", GIT_CONFIG_VALUE_0: "abc" };
+      const scoped = await runScript(SUT, ["--scope", "src"], { shell: bash, cwd: repo.dir, env: broken });
+      assert.equal(scoped.status, 0, `stderr: ${scoped.stderr}`);
+      const expected = unscoped.stdout
+        .split("\n")
+        .filter((line) => line.length > 0 && (underSrc(JSON.parse(line).a) || underSrc(JSON.parse(line).b)));
+      assert.equal(scoped.stdout, expected.map((line) => `${line}\n`).join(""));
+    });
+  });
+});
+
+test("a scoped run reports how many files pass 2 scans", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      await buildScopedPairFixture(repo);
+      const result = await run(bash, repo, ["--scope", "src"]);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.match(result.stderr, /^collect_edges\.sh: pass2 \d+ files to scan$/m);
+    });
+  });
+});
+
+// --- process count and --max-seconds ----------------------------------------
+
+/** The real grep, by an absolute forward-slash path a stub can `exec`
+ *  (double-quoted in the stub: on Windows it holds a space). */
+function realGrep(): string {
+  const dir = coreUtilsPath().split(path.delimiter)[0];
+  return path.join(dir, "grep").replace(/\\/g, "/");
+}
+
+/** `files` tracked .ts files, each holding `tokensPerFile` distinct literals. */
+async function buildTokenFixture(repo: GitRepo, files: number, tokensPerFile: number): Promise<void> {
+  for (let i = 0; i < files; i++) {
+    const tokens: string[] = [];
+    for (let k = 0; k < tokensPerFile; k++) tokens.push(`t${i}_${k}.md`);
+    fs.writeFileSync(path.join(repo.dir, `f${i}.ts`), `// ${tokens.join(" ")}\n`);
+  }
+  await commitAt(repo, 0, "seed token fixture");
+}
+
+async function grepCalls(bash: string, tokensPerFile: number): Promise<number> {
+  return await withGitRepo(async (repo) => {
+    await buildTokenFixture(repo, 40, tokensPerFile);
+    return await withStub("grep", `printf 'x\\n' >> "$GREP_LOG"\nexec "${realGrep()}" "$@"`, async (stubDir) => {
+      const log = path.join(stubDir, "calls.log").replace(/\\/g, "/");
+      const result = await runScript(SUT, [], {
+        shell: bash,
+        cwd: repo.dir,
+        env: { ...repo.env, GREP_LOG: log },
+        stubDirs: [stubDir],
+      });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      return fs.readFileSync(log, "utf8").split("\n").filter((line) => line.length > 0).length;
+    });
+  });
+}
+
+test("the grep process count does not grow with the literal count (one grep per xargs batch, never one per literal)", async () => {
+  await assertBash(async (bash) => {
+    const one = await grepCalls(bash, 1);
+    const fifty = await grepCalls(bash, 50);
+    assert.equal(fifty, one, "50 literals per file must not spawn more greps than 1 literal per file");
+    assert.ok(one < 10, `expected fewer than 10 grep calls over 40 files, got ${one}`);
+  });
+});
+
+test("--max-seconds past its deadline exits 3 with empty stdout and the deadline line (proves the exit-3 contract only: the noise-filter greps alone pass the deadline here)", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      fs.writeFileSync(path.join(repo.dir, "a.ts"), "// reads shared.md\n");
+      fs.writeFileSync(path.join(repo.dir, "b.ts"), "// also reads shared.md\n");
+      await commitAt(repo, 0, "seed deadline fixture");
+      await withStub("grep", `sleep 2\nexec "${realGrep()}" "$@"`, async (stubDir) => {
+        const result = await runScript(SUT, ["--max-seconds", "1"], {
+          shell: bash,
+          cwd: repo.dir,
+          env: repo.env,
+          stubDirs: [stubDir],
+        });
+        assert.equal(result.status, 3, `stderr: ${result.stderr}`);
+        assert.equal(result.stdout, "");
+        assert.match(result.stderr, /^collect_edges\.sh: deadline of 1s exceeded - edge sweep abandoned$/m);
+      });
+    });
+  });
+});
+
+test("--max-seconds 0 and an absent --max-seconds both run without a limit", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      await buildPairFixture(repo);
+      const absent = await run(bash, repo, []);
+      assert.equal(absent.status, 0, `stderr: ${absent.stderr}`);
+      assert.equal(recordsOf(absent).length, 3);
+      const zero = await run(bash, repo, ["--max-seconds", "0"]);
+      assert.equal(zero.status, 0, `stderr: ${zero.stderr}`);
+      assert.equal(zero.stdout, absent.stdout);
+    });
+  });
+});
+
+test("a --max-seconds value that is not a non-negative integer exits 2 with no stdout", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      await buildPairFixture(repo);
+      for (const value of ["abc", "-1", "1.5"]) {
+        const result = await run(bash, repo, ["--max-seconds", value]);
+        assert.equal(result.status, 2, `value=${value} stderr: ${result.stderr}`);
+        assert.equal(result.stdout, "", `value=${value}`);
+        assert.match(result.stderr, /^collect_edges\.sh: --max-seconds must be a non-negative integer: /m);
+      }
+    });
+  });
+});
+
 // --- exit codes / degenerate repos ------------------------------------------
 
 test("unborn HEAD -> exit 1, no stdout", async () => {
@@ -341,6 +561,20 @@ test("a pair endpoint with a space and a non-ASCII character comes through unquo
       const records = recordsOf(result);
       const record = records.find((r) => r.a === name || r.b === name);
       assert.ok(record, `expected a pair containing ${name}, got:\n${result.stdout}`);
+    });
+  });
+});
+
+test("a file whose name starts with - is read as a file, never as a grep option", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      fs.writeFileSync(path.join(repo.dir, "shared.md"), "shared config\n");
+      fs.writeFileSync(path.join(repo.dir, "-x.ts"), "// reads shared.md\n");
+      fs.writeFileSync(path.join(repo.dir, "other.ts"), "// also reads shared.md\n");
+      await commitAt(repo, 0, "seed dash-named fixture");
+      const result = await run(bash, repo, []);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.deepEqual(pairKeysOf(result), ["-x.ts|other.ts"]);
     });
   });
 });

@@ -6,7 +6,7 @@
 # (never `vias`) verbatim into its own gate output, edges.json / edges.md.
 #
 # Usage:
-#   bash collect_edges.sh [repo_root] [--max-fanout K] [--scope <dir>]
+#   bash collect_edges.sh [repo_root] [--max-fanout K] [--max-seconds S] [--scope <dir>]
 #
 # A pair is two swept files that both mention the same path-like literal
 # (a filename token such as "user.dto.ts" or "schema.sql") - the literal is
@@ -50,28 +50,89 @@
 # a lower fanout than a real shared artifact yet says nothing about a
 # producer/consumer contract.
 #
-# --max-fanout is stripped out of the positional stream before repo_root is
-# bound, the same way collect_signals.sh strips --with-dependents, so it may
-# appear anywhere on the command line and repo_root may still be omitted.
+# --max-fanout, --max-seconds and --scope are stripped out of the positional
+# stream before repo_root is bound, the same way collect_signals.sh strips
+# --with-dependents, so each may appear anywhere on the command line and
+# repo_root may still be omitted.
+#
+# Algorithm - a fixed number of processes, whatever the token count:
+#   1. Candidates: every tracked, noise-filtered file whose extension
+#      survived pass 1 (kept_exts), plus extensionless files.
+#   2. extract (newline paths in, "path<TAB>literal" lines out) is one
+#      pipeline: a builtin-only feeder loop over the paths, ONE
+#      `xargs -0 grep -oHE --null` over every path it fed, `tr` and one awk
+#      applying the noise rules above. Its process count depends on the
+#      path count (xargs batches), never on how many literals a file holds.
+#   3. Unscoped: extract over every candidate, then the pairing awk, then
+#      one output awk writing the JSONL.
+#   4. Scoped: see --scope below.
 #
 # --scope <dir> narrows the EMITTED PAIRS to those with at least one endpoint
-# under <dir>, and nothing else about the sweep: candidate discovery, literal
-# counting, the ambient --max-fanout drop and the via/vias scoring all keep
-# running over the whole repo, so a surviving pair's `fanout`, `shared`, `via`
-# and `vias` are identical to the ones an unscoped run emits for that same
-# pair. A pair survives iff `a` or `b` equals <dir> or starts with `<dir>/`,
-# which is deliberate: an edge whose other endpoint sits outside the scope is
-# exactly the contract a scoped audit must still see. Narrowing any earlier -
-# at candidate discovery - would instead lower a kept pair's fanout and hide
-# the outside endpoint entirely. A sibling sharing the prefix (srcx next to
-# src) is never read as being under the scope. <dir> is repo-root-relative and
-# is normalised and validated exactly as in collect_signals.sh: a leading `./`
-# and any trailing `/` are tolerated, `.` (or an empty value) means the whole
-# repo, and an absolute path (a bare `/` or `//` included - a root is never
-# read as "no scope"), a `..` segment, or a `--scope` with no value is
-# rejected with exit 2 and no stdout. Like --max-fanout, `--scope` is read out
-# of the positional stream (as two tokens) before repo_root is bound, so it
-# may appear anywhere on the command line.
+# under <dir>: a pair survives iff `a` or `b` equals <dir> or starts with
+# `<dir>/`, which is deliberate - an edge whose other endpoint sits outside
+# the scope is exactly the contract a scoped audit must still see. A sibling
+# sharing the prefix (srcx next to src) is never read as being under the
+# scope. Under a scope the sweep reads only the scope and the files that can
+# share a literal with it, never the whole repo:
+#   a. scope files = the candidates under <dir>; extract runs over them, and
+#      their distinct literals go to a `mktemp` file (the lits set) removed
+#      by an EXIT trap. `mktemp` failing exits 1 with one stderr line and no
+#      stdout.
+#   b. One `git grep -l -F -f -`, fed the lits set on stdin, lists every
+#      tracked file holding any of those literals as a substring; a git grep
+#      exit above 1 (a failed search) makes every candidate a hit, so the
+#      result never depends on it. git grep reads only plain regular index
+#      entries from the working tree: it skips a symlink and a skip-worktree
+#      entry and reads an assume-unchanged one from the index, so one
+#      `git ls-files -s -v` adds every entry of those kinds (a tag other than
+#      H/M or a mode other than 100644/100755) unconditionally. The scan set
+#      is those hits and added entries that are candidates and not scope
+#      files. extract runs over the scan set, and only the literals in the
+#      lits set are kept from it.
+#   c. Both results are merged and paired exactly as an unscoped run would.
+#   An empty lits set skips step b (git grep would exit 128 on an empty
+#   pattern list) and pairs nothing.
+# Why the surviving pairs are byte-identical to the unscoped ones: a pair
+# survives only with an endpoint in scope, so each of its linking literals
+# occurs in a scope file and is in the lits set. A literal's fanout is the
+# number of candidate files whose extraction yields it, and each such file
+# either is one of the entries step b adds unconditionally or holds the
+# literal as a substring of the working-tree copy git grep reads, so it is a
+# `git grep -F` hit; either way it is extracted in this run too: for every
+# literal in the lits set the count is the full-scan count. Hence `fanout`,
+# `shared`, `via` and `vias` of every surviving pair equal the full-scan
+# values. A `-F` substring hit the regex
+# would not extract (`Value.cs` inside `MyValue.cs`) costs one extra file
+# read and nothing else: extraction discards it. Under a scope the
+# `literals:` stderr line counts only the literals reachable from the scope;
+# stdout is unchanged. <dir> is repo-root-relative and is normalised and
+# validated exactly as in collect_signals.sh: a leading `./` and any trailing
+# `/` are tolerated, `.` (or an empty value) means the whole repo, and an
+# absolute path (a bare `/` or `//` included - a root is never read as "no
+# scope"), a `..` segment, or a `--scope` with no value is rejected with exit
+# 2 and no stdout. `--scope` is read out of the positional stream as two
+# tokens.
+#
+# --max-seconds S (default 0 = no limit) bounds the sweep by wall time. The
+# extract feeder checks bash's builtin $SECONDS (seconds since the script
+# started) before each path; once it reaches S the feeder stops feeding,
+# prints `collect_edges.sh: deadline of <S>s exceeded - edge sweep abandoned`
+# to stderr and the script exits 3 with no stdout (stdout is written only at
+# the very end, so nothing partial leaks). Nothing is killed from outside, so
+# no xargs/grep child is orphaned. Not covered by the check: every step
+# outside the feeder (the `git ls-files` passes, `git grep`, the sorts and
+# the awks) and the paths already fed into the pipe buffer, which xargs
+# still greps before the exit. A value that is not a non-negative integer
+# is rejected with exit 2 and no stdout; a missing value means 0.
+#
+# Progress on stderr: `collect_edges.sh: pass2 <i>/<N>` every 10% of an
+# extract list of 1000 paths or more; under a scope also
+# `collect_edges.sh: scope: <k> literals from <m> files` and
+# `collect_edges.sh: pass2 <N> files to scan` (N = the scan set of step b).
+#
+# Exit codes: 0 success (an empty stdout included), 1 unborn HEAD or a
+# failed `mktemp`, 2 a bad --scope or --max-seconds value, 3 the
+# --max-seconds deadline passed.
 #
 # Edge cases:
 #   - Unborn HEAD (no commits yet) - one explanatory stderr line, exit 1, no
@@ -80,23 +141,33 @@
 #   - A --scope matching no pair - the same empty result (exit 0, empty
 #     stdout), reported as one `scope: <dir> (0 pairs)` line on stderr; the
 #     caller validates that the directory exists before invoking this script.
-#   - A file grep cannot read - one stderr warning naming the file, the
-#     stream continues instead of aborting.
-#   - Every grep / pipeline stage is guarded so a no-match rc=1 does not trip
-#     `set -euo pipefail`.
-#   - Non-ASCII paths - `-c core.quotePath=false` on both `git ls-files`
-#     passes, as in collect_signals.sh.
+#   - A tracked path that is not a regular file (`[ -f ]` fails: deleted,
+#     a directory) is skipped silently. A file the feeder cannot OPEN - a real
+#     open attempt, not `[ -r ]`, which answers from the permission bits a
+#     Windows ACL entry never reaches - gets one stderr warning naming it and
+#     is skipped; the stream continues instead of aborting.
+#   - A path starting with `-` reaches grep after `--`, never as an option.
+#   - A binary file yields no literal: GNU grep 3.0 and BSD grep print a
+#     `Binary file X matches` line on stdout, which carries no NUL and is
+#     dropped; newer GNU grep prints it on stderr, which is discarded.
+#   - Every grep / pipeline stage is guarded so a no-match rc=1 (xargs: 123)
+#     does not trip `set -euo pipefail`.
+#   - Non-ASCII paths - `-c core.quotePath=false` on every `git ls-files`
+#     pass and on `git grep`, as in collect_signals.sh.
 #   - A path containing `"` or `\` is C-quoted by git regardless of
 #     core.quotePath=false (that setting only controls non-ASCII bytes, not
-#     the quoting syntax's own special characters). The pass-2 `awk` filter
-#     inside `raw_pairs` detects a leading `"` and warns-and-skips it before
-#     the extension test, since a quoted line's parsed extension never
-#     matches a real kept extension anyway. As a result, `esc()` below never
-#     sees a raw `"` or `\` in a path today - both are filtered out upstream.
+#     the quoting syntax's own special characters). The candidate filter
+#     detects a leading `"` and warns-and-skips it before the extension test,
+#     since a quoted line's parsed extension never matches a real kept
+#     extension anyway. The output awk still escapes `\` and `"` in every
+#     string field, though neither reaches it today. A path never holds a
+#     TAB or a newline either (git C-quotes both), which is what makes TAB
+#     a safe field separator.
 
 set -euo pipefail
 
 MAX_FANOUT=8
+MAX_SECONDS=0
 SCOPE=""
 positional=()
 args=("$@")
@@ -106,6 +177,9 @@ while [ $i -lt ${#args[@]} ]; do
   if [ "$arg" = "--max-fanout" ]; then
     i=$((i + 1))
     MAX_FANOUT="${args[$i]:-8}"
+  elif [ "$arg" = "--max-seconds" ]; then
+    i=$((i + 1))
+    MAX_SECONDS="${args[$i]:-0}"
   elif [ "$arg" = "--scope" ]; then
     i=$((i + 1))
     if [ $i -ge ${#args[@]} ]; then
@@ -119,6 +193,15 @@ while [ $i -lt ${#args[@]} ]; do
   i=$((i + 1))
 done
 ROOT="${positional[0]:-.}"
+
+# The feeder compares $MAX_SECONDS arithmetically before every path, so a
+# non-integer would fail that test once per path; reject it up front.
+case "$MAX_SECONDS" in
+  '' | *[!0-9]*)
+    printf 'collect_edges.sh: --max-seconds must be a non-negative integer: %s\n' "$MAX_SECONDS" >&2
+    exit 2
+    ;;
+esac
 
 cd "$ROOT"
 
@@ -164,9 +247,6 @@ if ! git rev-parse --verify -q HEAD >/dev/null 2>&1; then
   exit 1
 fi
 
-# Minimal JSON string escaper (handles backslash and double-quote).
-esc() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
-
 # Extensions that are never worth a scout's look: binaries, media, fonts,
 # archives, office docs, locks, sourcemaps, logs/backups. Everything else the
 # repo actually contains gets swept. Copied verbatim from collect_signals.sh
@@ -202,10 +282,7 @@ tracked_basenames="$(
 # Pass 2 - candidates: files whose extension was kept, plus extensionless
 # files. kept_exts is handed to awk via ENVIRON, not `-v` - a `-v` value
 # containing a newline (any multi-extension repo) aborts BSD/macOS awk.
-# For each candidate, extract path-like literals and emit "path<TAB>token"
-# lines: the literal's extension must not be denied, and it must not be the
-# file's own basename (a self-reference carries no cross-file signal).
-raw_pairs="$(
+candidates="$(
   git -c core.quotePath=false ls-files | noise_filter \
     | KEPT_EXTS="$kept_exts" awk '
         BEGIN { n = split(ENVIRON["KEPT_EXTS"], a, "\n"); for (i = 1; i <= n; i++) if (a[i] != "") keep[a[i]] = 1 }
@@ -218,68 +295,184 @@ raw_pairs="$(
           if (base ~ /\./) { ext = base; sub(/.*\./, "", ext); ext = tolower(ext) }
           else ext = ""
           if (ext == "" || (ext in keep)) print
-        }' \
-    | while IFS= read -r f; do
-        [ -f "$f" ] || continue
-        base="$(basename "$f")"
-        # Trailing `([^A-Za-z0-9_.-]|\.[^A-Za-z0-9_-]|\.$|$)` forces the
-        # match to end at a real token boundary. Without it, POSIX
-        # leftmost-longest matching backs an over-long tail (>8 chars past
-        # the last dot) off onto an earlier dot and truncates - e.g.
-        # "com.example.UserServiceImpl" would match as "com.example.UserServ",
-        # a token absent from both endpoints. With the boundary required, no
-        # dot in that token can both satisfy `{1,8}` and be followed by a
-        # non-continuation character, so the whole token is skipped - never
-        # truncated - and the emitted literal always equals a real substring
-        # bounded by real delimiters. The two `\.`-prefixed alternatives
-        # re-admit a sentence-final dot without weakening that guarantee: a
-        # real extension never itself contains a dot, so a dot immediately
-        # after the `{1,8}` extension chars is punctuation, not part of the
-        # token - whether it ends the line ("report.md." at EOL, `\.$`) or
-        # is followed by a non-continuation character ("report.md. Then"
-        # mid-line, `\.[^A-Za-z0-9_-]`). `-` and `_` stay continuation
-        # characters, not sentence punctuation, so a hyphenated literal like
-        # "report.md-based" is unaffected - it is a distinct token, never
-        # truncated at the hyphen.
-        # A read that FAILED and a read that matched NOTHING are different
-        # outcomes, so the grep status is kept: 1 is "no literals here"
-        # (silent skip), >=2 is "could not read it" (warn, then skip). The
-        # attempt itself is the readability test - `[ -r ]` answers from the
-        # permission bits, which a Windows ACL entry never reaches, so a file
-        # this loop cannot open would otherwise be dropped silently there.
-        grep_status=0
-        tokens="$(grep -oE '[A-Za-z0-9_][A-Za-z0-9_.-]*\.[A-Za-z0-9]{1,8}([^A-Za-z0-9_.-]|\.[^A-Za-z0-9_-]|\.$|$)' "$f" 2>/dev/null)" || grep_status=$?
-        if [ "$grep_status" -ge 2 ]; then
-          printf 'collect_edges.sh: warning: skipping %s (unreadable)\n' "$f" >&2
-          continue
-        fi
-        [ -n "$tokens" ] || continue
-        while IFS= read -r tok; do
-          # Strip every trailing boundary character, not just one: the real
-          # token always ends alphanumeric (the extension is
-          # `[A-Za-z0-9]{1,8}`), so any non-alphanumeric tail - one char from
-          # the plain boundary alternative, or up to two from a
-          # `\.`-prefixed one (e.g. a sentence-final "..." or "report.md.)")
-          # - is captured punctuation, never part of the literal.
-          while true; do
-            case "$tok" in
-              (*[!A-Za-z0-9]) tok="${tok%?}" ;;
-              (*) break ;;
-            esac
-          done
-          [ -n "$tok" ] || continue
-          [ "$tok" = "$base" ] && continue
-          tok_ext="${tok##*.}"
-          tok_ext_lc="$(printf '%s' "$tok_ext" | tr '[:upper:]' '[:lower:]')"
-          if printf '%s' "$tok_ext_lc" | grep -Eq "^(${DENY_EXT})$"; then
-            continue
-          fi
-          printf '%s\t%s\n' "$f" "$tok"
-        done <<< "$tokens"
-      done
+        }'
 )"
 
-sorted_pairs="$(printf '%s\n' "$raw_pairs" | sort -u)"
+# extract - stdin: newline-separated paths; stdout: one "path<TAB>literal"
+# line per literal occurrence (duplicates included; callers sort -u). The
+# literal's extension must not be denied, and it must not be the file's own
+# basename (a self-reference carries no cross-file signal).
+#
+# The feeder loop uses builtins only (zero forks per path): `[ -f ]`, then a
+# real open as the readability test - `[ -r ]` answers from the permission
+# bits, which a Windows ACL entry never reaches, so a file this sweep cannot
+# open would otherwise be dropped silently there. The open runs on `true`,
+# not `:`: a redirection error on a special builtin exits a bash running in
+# POSIX mode (POSIXLY_CORRECT set). Testing the open here, not
+# grep's status, leaves grep running in the caller's locale: `LC_ALL=C` would
+# change which files GNU grep treats as binary. The same loop prints the
+# progress lines and enforces --max-seconds (exit 3, carried out by
+# pipefail).
+#
+# grep runs once per xargs batch: `-H --null` prefixes every match with its
+# path and a NUL (`--null`, not `-Z`: BSD/macOS grep reads `-Z` as
+# decompress); `|| true` because xargs returns 123 when any batch matched
+# nothing; `--` keeps a path starting with `-` from being read as an option.
+# `tr` turns the NUL into a TAB before awk, since BSD awk cannot hold a NUL.
+#
+# Trailing `([^A-Za-z0-9_.-]|\.[^A-Za-z0-9_-]|\.$|$)` forces the match to
+# end at a real token boundary. Without it, POSIX leftmost-longest matching
+# backs an over-long tail (>8 chars past the last dot) off onto an earlier
+# dot and truncates - e.g. "com.example.UserServiceImpl" would match as
+# "com.example.UserServ", a token absent from both endpoints. With the
+# boundary required, no dot in that token can both satisfy `{1,8}` and be
+# followed by a non-continuation character, so the whole token is skipped -
+# never truncated - and the emitted literal always equals a real substring
+# bounded by real delimiters. The two `\.`-prefixed alternatives re-admit a
+# sentence-final dot without weakening that guarantee: a real extension never
+# itself contains a dot, so a dot immediately after the `{1,8}` extension
+# chars is punctuation, not part of the token - whether it ends the line
+# ("report.md." at EOL, `\.$`) or is followed by a non-continuation character
+# ("report.md. Then" mid-line, `\.[^A-Za-z0-9_-]`). `-` and `_` stay
+# continuation characters, not sentence punctuation, so a hyphenated literal
+# like "report.md-based" is unaffected - it is a distinct token, never
+# truncated at the hyphen. The boundary character the match captures is
+# stripped again in awk, so a literal never carries it.
+extract() {
+  {
+    local f paths total step n
+    paths=()
+    while IFS= read -r f; do
+      [ -n "$f" ] && paths+=("$f")
+    done
+    total=${#paths[@]}
+    step=0
+    if [ "$total" -ge 1000 ]; then step=$((total / 10)); fi
+    n=0
+    for f in ${paths[@]+"${paths[@]}"}; do
+      if [ "$MAX_SECONDS" -gt 0 ] && [ "$SECONDS" -ge "$MAX_SECONDS" ]; then
+        printf 'collect_edges.sh: deadline of %ss exceeded - edge sweep abandoned\n' "$MAX_SECONDS" >&2
+        exit 3
+      fi
+      n=$((n + 1))
+      if [ "$step" -gt 0 ] && [ $((n % step)) -eq 0 ]; then
+        printf 'collect_edges.sh: pass2 %d/%d\n' "$n" "$total" >&2
+      fi
+      [ -f "$f" ] || continue
+      if ! { true < "$f"; } 2>/dev/null; then
+        printf 'collect_edges.sh: warning: skipping %s (unreadable)\n' "$f" >&2
+        continue
+      fi
+      printf '%s\0' "$f"
+    done
+  } \
+    | { xargs -0 grep -oHE --null -- '[A-Za-z0-9_][A-Za-z0-9_.-]*\.[A-Za-z0-9]{1,8}([^A-Za-z0-9_.-]|\.[^A-Za-z0-9_-]|\.$|$)' 2>/dev/null || true; } \
+    | tr '\0' '\t' \
+    | DENY_EXT="$DENY_EXT" awk '
+        BEGIN { deny = "^(" ENVIRON["DENY_EXT"] ")$" }
+        {
+          # Split at the FIRST tab: the path never holds one, the literal
+          # may end in a TAB boundary character. A line with no tab is the
+          # grep 3.0 / BSD "Binary file X matches" message: no literal.
+          t = index($0, "\t")
+          if (t == 0) next
+          path = substr($0, 1, t - 1)
+          tok = substr($0, t + 1)
+          # Strip every trailing boundary character: the real literal always
+          # ends alphanumeric (the extension is [A-Za-z0-9]{1,8}), so any
+          # non-alphanumeric tail - one char from the plain boundary
+          # alternative, or up to two from a dot-prefixed one (a
+          # sentence-final "..." or "report.md.)") - is punctuation.
+          sub(/[^A-Za-z0-9]+$/, "", tok)
+          if (tok == "") next
+          base = path; sub(/.*\//, "", base)
+          if (tok == base) next
+          ext = tok; sub(/.*\./, "", ext)
+          if (tolower(ext) ~ deny) next
+          printf "%s\t%s\n", path, tok
+        }'
+}
+
+# Line count of a newline-separated list held in a variable (0 when empty).
+count_lines() {
+  if [ -z "$1" ]; then
+    echo 0
+  else
+    printf '%s\n' "$1" | awk 'END { print NR }'
+  fi
+}
+
+sorted_pairs=""
+if [ -z "$SCOPE" ]; then
+  if [ -n "$candidates" ]; then
+    sorted_pairs="$(extract <<< "$candidates" | sort -u)"
+  fi
+else
+  if ! lits_file="$(mktemp)"; then
+    echo 'collect_edges.sh: cannot create literal list temp file' >&2
+    exit 1
+  fi
+  trap 'rm -f "$lits_file"' EXIT
+
+  scope_files="$(
+    printf '%s\n' "$candidates" \
+      | SCOPE="$SCOPE" awk 'BEGIN { d = ENVIRON["SCOPE"] } $0 == d || index($0, d "/") == 1'
+  )"
+  scope_pairs=""
+  if [ -n "$scope_files" ]; then
+    scope_pairs="$(extract <<< "$scope_files" | sort -u)"
+  fi
+  printf '%s\n' "$scope_pairs" | awk -F'\t' 'NF >= 2 && $2 != "" { print $2 }' | sort -u > "$lits_file"
+  printf 'collect_edges.sh: scope: %s literals from %s files\n' \
+    "$(awk 'END { print NR }' "$lits_file")" "$(count_lines "$scope_files")" >&2
+
+  scan=""
+  if [ -s "$lits_file" ]; then
+    # One call over the whole tree. Never run on an empty pattern list (`-s`
+    # above): git grep exits 128 on one. `--no-color` and
+    # `grep.fullName=false`: a user `color.ui=always` or `grep.fullName=true`
+    # would otherwise print paths no candidate equals. `-f -` takes the
+    # patterns on stdin: a temp path handed to git may not resolve (Git for
+    # Windows under MSYS_NO_PATHCONV). rc 1 is "no file matched"; above 1 the
+    # search failed, so every candidate becomes a hit.
+    hits_rc=0
+    hits="$(git -c core.quotePath=false -c grep.fullName=false grep --no-color -l -F -f - < "$lits_file")" || hits_rc=$?
+    if [ "$hits_rc" -gt 1 ]; then hits="$candidates"; fi
+    # git grep reads only the working-tree copy of a regular, plain index
+    # entry: it skips a symlink (mode 120000) and a skip-worktree entry and
+    # reads an assume-unchanged one from the index, while extract reads all
+    # three through the working tree. Every such entry joins the scan set
+    # unconditionally (one `ls-files -s -v`: a tag other than H/M, or a mode
+    # other than 100644/100755).
+    unsure="$(
+      git -c core.quotePath=false ls-files -s -v \
+        | awk '{ t = index($0, "\t"); if (t == 0) next; split(substr($0, 1, t - 1), h, " ")
+                 if ((h[1] != "H" && h[1] != "M") || (h[2] != "100644" && h[2] != "100755")) print substr($0, t + 1) }'
+    )"
+    # Scan set = hits and unsure entries that are candidates, minus the scope
+    # files. One stream: the candidates, an empty separator line (a path is
+    # never empty), then the hits and the unsure entries.
+    scan="$(
+      { printf '%s\n' "$candidates"; printf '\n'; printf '%s\n' "$hits" "$unsure"; } \
+        | SCOPE="$SCOPE" awk '
+            BEGIN { d = ENVIRON["SCOPE"] }
+            !sep { if ($0 == "") sep = 1; else cand[$0] = 1; next }
+            $0 == "" || !($0 in cand) || ($0 in seen) { next }
+            $0 == d || index($0, d "/") == 1 { next }
+            { seen[$0] = 1; print }'
+    )"
+  fi
+  printf 'collect_edges.sh: pass2 %s files to scan\n' "$(count_lines "$scan")" >&2
+
+  outside_pairs=""
+  if [ -n "$scan" ]; then
+    outside_pairs="$(
+      extract <<< "$scan" \
+        | awk -F'\t' 'FNR == NR { lit[$0] = 1; next } NF >= 2 && ($2 in lit)' "$lits_file" -
+    )"
+  fi
+  sorted_pairs="$(printf '%s\n%s\n' "$scope_pairs" "$outside_pairs" | sort -u)"
+fi
 
 # Count distinct files per literal, then, for literals kept (fanout in
 # [2, MAX_FANOUT]), emit every unordered distinct pair those files form -
@@ -371,32 +564,30 @@ pair_tsv="$(
   ' <<< "$sorted_pairs" | sort
 )"
 
-# --scope, applied HERE and nowhere earlier: every pair is discovered, scored
-# and capped repo-wide first, then the emitted set is narrowed to the pairs
-# with at least one endpoint under $SCOPE. A pair with both endpoints outside
-# it is dropped; a surviving pair keeps the `fanout`, `shared`, `via` and
-# `vias` the unscoped run computed for it. `awk -v` is safe for this value: a
-# scope carrying a newline cannot reach here (a `..`-free, non-absolute single
-# argument), which is the only input BSD/macOS awk aborts on.
-if [ -n "$SCOPE" ]; then
-  pair_tsv="$(
-    printf '%s\n' "$pair_tsv" \
-      | awk -F'\t' -v d="$SCOPE" '$1 == d || index($1, d "/") == 1 || $2 == d || index($2, d "/") == 1'
-  )"
-  # One honest line about the narrowed coverage, next to the `literals:` one.
-  # A zero here is a legitimate empty result, not an error.
-  if [ -n "$pair_tsv" ]; then
-    scoped_pairs="$(printf '%s\n' "$pair_tsv" | wc -l | tr -d ' ')"
-  else
-    scoped_pairs=0
-  fi
-  printf 'scope: %s (%s pairs)\n' "$SCOPE" "$scoped_pairs" >&2
-fi
-
-[ -n "$pair_tsv" ] || exit 0
-
-while IFS=$'\t' read -r a b via fanout shared vias; do
-  [ -n "$a" ] || continue
-  printf '{"a":"%s","b":"%s","via":"%s","fanout":%s,"shared":%s,"vias":%s}\n' \
-    "$(esc "$a")" "$(esc "$b")" "$(esc "$via")" "$fanout" "$shared" "$vias"
-done <<< "$pair_tsv"
+# Output stage - one awk. Under a scope it keeps only the pairs with at
+# least one endpoint under $SCOPE (the pairing above already ran over the
+# scope-reachable literals; this drops the pairs both of whose endpoints sit
+# outside) and reports their count on stderr; a zero there is a legitimate
+# empty result, not an error. JSON escaping builds each string from split()
+# and concatenation, never gsub with a backslash replacement, which gawk,
+# mawk and BSD awk read differently; quoted paths are filtered upstream, so
+# neither a backslash nor a double quote reaches it today.
+printf '%s\n' "$pair_tsv" | SCOPE="$SCOPE" awk -F'\t' '
+  function esc(s,    n, p, i, out) {
+    n = split(s, p, "\\")
+    out = p[1]
+    for (i = 2; i <= n; i++) out = out "\\\\" p[i]
+    n = split(out, p, "\"")
+    out = p[1]
+    for (i = 2; i <= n; i++) out = out "\\\"" p[i]
+    return out
+  }
+  BEGIN { d = ENVIRON["SCOPE"]; kept = 0 }
+  $1 == "" { next }
+  d != "" && !($1 == d || index($1, d "/") == 1 || $2 == d || index($2, d "/") == 1) { next }
+  {
+    kept++
+    printf "{\"a\":\"%s\",\"b\":\"%s\",\"via\":\"%s\",\"fanout\":%s,\"shared\":%s,\"vias\":%s}\n", esc($1), esc($2), esc($3), $4, $5, $6
+  }
+  END { if (d != "") printf "scope: %s (%d pairs)\n", d, kept > "/dev/stderr" }
+'

@@ -54,6 +54,8 @@ Every run sweeps two units, files and producer/consumer pairs. The edge track ru
 
 ## Phase 1 - Sweep (cheap signal collection)
 
+Run the two sweeps as two separate Bash calls, never chained, in the same message as the profiler dispatch: the signals sweep in the foreground, the edge sweep with `run_in_background`.
+
 ```bash
 bash "${CLAUDE_SKILL_DIR}/scripts/collect_signals.sh" <window-days> <repo-root> --with-dependents --scope <area-dir> \
   > .temp/viber/code-auditor/<run-id>/signals/signals.jsonl
@@ -62,19 +64,19 @@ bash "${CLAUDE_SKILL_DIR}/scripts/collect_signals.sh" <window-days> <repo-root> 
 One JSON line per source file with `churn`, `fix_commits`, `recency_days`, `loc`, `dependents`, and `dependents_stem` - the lockstep-unique literal `dependents` was counted by, `null` whenever `dependents` is -1. These feed the scouts as priors, they are not the score. `--with-dependents` costs O(n) extra `git grep` calls on top of the sweep; drop it deliberately on a very large target if that cost is not worth paying.
 
 ```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/collect_edges.sh" <repo-root> --max-fanout 8 --scope <area-dir> \
+bash "${CLAUDE_SKILL_DIR}/scripts/collect_edges.sh" <repo-root> --max-fanout 8 --max-seconds 300 --scope <area-dir> \
   > .temp/viber/code-auditor/<run-id>/signals/edges.jsonl
 ```
 
-One JSON line per candidate artifact pair - two swept files sharing a path-like literal, which is evidence they share a contract. An empty `edges.jsonl` is a valid result: the edge track then contributes nothing and the run proceeds on the file track alone.
+One JSON line per candidate artifact pair - two swept files sharing a path-like literal, which is evidence they share a contract. An empty `edges.jsonl` is a valid result: the edge track then contributes nothing and the run proceeds on the file track alone. Exit 3 means the 5-minute deadline passed: the edge track is skipped, `edges.jsonl` stays empty, and `findings.md`'s `## Coverage notes` gets `edge track skipped: collect_edges.sh passed its 5-minute deadline`. Set no timer and never `TaskStop` it: the script stops itself.
 
 `--scope <area-dir>` is a trailing option on both commands, written only when Phase 0 step 3 set a scope and left off entirely otherwise. With a scope the emitted records and pairs shrink to the area - a pair keeps a partner lying outside it, because a contract crossing the boundary is exactly what a scoped audit must still see - while every signal inside a record stays repo-wide, so a scoped record is byte-identical to the one an unscoped run emits for the same file.
 
 ## Phase 2 - Score (fan out the scouts, cheap tier)
 
-Do not start until `job.md` carries its `## Repo profile` section, or the Phase 0 profile gate has recorded the profile's absence after two misses. Then, for each candidate file, or each batch of files, spawn a `viber:scout` (Agent tool). Give it the matching line from `signals.jsonl` verbatim - not a separately-resolved path - plus `job.md`. Append every verdict to `.temp/viber/code-auditor/<run-id>/scores/scores.jsonl`.
+File scouts start once `job.md` carries its `## Repo profile` section, or the Phase 0 profile gate has recorded the profile's absence after two misses, and the signals sweep has finished. For each candidate file, or each batch of files, spawn a `viber:scout` (Agent tool). Give it the matching line from `signals.jsonl` verbatim - not a separately-resolved path - plus `job.md`. Append every verdict to `.temp/viber/code-auditor/<run-id>/scores/scores.jsonl`.
 
-For each candidate pair, or small batch of pairs, spawn a `viber:edge-scout` the same way, with the edge record line handed over verbatim. Append every verdict to `.temp/viber/code-auditor/<run-id>/scores/edge_scores.jsonl`.
+Edge-scouts start once the background edges command has finished (its completion notice) and the same profile condition holds. For each candidate pair, or small batch of pairs, spawn a `viber:edge-scout` the same way, with the edge record line handed over verbatim. Append every verdict to `.temp/viber/code-auditor/<run-id>/scores/edge_scores.jsonl`.
 
 - Batch to control cost: ~10-40 files per scout on a huge tree, 1 file per scout when you want maximum resolution on a hot module.
 - Launch at most 16 concurrent subagents; beyond that, run successive waves.
