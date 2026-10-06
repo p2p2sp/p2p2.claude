@@ -2,7 +2,8 @@
  * panel-run-state.unit.test.ts - proves the pure run-state functions of the task
  * panel (viber/hooks/panel/run-state.ts): which directory holds the runs, whether
  * cleanup is on, the tasks of a plan, the done/skipped/deferred entries of a
- * status.md and which candidate run is the active one.
+ * status.md, which candidate run is the active one and the panel rows, states
+ * and counts built from a run and the running set.
  *
  * Every case feeds text in and reads the returned value: no file, no process.
  * The viber.yml grammar mirrors viber/scripts/config.sh (group_value and the
@@ -16,11 +17,12 @@ import assert from "node:assert/strict";
 import {
   activeRun,
   isCleanupOn,
+  panelOf,
   planTasks,
   runStatus,
   runsDirectory,
 } from "../../viber/hooks/panel/run-state.ts";
-import type { RunCandidate } from "../../viber/hooks/panel/run-state.ts";
+import type { ActiveRun, RunCandidate, RunStatus } from "../../viber/hooks/panel/run-state.ts";
 
 function planOf(...headings: string[]): string {
   const blocks = headings.map((h) => `<!-- TASK -->\n### ${h}\n- TDD: required\n<!-- /TASK -->\n`);
@@ -29,6 +31,14 @@ function planOf(...headings: string[]): string {
 
 function candidate(key: string, plan: string, status: string | null): RunCandidate {
   return { key, plan, status };
+}
+
+function runOf(ids: string[], status: Partial<RunStatus> = {}): ActiveRun {
+  return {
+    key: "r",
+    tasks: ids.map((id) => ({ id, title: `Title of ${id}` })),
+    status: { done: [], skipped: [], deferred: [], ...status },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -329,4 +339,75 @@ test("activeRun never falls back to an older run when the newest one is settled 
     false,
   );
   assert.equal(found, null);
+});
+
+// ---------------------------------------------------------------------------
+// panelOf
+// ---------------------------------------------------------------------------
+
+test("panelOf returns one row per task in plan order carrying its id and title", () => {
+  const panel = panelOf(runOf(["T3", "T1", "T2"]), []);
+  assert.deepEqual(
+    panel.rows.map((row) => [row.id, row.title]),
+    [
+      ["T3", "Title of T3"],
+      ["T1", "Title of T1"],
+      ["T2", "Title of T2"],
+    ],
+  );
+});
+
+test("panelOf carries the key of the run", () => {
+  assert.equal(panelOf(runOf(["T1"]), []).key, "r");
+});
+
+test("panelOf marks a task on the done list as done", () => {
+  assert.equal(panelOf(runOf(["T1"], { done: ["T1"] }), []).rows[0].state, "done");
+});
+
+test("panelOf marks a task on the skipped list as skipped", () => {
+  assert.equal(panelOf(runOf(["T1"], { skipped: ["T1"] }), []).rows[0].state, "skipped");
+});
+
+test("panelOf keeps a done task done even when it is in the running set", () => {
+  assert.equal(panelOf(runOf(["T1"], { done: ["T1"] }), ["T1"]).rows[0].state, "done");
+});
+
+test("panelOf keeps a skipped task skipped even when it is in the running set", () => {
+  assert.equal(panelOf(runOf(["T1"], { skipped: ["T1"] }), ["T1"]).rows[0].state, "skipped");
+});
+
+test("panelOf marks a task in the running set and on neither list as running", () => {
+  assert.equal(panelOf(runOf(["T1", "T2"]), ["T2"]).rows[1].state, "running");
+});
+
+test("panelOf marks a task in no list and not running as pending", () => {
+  assert.equal(panelOf(runOf(["T1", "T2"]), ["T2"]).rows[0].state, "pending");
+});
+
+test("panelOf ignores a running id that is no task of the plan", () => {
+  assert.deepEqual(
+    panelOf(runOf(["T1"]), ["T9"]).rows.map((row) => row.state),
+    ["pending"],
+  );
+});
+
+test("panelOf gives each row the deferred paths of its own task only", () => {
+  const deferred = [
+    { id: "T1", path: "a.ts" },
+    { id: "T2", path: "b.ts" },
+    { id: "T1", path: "c.ts" },
+  ];
+  assert.deepEqual(
+    panelOf(runOf(["T1", "T2", "T3"], { deferred }), []).rows.map((row) => row.deferred),
+    [["a.ts", "c.ts"], ["b.ts"], []],
+  );
+});
+
+test("panelOf counts the tasks on the done list as done", () => {
+  assert.equal(panelOf(runOf(["T1", "T2", "T3"], { done: ["T1", "T3"], skipped: ["T2"] }), []).done, 2);
+});
+
+test("panelOf counts every task as total", () => {
+  assert.equal(panelOf(runOf(["T1", "T2", "T3"], { done: ["T1"] }), ["T2"]).total, 3);
 });

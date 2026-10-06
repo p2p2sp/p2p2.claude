@@ -142,3 +142,21 @@ export function activeRun(candidates: RunCandidate[], cleanup: boolean): ActiveR
   const settled = new Set([...newest.status.done, ...newest.status.skipped])
   return newest.tasks.every((task) => settled.has(task.id)) ? null : newest
 }
+
+export function panelOf(run: ActiveRun, running: string[]): Panel {
+  const done = new Set(run.status.done)
+  const skipped = new Set(run.status.skipped)
+  const active = new Set(running)
+  const rows = run.tasks.map((task): PanelRow => {
+    const state: TaskState = done.has(task.id)
+      ? 'done'
+      : skipped.has(task.id)
+        ? 'skipped'
+        : active.has(task.id)
+          ? 'running'
+          : 'pending'
+    const deferred = run.status.deferred.filter((entry) => entry.id === task.id).map((entry) => entry.path)
+    return { id: task.id, title: task.title, state, deferred }
+  })
+  return { key: run.key, rows, done: rows.filter((row) => row.state === 'done').length, total: rows.length }
+}
