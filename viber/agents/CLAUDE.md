@@ -87,7 +87,9 @@ Read `CLAUDE.code-auditor.md` before editing `profiler`, `scout`, `edge-scout`, 
   `DENIED` before the archive call.
 - The harness rejects a subagent's `Write` of a `.md` file whose basename matches
   `^(REPORT|SUMMARY|FINDINGS|ANALYSIS).*\.md$`, case-insensitive, as a tool error no permission
-  lifts: no agent's output file may take such a name (hence `outcome.md`, `review-*.md`).
+  lifts: no agent's output file may take such a name (hence `outcome.md`, `review-*.md`). A host
+  file so named (`reports.pl.md`) is written by `hooks/register.tsx` in the agent's place
+  (`hooks/CLAUDE.md`, Report-name write), only where Claude Code loads hooks modules.
 - Auditor findings land at `<out><slug>-audit.md`, `/` in the scope becoming `--` (`root` for the
   repository root, `new--<scope>` for a `rules-auditor` proposal, which writes no file when
   nothing passes); `rules-writer` globs `*-audit.md`, `memory-node-writer` gets the path.

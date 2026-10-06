@@ -14,7 +14,7 @@ agents/                  23 agents
 scripts/                 17 plugin-wide scripts
 references/              read at runtime: by agents through `refs:`, by skills by direct path
 hooks/                   SessionStart manifest + UserPromptSubmit plan hints + PreToolUse plan gate, kill guard;
-                         register.tsx, the task panel module
+                         register.tsx, the task panel and report-name write module
 ```
 
 ## The chain

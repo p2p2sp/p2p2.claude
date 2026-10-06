@@ -1,4 +1,4 @@
-# viber hooks - session start, plan gate, plan hints, kill guard and task panel
+# viber hooks - session start, plan gate, plan hints, kill guard, task panel and report-name write
 
 `content/manifest.md` names two skills only to scope rules (`viber:fixer`'s reproduction test,
 `viber:intent`'s fast path, where a design approved in chat counts as an approved plan);
@@ -81,8 +81,8 @@ always exits 0. Its deny reason is the model's only channel: stop the PIDs you s
 ## Task panel
 
 `register.tsx`, declared in `hooks.json` under `modules`, draws a `viber tasks <done>/<total>`
-button above the prompt and a closable pane of the active run's tasks. It reads files, never
-writes one, and its two `tool.call` hooks pass every call through unchanged. Claude Code without
+button above the prompt and a closable pane of the active run's tasks. The panel reads files,
+never writes one, and its two `tool.call` hooks pass every call through unchanged. Claude Code without
 hooks-module support ignores `modules`, so the four command hooks work either way; `plugin.json`
 carries no `types` or `hooks` field and must not.
 
@@ -106,7 +106,26 @@ carries no `types` or `hooks` field and must not.
   `viber:task-reviewer` dispatch carrying a `task: .../tasks/T<n>.md` line (`dispatchedTaskId`)
   and every 15 s; a read a newer one overtook is dropped. Renaming a script or either agent
   there disarms the refresh silently.
-- Both `tool.call` hooks end `.catch((_$, e, next) => next(e))`: without it a throw could block a
+- Every `tool.call` hook ends `.catch((_$, e, next) => next(e))`: without it a throw could block a
   call and `validate` warns "gating hook without .catch". The `AbovePrompt` hook yields only when
   there is no run.
-- `hooks.json`'s `description` names the module: keep it in step with this section.
+- `hooks.json`'s `description` names the module: keep it in step with this section and the next.
+
+## Report-name write
+
+The harness refuses a subagent's `Write` (never `Edit`) of a `.md` file whose basename starts with
+`report`, `summary`, `findings` or `analysis`, any case, as a core validation error
+(`isError`, text `Subagents should return findings as text...`) that no permission lifts. A host
+whose domain uses such a name (`reports.pl.md`) would end a coder on `VERDICT: DENIED`, so
+`register.tsx`'s `Write` hook runs core first and answers only that refusal: in a subagent loop
+(`e.agentId`), whose `$.agent.list()` type starts with `viber:`, for an absolute path under
+`$.session.root()` with no `.` or `..` segment, it writes the file through `$.fs.write` and returns
+the `Write` result (`create`/`update`, empty `structuredPatch`). Anything else returns core's answer.
+
+- The predicates live in `write/report-name.ts` (pure, no imports), tested by
+  `tests/viber/write-report-name.unit.test.ts`. The name regex and the guard sentence mirror the
+  harness: a harness change to either silently disarms the write, which then fails as before.
+- The refusal comes before core's permission check, so this write raises no prompt; the
+  `viber:` type and the project-root bound are its only limits.
+- Our own agents still never name an output file that way (`viber/agents/CLAUDE.md`, Traps): the
+  hook covers host files, not a naming shortcut.
