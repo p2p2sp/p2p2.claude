@@ -95,8 +95,8 @@ carries no `types` or `hooks` field and must not.
   `isCleanupOn` re-implement `scripts/config.sh`'s `viber.yml` grammar (`viber.local.yml` ignored):
   change one side, change both.
 - `planTasks` counts the first `###` heading of each `<!-- TASK -->` block under `## Tasks`, as
-  `plan-path.sh` counts progress. `status.md`'s `done:`, `skipped:`, `deferred:` lines are read, so
-  a format change there moves `runStatus`.
+  `plan-path.sh` counts progress. Only `status.md`'s `done:` and `skipped:` lines are read, so a
+  format change there moves `runStatus`; the pane shows task rows only, the state right-aligned.
 - The state is module-level (`run`, `seq`, `running`, `stopClock`): `claude plugin validate`
   refuses `$` used in a function not declared at the top of the file, and `$.state` atoms need a
   `types` field. A reload empties `running` (task ids dispatched in this session, never written

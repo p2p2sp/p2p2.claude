@@ -129,11 +129,13 @@ export const register: Register = (on) => {
           {PANE_TITLE} {panel.done}/{panel.total}
         </Text>
         {panel.rows.map((row) => (
-          <Box key={row.id} flexDirection="column">
-            <Text>{`${row.id} - ${row.title}  ${row.state}`}</Text>
-            {row.deferred.map((path) => (
-              <Text dimColor>{`deferred: ${path}`}</Text>
-            ))}
+          <Box key={row.id} flexDirection="row" justifyContent="space-between">
+            <Box flexGrow={1} flexShrink={1}>
+              <Text>{`${row.id} - ${row.title}`}</Text>
+            </Box>
+            <Box flexShrink={0} marginLeft={2}>
+              <Text>{row.state}</Text>
+            </Box>
           </Box>
         ))}
       </Box>

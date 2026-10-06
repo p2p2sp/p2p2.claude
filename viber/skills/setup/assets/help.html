@@ -1612,15 +1612,13 @@ do naprawy idą tylko błędy spowodowane przez build.</p>
 <h3 class="sub" id="hw-panel"><span lang="en">The task panel</span><span lang="pl">Panel zadań</span><a class="self" href="#hw-panel">#</a></h3>
 <p lang="en">While a run is active, a <code>viber tasks</code> button sits in the band above the prompt, showing
 <code>viber tasks 3/7</code>: tasks done out of all tasks of the plan. Press it to open the <code>viber tasks</code>
-pane, which lists every task as <code>T3 - &lt;task title&gt;  &lt;state&gt;</code> with the state
-<code>done</code>, <code>skipped</code>, <code>running</code> or <code>pending</code>, and one
-<code>deferred: &lt;path&gt;</code> line for each path a task left for a later one. Escape closes the pane. With no
+pane, which lists every task as <code>T3 - &lt;task title&gt;</code> with its state at the right edge:
+<code>done</code>, <code>skipped</code>, <code>running</code> or <code>pending</code>. Escape closes the pane. With no
 active run the button is hidden and the pane says <code>No active viber run.</code></p>
 <p lang="pl">Gdy przebieg jest aktywny, w pasku nad promptem pojawia się przycisk <code>viber tasks</code>, na przykład
 <code>viber tasks 3/7</code>: liczba ukończonych zadań z wszystkich zadań planu. Naciśnij go, aby otworzyć panel
-<code>viber tasks</code>, który wypisuje każde zadanie jako <code>T3 - &lt;tytuł zadania&gt;  &lt;stan&gt;</code>
-ze stanem <code>done</code>, <code>skipped</code>, <code>running</code> albo <code>pending</code> i jedną linią
-<code>deferred: &lt;ścieżka&gt;</code> dla każdej ścieżki, którą zadanie zostawiło następnemu. Escape zamyka panel.
+<code>viber tasks</code>, który wypisuje każde zadanie jako <code>T3 - &lt;tytuł zadania&gt;</code> ze stanem
+przy prawej krawędzi: <code>done</code>, <code>skipped</code>, <code>running</code> albo <code>pending</code>. Escape zamyka panel.
 Bez aktywnego przebiegu przycisk jest ukryty, a panel pokazuje <code>No active viber run.</code></p>
 <p lang="en">The active run is the newest run directory. The panel only reads <code>plan.md</code> and
 <code>status.md</code> from disk, at session start, after a run script or a task dispatch and every 15 seconds. It

@@ -1,10 +1,9 @@
 export type PlanTask = { id: string; title: string }
-export type Deferral = { id: string; path: string }
-export type RunStatus = { done: string[]; skipped: string[]; deferred: Deferral[] }
+export type RunStatus = { done: string[]; skipped: string[] }
 export type RunCandidate = { key: string; plan: string; status: string | null }
 export type ActiveRun = { key: string; tasks: PlanTask[]; status: RunStatus }
 export type TaskState = 'done' | 'skipped' | 'running' | 'pending'
-export type PanelRow = { id: string; title: string; state: TaskState; deferred: string[] }
+export type PanelRow = { id: string; title: string; state: TaskState }
 export type Panel = { key: string; rows: PanelRow[]; done: number; total: number }
 
 const DEFAULT_RUNS = '_specs'
@@ -114,17 +113,11 @@ function entries(line: string): string[] {
 }
 
 export function runStatus(status: string | null): RunStatus {
-  const result: RunStatus = { done: [], skipped: [], deferred: [] }
+  const result: RunStatus = { done: [], skipped: [] }
   if (status === null) return result
   for (const line of linesOf(status)) {
     if (line.startsWith('done:')) result.done.push(...entries(line))
     else if (line.startsWith('skipped:')) result.skipped.push(...entries(line))
-    else if (line.startsWith('deferred:')) {
-      for (const entry of entries(line)) {
-        const colon = entry.indexOf(':')
-        if (colon > 0) result.deferred.push({ id: entry.slice(0, colon), path: entry.slice(colon + 1) })
-      }
-    }
   }
   return result
 }
@@ -155,8 +148,7 @@ export function panelOf(run: ActiveRun, running: string[]): Panel {
         : active.has(task.id)
           ? 'running'
           : 'pending'
-    const deferred = run.status.deferred.filter((entry) => entry.id === task.id).map((entry) => entry.path)
-    return { id: task.id, title: task.title, state, deferred }
+    return { id: task.id, title: task.title, state }
   })
   return { key: run.key, rows, done: rows.filter((row) => row.state === 'done').length, total: rows.length }
 }

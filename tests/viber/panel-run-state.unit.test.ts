@@ -1,7 +1,7 @@
 /*
  * panel-run-state.unit.test.ts - proves the pure run-state functions of the task
  * panel (viber/hooks/panel/run-state.ts): which directory holds the runs, whether
- * cleanup is on, the tasks of a plan, the done/skipped/deferred entries of a
+ * cleanup is on, the tasks of a plan, the done/skipped entries of a
  * status.md, which candidate run is the active one and the panel rows, states
  * and counts built from a run and the running set.
  *
@@ -37,7 +37,7 @@ function runOf(ids: string[], status: Partial<RunStatus> = {}): ActiveRun {
   return {
     key: "r",
     tasks: ids.map((id) => ({ id, title: `Title of ${id}` })),
-    status: { done: [], skipped: [], deferred: [], ...status },
+    status: { done: [], skipped: [], ...status },
   };
 }
 
@@ -215,11 +215,11 @@ test("planTasks takes the first heading of a block as its task", () => {
 // ---------------------------------------------------------------------------
 
 test("runStatus returns empty lists for null text", () => {
-  assert.deepEqual(runStatus(null), { done: [], skipped: [], deferred: [] });
+  assert.deepEqual(runStatus(null), { done: [], skipped: [] });
 });
 
 test("runStatus returns empty lists for empty text", () => {
-  assert.deepEqual(runStatus(""), { done: [], skipped: [], deferred: [] });
+  assert.deepEqual(runStatus(""), { done: [], skipped: [] });
 });
 
 test("runStatus reads every space-separated id of the done line", () => {
@@ -238,35 +238,24 @@ test("runStatus treats none on the skipped line as no entry", () => {
   assert.deepEqual(runStatus("skipped: none\n").skipped, []);
 });
 
-test("runStatus treats none on the deferred line as no entry", () => {
-  assert.deepEqual(runStatus("deferred: none\n").deferred, []);
-});
-
-test("runStatus splits a deferred entry at its first colon", () => {
-  assert.deepEqual(runStatus("deferred: T7:src/a.ts T8:C:/x/b.ts\n").deferred, [
-    { id: "T7", path: "src/a.ts" },
-    { id: "T8", path: "C:/x/b.ts" },
-  ]);
-});
-
-test("runStatus ignores every key but done, skipped and deferred", () => {
+test("runStatus ignores every key but done and skipped", () => {
   const text = [
     "# status",
     "progress: 2/5",
     "unreviewed: T1",
     "closed: memory",
+    "deferred: T2:a.ts",
     "decision: T1: done: T9",
     "",
     "done: T1",
   ].join("\n");
-  assert.deepEqual(runStatus(text), { done: ["T1"], skipped: [], deferred: [] });
+  assert.deepEqual(runStatus(text), { done: ["T1"], skipped: [] });
 });
 
 test("runStatus reads a CRLF status", () => {
   assert.deepEqual(runStatus("done: T1 T2\r\nskipped: T3\r\n"), {
     done: ["T1", "T2"],
     skipped: ["T3"],
-    deferred: [],
   });
 });
 
@@ -304,14 +293,14 @@ test("activeRun skips a newer candidate that has no task", () => {
 });
 
 test("activeRun returns the tasks and the status of the picked run", () => {
-  const found = activeRun([candidate("r", planOf("T1 - One", "T2 - Two"), "done: T1\ndeferred: T1:a.ts\n")], false);
+  const found = activeRun([candidate("r", planOf("T1 - One", "T2 - Two"), "done: T1\n")], false);
   assert.deepEqual(found, {
     key: "r",
     tasks: [
       { id: "T1", title: "One" },
       { id: "T2", title: "Two" },
     ],
-    status: { done: ["T1"], skipped: [], deferred: [{ id: "T1", path: "a.ts" }] },
+    status: { done: ["T1"], skipped: [] },
   });
 });
 
@@ -389,18 +378,6 @@ test("panelOf ignores a running id that is no task of the plan", () => {
   assert.deepEqual(
     panelOf(runOf(["T1"]), ["T9"]).rows.map((row) => row.state),
     ["pending"],
-  );
-});
-
-test("panelOf gives each row the deferred paths of its own task only", () => {
-  const deferred = [
-    { id: "T1", path: "a.ts" },
-    { id: "T2", path: "b.ts" },
-    { id: "T1", path: "c.ts" },
-  ];
-  assert.deepEqual(
-    panelOf(runOf(["T1", "T2", "T3"], { deferred }), []).rows.map((row) => row.deferred),
-    [["a.ts", "c.ts"], ["b.ts"], []],
   );
 });
 
