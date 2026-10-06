@@ -1,6 +1,6 @@
 {
   "name": "superbiz",
-  "version": "0.79.3",
+  "version": "0.79.4",
   "description": "Checks a side-project idea with sourced research and a Go / Pivot / No-Go report.",
   "author": {
     "name": "Dariusz Lenartowicz",
