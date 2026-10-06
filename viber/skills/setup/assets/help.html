@@ -1450,13 +1450,13 @@ mogą rozjechać się z kodem.</p>
     <span class="label"><span lang="en">viber does</span><span lang="pl">viber robi</span></span>
     <p lang="en"><a href="#skill-memory"><code>memory</code></a> lists every <code>CLAUDE.md</code> with its size
     and lets you pick which ones to check. <a href="#agent-memory-auditor"><code>memory-auditor</code></a>
-    checks each against the code of its area, and once you approve the findings,
+    checks each against the code of its area and against a fixed template for its form, and once you approve the findings,
     <a href="#agent-memory-node-writer"><code>memory-node-writer</code></a> corrects the files within their
     budget. It writes the root <code>CLAUDE.md</code> only when none exists; an existing root is checked
     too, but what it finds there comes back as suggestions.</p>
     <p lang="pl"><a href="#skill-memory"><code>memory</code></a> wypisuje każdy <code>CLAUDE.md</code> z jego
     rozmiarem i pozwala wybrać, które sprawdzić. <a href="#agent-memory-auditor"><code>memory-auditor</code></a>
-    porównuje każdy z kodem jego obszaru, a gdy zatwierdzisz wyniki,
+    porównuje każdy z kodem jego obszaru i ze stałym szablonem formy, a gdy zatwierdzisz wyniki,
     <a href="#agent-memory-node-writer"><code>memory-node-writer</code></a> poprawia pliki w granicach
     limitu. Główny <code>CLAUDE.md</code> pisze tylko wtedy, gdy go nie ma; istniejący główny plik też jest
     sprawdzany, ale to, co w nim znajdzie, wraca jako sugestie.</p>
@@ -1655,10 +1655,10 @@ uruchamia te części zamknięcia, które włączają twoje przełączniki:</p>
 <ul class="musts">
   <li><span lang="en"><a href="#key-build-memory"><code>build.memory</code></a>: <a href="#agent-memory-writer"><code>memory-writer</code></a>
   folds what the build taught into your <code>CLAUDE.md</code> <a href="#term-node">nodes</a> below the root, within
-  their size budget, and only suggests changes to the root, which stays yours;</span><span lang="pl"><a href="#key-build-memory"><code>build.memory</code></a>:
+  their size budget and in the fixed template, and only suggests changes to the root, which stays yours;</span><span lang="pl"><a href="#key-build-memory"><code>build.memory</code></a>:
   <a href="#agent-memory-writer"><code>memory-writer</code></a> przenosi to, czego nauczył build, do twoich
-  <a href="#term-node">węzłów</a> <code>CLAUDE.md</code> poniżej głównego pliku, w granicach ich limitu rozmiaru,
-  a zmiany w głównym pliku tylko sugeruje, bo zostaje twój;</span></li>
+  <a href="#term-node">węzłów</a> <code>CLAUDE.md</code> poniżej głównego pliku, w granicach ich limitu rozmiaru
+  i w stałym szablonie, a zmiany w głównym pliku tylko sugeruje, bo zostaje twój;</span></li>
   <li><span lang="en"><a href="#key-build-rules"><code>build.rules</code></a>: <a href="#agent-rules-writer"><code>rules-writer</code></a>
   folds the conventions the build confirmed into <code>.claude/rules/</code>, in the same commit as the
   memory update;</span><span lang="pl"><a href="#key-build-rules"><code>build.rules</code></a>:
@@ -2651,13 +2651,15 @@ z nich mówi, jak nim sterować.</p>
 <article class="card" id="skill-memory">
   <h4><code>/viber:memory</code></h4>
   <p lang="en">Maps this project's <code>CLAUDE.md</code> files, has <a href="#agent-memory-auditor"><code>memory-auditor</code></a>
-  check each one against the code of its area, and hands what must change to
+  check each one against the code of its area and against a fixed template for its form, counting each departure as
+  <code>shape</code>, and hands what must change to
   <a href="#agent-memory-node-writer"><code>memory-node-writer</code></a>. It writes the root <code>CLAUDE.md</code>
   once, where none exists, and after that only suggests changes to it. The root stays within 4000 bytes, any other file
   within 12000, and a file with the ones above it within 32000.</p>
   <p lang="pl">Mapuje pliki <code>CLAUDE.md</code> tego projektu, zleca
   <a href="#agent-memory-auditor"><code>memory-auditor</code></a> sprawdzenie każdego z nich względem kodu jego
-  obszaru i przekazuje konieczne zmiany do <a href="#agent-memory-node-writer"><code>memory-node-writer</code></a>.
+  obszaru i ze stałym szablonem formy, zliczając każde odstępstwo jako <code>shape</code>, i przekazuje konieczne zmiany do
+  <a href="#agent-memory-node-writer"><code>memory-node-writer</code></a>.
   Główny <code>CLAUDE.md</code> pisze jednorazowo, gdy go nie ma, a potem tylko sugeruje w nim zmiany. Główny
   plik mieści się w 4000 bajtów, każdy inny w 12000, a plik razem z plikami nad nim w 32000.</p>
   <dl>
@@ -2987,8 +2989,8 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
 <ul class="agents">
   <li id="agent-memory-writer"><code>memory-writer</code> <span lang="en">folds what the build taught into the
   project's <code>CLAUDE.md</code> files below the root, when <a href="#key-build-memory"><code>build.memory</code></a> is
-  on. It leaves the root to you and only suggests changes to it.</span><span lang="pl">przenosi to, czego nauczył build, do plików <code>CLAUDE.md</code> projektu poniżej głównego pliku, gdy
-  <a href="#key-build-memory"><code>build.memory</code></a> jest włączony. Główny plik zostawia tobie i tylko
+  on, placing each new fact under the template headings. It leaves the root to you and only suggests changes to it.</span><span lang="pl">przenosi to, czego nauczył build, do plików <code>CLAUDE.md</code> projektu poniżej głównego pliku, gdy
+  <a href="#key-build-memory"><code>build.memory</code></a> jest włączony, umieszczając każdy nowy fakt pod nagłówkami szablonu. Główny plik zostawia tobie i tylko
   sugeruje w nim zmiany.</span></li>
   <li id="agent-rules-writer"><code>rules-writer</code> <span lang="en">folds the conventions a build confirmed,
   or a <a href="#skill-rules"><code>/viber:rules</code></a> review found, into <code>.claude/rules/</code>.</span><span lang="pl">przenosi
@@ -3016,11 +3018,12 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
 <h4><span lang="en">On your own schedule</span><span lang="pl">We własnym rytmie</span></h4>
 <ul class="agents">
   <li id="agent-memory-auditor"><code>memory-auditor</code> <span lang="en">checks one <code>CLAUDE.md</code>
-  file against the code of the area it describes.</span><span lang="pl">sprawdza jeden plik <code>CLAUDE.md</code>
-  względem kodu obszaru, który opisuje.</span></li>
+  file against the code of the area it describes and against a fixed template for its form, counting each departure as
+  <code>shape</code>.</span><span lang="pl">sprawdza jeden plik <code>CLAUDE.md</code>
+  względem kodu obszaru, który opisuje, i ze stałym szablonem formy, zliczając każde odstępstwo jako <code>shape</code>.</span></li>
   <li id="agent-memory-node-writer"><code>memory-node-writer</code> <span lang="en">writes one
-  <code>CLAUDE.md</code> file within its budget: corrects it from the audit, or writes a new one from its area's
-  code. An existing root it never rewrites: it lists suggestions instead.</span><span lang="pl">pisze jeden plik <code>CLAUDE.md</code> w granicach limitu: poprawia go na
+  <code>CLAUDE.md</code> file within its budget and in the fixed template: corrects it from the audit, or writes a new one from its area's
+  code. An existing root it never rewrites: it lists suggestions instead.</span><span lang="pl">pisze jeden plik <code>CLAUDE.md</code> w granicach limitu i w stałym szablonie: poprawia go na
   podstawie audytu albo tworzy nowy z kodu jego obszaru. Istniejącego głównego pliku nie przepisuje: zamiast tego
   wypisuje sugestie.</span></li>
   <li id="agent-rules-auditor"><code>rules-auditor</code> <span lang="en">checks one rule against the files its
@@ -3181,11 +3184,11 @@ wartość.</p>
   <div id="key-build-memory">
     <dt><code>build.memory</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
     <dd><span lang="en">The build closes by updating this project's <code>CLAUDE.md</code> files below the root
-    through <a href="#agent-memory-writer"><code>memory-writer</code></a>, so no plan task edits one. The build
+    through <a href="#agent-memory-writer"><code>memory-writer</code></a>, which keeps them in the fixed template, so no plan task edits one. The build
     leaves the root to you: it only suggests changes to it, and <code>/viber:memory</code> writes it once, within
     4000 bytes, where none exists.</span><span lang="pl">Build
     kończy się aktualizacją plików <code>CLAUDE.md</code> tego projektu poniżej głównego pliku przez
-    <a href="#agent-memory-writer"><code>memory-writer</code></a>, więc żadne zadanie planu ich nie
+    <a href="#agent-memory-writer"><code>memory-writer</code></a>, który trzyma je w stałym szablonie, więc żadne zadanie planu ich nie
     zmienia. Główny plik build zostawia tobie: tylko sugeruje w nim zmiany, a <code>/viber:memory</code> pisze go
     jednorazowo, w granicach 4000 bajtów, gdy go nie ma.</span></dd>
   </div>
