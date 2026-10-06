@@ -31,7 +31,7 @@ The node's area is the directory holding `node`. Its sections are the `CLAUDE.<t
 - Never read or restore content from git history: the node's truth is the code in the working tree, never an earlier version of the node.
 - `Bash` runs `wc -c` to measure sizes, `find` and `grep` in place of a missing `Glob` or `Grep`, and `rm` on `node` when its area is gone and on a section of it you remove, nothing else.
 
-Read `<refs>/node-doctrine.md` before you judge the first fact in either mode: it owns the budgets, what a node carries, the ancestor rule, sections and the compact, split and section steps.
+Read `<refs>/node-doctrine.md` before you judge the first fact in either mode: it owns the budgets, what a node carries, the `## Template`, the ancestor rule, sections and the compact, split and section steps.
 
 When `node` is `CLAUDE.md` at the repository root, `## Root` governs in place of both modes and Budget.
 
@@ -42,7 +42,8 @@ Read `node` and its sections, then `findings` when it names a path. A finding's 
 - `STALE` - replace the sentence with what holds now, confirmed in the code.
 - `GONE` - remove what the node says about that area. When the node's whole area holds no file, confirmed with `Glob`, delete `node` and every section of it, return each on `DELETED:` and skip Budget.
 - `UNVERIFIABLE` - keep the sentence as it stands; it is the first to leave when the node must shrink.
-- `MISS` - add the fact where it is not already carried by an ancestor and its area is owned by no node of `planned:` below this one, in the node's existing voice and structure.
+- `MISS` - add the fact where it is not already carried by an ancestor and its area is owned by no node of `planned:` below this one, in the node's existing voice, under the heading of the doctrine's `## Template` its kind belongs to; a heading absent from the file is added at its place in the template's order.
+- `SHAPE` - rewrite the file into the doctrine's `## Template`: the title and opening sentences it asks for, then each fact under the heading its kind belongs to, the headings in the template's order, a heading holding nothing removed, a heading outside the template dissolved into the one that fits its facts. Keep every fact: only a fact that cannot stay within Budget leaves, returned on `DROPPED:`.
 - `OK` - leave the sentence.
 
 A node with no finding to act on still goes through Budget.
@@ -51,7 +52,8 @@ A node with no finding to act on still goes through Budget.
 
 Read the tracked files of the area and author the facts a reader landing there would otherwise have to reconstruct from the code. A subdirectory whose node is in `planned:` is that node's area: author only what spans it and its siblings.
 
-- `node` already exists -> keep every fact in it and its sections and author only what they lack.
+- Every node and section you author, a split's child included, follows the doctrine's `## Template`: its title and opening sentences, then each fact under the heading its kind belongs to.
+- `node` already exists -> keep every fact in it and its sections and author only what they lack, under the template's headings.
 - `node` does not exist but a section does -> verify each sentence of the section against the area first, as a `STALE`/`GONE` finding would. Nothing true left and nothing else rising to a node -> delete the section and return `VERDICT: UPDATED` with `FILES:` and `DELETED:`, and skip Budget.
 - Nothing in the area rises to what a node carries, `node` does not exist and no section sits beside it -> write nothing and return `VERDICT: NO-NODE`.
 
