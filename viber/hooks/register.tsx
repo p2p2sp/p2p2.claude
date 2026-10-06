@@ -59,6 +59,7 @@ async function refresh($: EngineInterface): Promise<void> {
   try {
     const loaded = await loadRun($)
     if (mine !== seq) return
+    if (run !== null && loaded?.key !== run.key) running.clear()
     run = loaded
   } catch {
     return
