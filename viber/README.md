@@ -7,20 +7,26 @@ as its own commit, so the history reads like the plan.
 
 ## Why viber
 
-- **It learns your project.** By default every build ends by writing down what it learned:
-  confirmed conventions go to `.claude/rules/`, knowledge about each area to that area's
-  `CLAUDE.md`. The next run starts from there, so you explain less over time.
-- **It saves tokens.** Before building, viber gives each task the cheapest model that can do it:
-  Haiku for a rename or a config change, a stronger model for real logic. Only a failed task
-  moves one model up. Your usage limits last longer, and you set the floor and the ceiling.
-- **It works while you do something else.** After you approve the plan, the build runs, reviews
-  and commits task by task. Where it would usually stop and ask, a separate agent picks a way
-  forward and writes down why, so you can check each decision afterwards.
-- **It is simpler than it looks.** You never have to remember the diagram below: each step tells
-  you what comes next, and viber suggests the interview or the bug trace when you need one. In
-  practice it is `/viber:setup` once, then `/viber:intent`, and you answer questions.
-- **Nothing gets lost.** The plan and its progress are committed, so an interrupted build resumes
-  in a new session or on another machine.
+### It asks before it guesses
+One question at a time, each with concrete options and a recommendation. A weak answer gets called out. Add `--prove` and every recommendation is checked against your code before you see it.
+
+### Every step is checked
+A reviewer reads the plan against your codebase before you approve it. Each task is reviewed before its commit, the whole build gets a final review, and the run ends on your own test suite.
+
+### It runs without you
+Approve the plan and walk away. A failed task retries up to five times, one model tier up each time. Where a build would stop and ask, an arbiter agent picks a way forward and writes down why, so you can audit every call afterwards.
+
+### It saves tokens
+Each task gets the cheapest model that can do it: Haiku for a rename, a stronger model for real logic. Your usage limits last longer, and you set the floor and the ceiling.
+
+### It learns your project
+Every build closes by writing down what it learned: conventions to `.claude/rules/`, area knowledge to that area's `CLAUDE.md`. The next run starts from there, so you explain less each time.
+
+### Nothing gets lost
+The plan and its progress are committed. An interrupted build resumes in a new session or on another machine.
+
+### It is simpler than it looks
+`/viber:setup` once, then `/viber:intent`, and you answer questions. Each step names the next one, so you never need the diagram below.
 
 ## Install
 
