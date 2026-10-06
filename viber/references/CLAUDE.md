@@ -12,7 +12,8 @@ touches every reader below.
   harness.
 - `issue-save.md`: `intent`'s `issues-done.true.md`, `fixer`'s `issues-save.true.md` and
   `create-issue`, each after its own `issue-templates.sh` run.
-- `node-doctrine.md`: `memory-writer` and `memory-node-writer`.
+- `node-doctrine.md`: `memory-writer` and `memory-node-writer`, and `memory-auditor` through `refs:`
+  (its `## Template` part only).
 - `adr-admission.md`: `adr-screener` only, through `refs:`; it is the one home of the record
   admission test.
 

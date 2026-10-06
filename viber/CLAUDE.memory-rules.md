@@ -9,6 +9,11 @@
   summary or the memory report repeats, and `SUGGEST:` paths stay off `FILES:`.
 - `memory-writer` ends no node or section over its cap, nor a chain with room (cut facts:
   `DROPPED:`), checking only sentences naming a path or symbol the build changed.
+- The form of a node below the root and of its sections is `node-doctrine.md`'s `## Template`, defined
+  nowhere else. `memory-auditor` reads it through `refs:` and reports `SHAPE` for form only, never
+  for the root or a section beside it; `memory-node-writer` writes every node it creates in it and
+  rewrites a file into it on `SHAPE`; `memory-writer` places each new fact under its heading without
+  rearranging the rest.
 - `rules-writer` may still end a file over its cap (`OVER:`, only repeated): a cut would lose a
   gated convention; `memory-writer` and `memory-node-writer` drop instead (`DROPPED:`), and
   `memory-node-writer` reports an ancestor leaving no room on `CHAIN:`.
@@ -23,4 +28,8 @@ Duplicated on purpose - change together:
   rule (never `local`): the doctrine, `memory-map.sh` (twice), `memory-auditor`,
   `memory-node-writer`. Rule budget 4000 / 40000: `agents/rules-writer.md`,
   `skills/rules/scripts/rules-map.sh`, `skills/rules/SKILL.md`.
+- The `memory-auditor` dispatch lines (`target:`, `scope:`, `out:`, `refs:`) and the five-counter
+  `AUDIT:` line (`stale`, `gone`, `unverifiable`, `shape`, `miss`): `agents/memory-auditor.md` and
+  `skills/memory/SKILL.md`, whose step 6 keeps a target while any counter is not zero. `rules-auditor`'s
+  `AUDIT:` line keeps its own counters.
 - The frozen `_`-prefixed rule file: `rules-map.sh`, `rules-auditor`, `rules-writer`.
