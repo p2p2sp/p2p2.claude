@@ -1,4 +1,4 @@
-# viber hooks - session start, plan gate, plan hints and kill guard
+# viber hooks - session start, plan gate, plan hints, kill guard and task panel
 
 `content/manifest.md` names two skills only to scope rules (`viber:fixer`'s reproduction test,
 `viber:intent`'s fast path, where a design approved in chat counts as an approved plan);
@@ -77,3 +77,36 @@ always exits 0. Its deny reason is the model's only channel: stop the PIDs you s
   keep the `hooks.json` description in step with the header.
 - The "Stop what you started" section of the five agents (`viber/CLAUDE.md`) is the soft half; this
   is the hard edge.
+
+## Task panel
+
+`register.tsx`, declared in `hooks.json` under `modules`, draws a `viber tasks <done>/<total>`
+button above the prompt and a closable pane of the active run's tasks. It reads files, never
+writes one, and its two `tool.call` hooks pass every call through unchanged. Claude Code without
+hooks-module support ignores `modules`, so the four command hooks work either way; `plugin.json`
+carries no `types` or `hooks` field and must not.
+
+- The logic is split out so the unit tier can prove it: `panel/run-state.ts` and
+  `panel/run-events.ts` are pure functions with no imports, tested by
+  `tests/viber/panel-run-*.unit.test.ts`; `register.tsx` imports `claude-code` and is loaded by no
+  test, so check it with `claude plugin validate`.
+- The active run is the newest run directory (by name) whose `plan.md` has a task block, picked
+  before the cleanup rule: a settled newest run hides older unfinished ones. `runsDirectory` and
+  `isCleanupOn` re-implement `scripts/config.sh`'s `viber.yml` grammar (`viber.local.yml` ignored):
+  change one side, change both.
+- `planTasks` counts the first `###` heading of each `<!-- TASK -->` block under `## Tasks`, as
+  `plan-path.sh` counts progress. `status.md`'s `done:`, `skipped:`, `deferred:` lines are read, so
+  a format change there moves `runStatus`.
+- The state is module-level (`run`, `seq`, `running`, `stopClock`): `claude plugin validate`
+  refuses `$` used in a function not declared at the top of the file, and `$.state` atoms need a
+  `types` field. A reload empties `running` (task ids dispatched in this session, never written
+  down); it is never pruned, `panelOf` ranks done and skipped above running.
+- A refresh runs at `session.start`, after a Bash call naming `plan-path.sh`, `plan-index.sh`,
+  `commit-task.sh` or `archive-run.sh` (`isRunScriptCall`), after a `viber:task-coder` or
+  `viber:task-reviewer` dispatch carrying a `task: .../tasks/T<n>.md` line (`dispatchedTaskId`)
+  and every 15 s; a read a newer one overtook is dropped. Renaming a script or either agent
+  there disarms the refresh silently.
+- Both `tool.call` hooks end `.catch((_$, e, next) => next(e))`: without it a throw could block a
+  call and `validate` warns "gating hook without .catch". The `AbovePrompt` hook yields only when
+  there is no run.
+- `hooks.json`'s `description` names the module: keep it in step with this section.

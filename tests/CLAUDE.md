@@ -8,7 +8,9 @@ a file is shaped live in `.claude/rules/tests-running.md` and `tests-structure.m
 ## Layout
 
 - `tests/<plugin>/` (and `tests/github/` for `.github/scripts/`) - one file per tested script,
-  named after the script's basename. Three files test no script: `tests/superui/import-safety.unit.test.ts`
+  named after the script's basename. Five files test no script: `tests/viber/panel-run-state.unit.test.ts` and
+  `panel-run-events.unit.test.ts` (the pure functions of `viber/hooks/panel/`),
+  `tests/superui/import-safety.unit.test.ts`
   (`check_contrast.ts` imports without firing its guarded `main()`), `tests/viber/profiler.test.ts`
   (runs the fenced git command lifted verbatim from `viber/agents/profiler.md`) and
   `tests/viber/help.unit.test.ts` (checks `skills/setup/assets/help.html` against `plugin.json`, the

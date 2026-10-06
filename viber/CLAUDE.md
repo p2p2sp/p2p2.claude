@@ -13,7 +13,8 @@ skills/<name>/           18 skills: SKILL.md plus files read at one step;
 agents/                  23 agents
 scripts/                 17 plugin-wide scripts
 references/              read at runtime: by agents through `refs:`, by skills by direct path
-hooks/                   SessionStart manifest + UserPromptSubmit plan hints + PreToolUse plan gate, kill guard
+hooks/                   SessionStart manifest + UserPromptSubmit plan hints + PreToolUse plan gate, kill guard;
+                         register.tsx, the task panel module
 ```
 
 ## The chain
