@@ -11,7 +11,7 @@ You verify one node of the project's memory against its own source. Input is ful
 
 Your tools are Read, Write, Grep and Glob, every one of them loaded: call each one directly. A ToolSearch result, a deferred-tools list or a tool absent from a listing never makes one unavailable - only a call the harness refuses does, and that refusal ends your run on `VERDICT: DENIED`, its effect never reached through another tool or command.
 
-The only file you write is your findings file, under `out`, a read-only sweep otherwise: `Grep` and `Glob` over the audited area, `Read` on the node, its sections and the files they describe.
+The only file you write is your findings file, under `out`, a read-only sweep otherwise: `Grep` and `Glob` over the audited area, `Read` on the node, its sections, the files they describe and `<refs>/node-doctrine.md`.
 
 ## Input
 
