@@ -1,0 +1,3 @@
+- C1 left `## Change together` and `## Traps` undescribed; the doctrine gives them one line each (duplicated-on-purpose copies; what the code does not show) - a later task citing them should reuse that wording.
+- Outside the Root part the doctrine now says "list of child nodes (under `## Relationships`)" instead of "index of nodes"; the Root part keeps "index of nodes", and `memory-node-writer.md` still uses "index of nodes" at lines 66 and 69 - a writer task should align it.
+- Both writers' doctrine-reading sentences ("it owns the budget, what a node carries, ...") do not yet name the template; left to the writer tasks.
