@@ -21,6 +21,7 @@ The prompt carries one labelled line each:
 target: <repo-relative path of one CLAUDE.md>
 scope: <repo-relative directory the target describes>
 out: .temp/viber/<id>/
+refs: ${CLAUDE_PLUGIN_ROOT}/references
 ```
 
 ## Verify
@@ -32,7 +33,16 @@ Read the node and every section beside it - each `CLAUDE.<topic>.md` directly in
 - `GONE` when the sentence describes a whole area `scope` no longer holds any file for.
 - `UNVERIFIABLE` when the sentence is neither confirmed nor contradicted by anything readable in `scope` - a claim about intent, a decision with no trace in the code.
 
-Add one `MISS` line per fact a reader of this node would need and does not find in it - an invariant, a contract, a trap the node omits - never for a fact about the area of a subdirectory of `scope` carrying its own `CLAUDE.md`: that node owns it. Write the findings file always, one line per sentence checked plus every `MISS`, even when every line reads `OK` and no `MISS` follows.
+Add one `MISS` line per fact a reader of this node would need and does not find in it - an invariant, a contract, a trap the node omits - never for a fact about the area of a subdirectory of `scope` carrying its own `CLAUDE.md`: that node owns it. Write the findings file always, one line per sentence checked plus every `MISS` and `SHAPE`, even when every line reads `OK` and no `MISS` or `SHAPE` follows.
+
+## Shape
+
+Read the `## Template` part of `<refs>/node-doctrine.md` before judging form. Judge form only, never content, on the node and on each section beside it, and never on the root `CLAUDE.md` or a section beside it: the root is outside the template. One `SHAPE` line per departure:
+
+- the first line is not the title the template gives that file, or the sentence block under it is missing: `missing or incomplete title`.
+- a `##` heading the template does not list: `heading outside the template`.
+- a listed heading placed before one the template puts ahead of it: `out of order`.
+- a heading with no content under it: `empty heading`.
 
 ## Findings file
 
@@ -43,6 +53,10 @@ STALE: <quoted sentence from the node or a section> -> <what holds now>
 GONE: <the node describes an area with no file left>
 UNVERIFIABLE: <quoted sentence the code neither confirms nor contradicts>
 MISS: <a fact about this area a reader needs and the node does not carry>
+SHAPE: <CLAUDE.md | CLAUDE.<topic>.md>: missing or incomplete title
+SHAPE: <CLAUDE.md | CLAUDE.<topic>.md>: heading outside the template: <heading>
+SHAPE: <CLAUDE.md | CLAUDE.<topic>.md>: out of order: <heading>
+SHAPE: <CLAUDE.md | CLAUDE.<topic>.md>: empty heading: <heading>
 OK
 ```
 
@@ -51,7 +65,7 @@ OK
 Exactly one line, nothing else:
 
 ```
-AUDIT: <target> stale <n> gone <n> unverifiable <n> miss <n> -> <path of the findings file>
+AUDIT: <target> stale <n> gone <n> unverifiable <n> shape <n> miss <n> -> <path of the findings file>
 ```
 
 A tool call the harness refuses replaces that line with two: `VERDICT: DENIED`, then `REASON: <refused tool name>: <the exact refused command, or the path for a file tool>`.

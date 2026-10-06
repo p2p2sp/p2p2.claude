@@ -75,12 +75,13 @@ The planned set is every `node:` line of the map in use plus the node of every k
 
 ## 5. Audit
 
-One `Agent` call per fix target, every one of them in a single message so they run in parallel, `subagent_type: viber:memory-auditor`, no `model:` line - the agent's own frontmatter is its strength. Three labelled lines each and nothing else:
+One `Agent` call per fix target, every one of them in a single message so they run in parallel, `subagent_type: viber:memory-auditor`, no `model:` line - the agent's own frontmatter is its strength. Four labelled lines each and nothing else:
 
 ```
 target: <the node's own path>
 scope: <the directory holding it, the repository root for the root node>
 out: .temp/viber/<id>/
+refs: ${CLAUDE_PLUGIN_ROOT}/references
 ```
 
 `<id>` is the `id:` value of the map above. Create targets are never audited: their writer reads the area itself.
@@ -88,7 +89,7 @@ out: .temp/viber/<id>/
 Each call returns one line:
 
 ```
-AUDIT: <node> stale <n> gone <n> unverifiable <n> miss <n> -> <findings file>
+AUDIT: <node> stale <n> gone <n> unverifiable <n> shape <n> miss <n> -> <findings file>
 ```
 
 Report the `AUDIT:` line for each target verbatim. Read none of those files - the writer does.
@@ -99,7 +100,7 @@ A call returning `VERDICT: DENIED` instead -> one `AskUserQuestion` naming the t
 
 ## 6. Confirm
 
-A fix target with four zero counters and an `ok` flag leaves the target list. One still flagged `OVER-NODE` or `OVER-CHAIN`, or with a `section:` line reading `OVER-NODE` or an `unlinked:` line in its directory, stays, zero counters or not. Nothing left in the target list -> say the layer is already true in one line and stop.
+A fix target with five zero counters and an `ok` flag leaves the target list. One still flagged `OVER-NODE` or `OVER-CHAIN`, or with a `section:` line reading `OVER-NODE` or an `unlinked:` line in its directory, stays, zero counters or not. Nothing left in the target list -> say the layer is already true in one line and stop.
 
 Otherwise one `AskUserQuestion` over the counters, the over-budget flags and the create targets: write them, or stop. Only on approval go on.
 
