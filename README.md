@@ -5,6 +5,8 @@ and none depends on another. There is nothing to build and nothing to configure 
 each plugin picks up your project's conventions from your own `CLAUDE.md` and `.claude/rules/`,
 whatever stack you work in.
 
+> Optimized for Claude Code
+
 ## Install
 
 ```
