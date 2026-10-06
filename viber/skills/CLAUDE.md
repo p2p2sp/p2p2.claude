@@ -76,7 +76,9 @@ clears the context).
 The preloaded map is trusted, never re-measured; one question over `review`/`extend`/`both`/`reset`
 (an argument naming one answers it); `--reset` is all-or-nothing, refused whole on a `dirty:` path
 (exit 3), and a fresh map replaces the preload after it; parallel auditors, one confirm question,
-then the writers. Neither skill writes a file, and only `memory` opens one (the setup prompt, to
+then the writers. Every dispatch goes out in batches of at most 16 calls (the harness rejects,
+never queues, a call past its concurrent subagent limit), a rejected call re-sent in the next one.
+Neither skill writes a file, and only `memory` opens one (the setup prompt, to
 repeat after a `MISSING:` line). They differ where the layers differ: `memory` writes in waves by
 depth, then reconciles the lists of nodes below the root, never writing an existing root (its
 changes return as `SUGGEST:` lines); `rules` has one writer, no

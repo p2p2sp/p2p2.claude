@@ -288,6 +288,63 @@ test("a candidate already carrying a node, one under three files, one behind a d
   });
 });
 
+test("a node or section below a dot directory or under the host's .gitignore is never mapped, even tracked and modified, and --reset refuses it as not-a-node", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
+      "CLAUDE.md": node(40),
+      ".gitignore": "build/\n",
+      ".github/CLAUDE.md": node(40),
+      ".github/CLAUDE.ci.md": "ci\n",
+      ".github/workflows/a.yml": "x\n",
+    });
+    write(repo, { "build/CLAUDE.md": node(40), "build/out.js": "x\n" });
+    await repo.git("add", "-f", "build");
+    await repo.git("commit", "-m", "force-add an ignored directory");
+    write(repo, { ".github/CLAUDE.md": node(50), "build/CLAUDE.md": node(50), ".cfg/CLAUDE.md": node(40) });
+
+    const result = await run(repo);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    const out = lines(result.stdout);
+    assert.deepEqual(pick(out, "node:"), ["node: CLAUDE.md 40 chain 40 ok"]);
+    for (const kind of ["section:", "unlinked:", "orphan:", "cand:", "dirty:"]) {
+      assert.deepEqual(pick(out, kind), [], `${kind} lines: ${out.join(" | ")}`);
+    }
+    assert.ok(out.includes("total: nodes 1"));
+
+    const reset = await run(repo, ["--reset", ".github/CLAUDE.md", "build/CLAUDE.md"]);
+
+    assert.equal(reset.status, 3, `stderr: ${reset.stderr}`);
+    assert.deepEqual(lines(reset.stdout), [
+      "refused: .github/CLAUDE.md not-a-node",
+      "refused: build/CLAUDE.md not-a-node",
+    ]);
+    assert.ok(fs.existsSync(path.join(repo.dir, ".github/CLAUDE.md")));
+  });
+});
+
+test("a tracked file the host's .gitignore excludes counts toward no candidate, while a file whose own name starts with a dot does", async () => {
+  await withGitRepo(async (repo) => {
+    await commit(repo, {
+      "CLAUDE.md": node(40),
+      ".gitignore": "*.log\n",
+      "lib/a.ts": "x\n",
+      "lib/b.ts": "x\n",
+      "lib/.eslintrc": "x\n",
+      "logs/a.ts": "x\n",
+      "logs/b.ts": "x\n",
+    });
+    write(repo, { "logs/c.log": "x\n", "logs/d.log": "x\n" });
+    await repo.git("add", "-f", "logs");
+    await repo.git("commit", "-m", "force-add ignored logs");
+
+    const result = await run(repo);
+
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(pick(lines(result.stdout), "cand:"), ["cand: lib files 3 bytes 6 plain"]);
+  });
+});
+
 /** `count` two-byte files named f00.ts, f01.ts... inside `dir`. */
 function many(dir: string, count: number): Record<string, string> {
   const files: Record<string, string> = {};

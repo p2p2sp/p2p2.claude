@@ -73,7 +73,7 @@ A dead rule is offered like any other: the auditor decides whether its scope rea
 
 ## 5. Audit
 
-One `Agent` call per approved target, every one of them in a single message so they run in parallel, `subagent_type: viber:rules-auditor`, no `model:` line - the agent's own frontmatter is its strength. Five labelled lines each and nothing else:
+One `Agent` call per approved target, `subagent_type: viber:rules-auditor`, no `model:` line - the agent's own frontmatter is its strength. The calls go out in batches: at most 16 in one message, run in parallel, the next message only after every call of the previous one returned. A call the harness refuses with `Concurrent subagent limit reached` never ran: it goes into the next message, no later message carries more calls than the previous one had accepted, and it is neither a missing output line nor a `VERDICT: DENIED`. Five labelled lines each and nothing else:
 
 ```
 target: <the rule's own path, or the literal none for a scope with no rule>

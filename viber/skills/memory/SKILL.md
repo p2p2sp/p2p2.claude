@@ -75,7 +75,7 @@ The planned set is every `node:` line of the map in use plus the node of every k
 
 ## 5. Audit
 
-One `Agent` call per fix target, every one of them in a single message so they run in parallel, `subagent_type: viber:memory-auditor`, no `model:` line - the agent's own frontmatter is its strength. Four labelled lines each and nothing else:
+One `Agent` call per fix target, `subagent_type: viber:memory-auditor`, no `model:` line - the agent's own frontmatter is its strength. The calls go out in batches, here and in steps 7 and 8: at most 16 in one message, run in parallel, the next message only after every call of the previous one returned. A call the harness refuses with `Concurrent subagent limit reached` never ran: it goes into the next message, no later message carries more calls than the previous one had accepted, and it is neither a missing output line nor a `VERDICT: DENIED`. Four labelled lines each and nothing else:
 
 ```
 target: <the node's own path>
@@ -106,7 +106,7 @@ Otherwise one `AskUserQuestion` over the counters, the over-budget flags and the
 
 ## 7. Write in waves
 
-A target's depth is the number of path segments of the directory holding its node, the root being 0. One wave per depth, the root's first, then ascending. Every target of a wave goes out in a single message, one `Agent` call each, `subagent_type: viber:memory-node-writer`, no `model:` line; the next wave only after every call of the previous one returned. Five labelled lines each and nothing else:
+A target's depth is the number of path segments of the directory holding its node, the root being 0. One wave per depth, the root's first, then ascending. Every target of a wave gets one `Agent` call, `subagent_type: viber:memory-node-writer`, no `model:` line, sent in batches as in step 5; the next wave only after every call of the previous one returned. Five labelled lines each and nothing else:
 
 ```
 mode: fix | create
@@ -128,7 +128,7 @@ Keep account while the waves return, counting only paths whose file name is `CLA
 
 ## 8. Reconcile the lists of nodes
 
-After the last wave, a node that exists, the root never counted as off (it carries no list of nodes), is off when the nodes that now exist below its directory differ from the part of `planned:` below it plus the nodes its own dispatch created, or, when no dispatch wrote it, when any dispatch created or deleted a node below its directory; the root's directory covers the whole repository. Each node off gets one more `viber:memory-node-writer`: `mode: fix`, `node:` its path, `findings: none`, `planned:` the nodes that now exist, `refs:` as above. One wave per depth, the deepest first, each wave's `planned:` counting what the waves before it created or deleted. No node off -> dispatch nothing here.
+After the last wave, a node that exists, the root never counted as off (it carries no list of nodes), is off when the nodes that now exist below its directory differ from the part of `planned:` below it plus the nodes its own dispatch created, or, when no dispatch wrote it, when any dispatch created or deleted a node below its directory; the root's directory covers the whole repository. Each node off gets one more `viber:memory-node-writer`: `mode: fix`, `node:` its path, `findings: none`, `planned:` the nodes that now exist, `refs:` as above. One wave per depth, the deepest first, sent in batches as in step 5, each wave's `planned:` counting what the waves before it created or deleted. No node off -> dispatch nothing here.
 
 ## 9. Report
 

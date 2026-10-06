@@ -2655,13 +2655,15 @@ z nich mówi, jak nim sterować.</p>
   <code>shape</code>, and hands what must change to
   <a href="#agent-memory-node-writer"><code>memory-node-writer</code></a>. It writes the root <code>CLAUDE.md</code>
   once, where none exists, and after that only suggests changes to it. The root stays within 4000 bytes, any other file
-  within 12000, and a file with the ones above it within 32000.</p>
+  within 12000, and a file with the ones above it within 32000. Directories whose name starts with a dot and paths
+  your <code>.gitignore</code> excludes are skipped.</p>
   <p lang="pl">Mapuje pliki <code>CLAUDE.md</code> tego projektu, zleca
   <a href="#agent-memory-auditor"><code>memory-auditor</code></a> sprawdzenie każdego z nich względem kodu jego
   obszaru i ze stałym szablonem formy, zliczając każde odstępstwo jako <code>shape</code>, i przekazuje konieczne zmiany do
   <a href="#agent-memory-node-writer"><code>memory-node-writer</code></a>.
   Główny <code>CLAUDE.md</code> pisze jednorazowo, gdy go nie ma, a potem tylko sugeruje w nim zmiany. Główny
-  plik mieści się w 4000 bajtów, każdy inny w 12000, a plik razem z plikami nad nim w 32000.</p>
+  plik mieści się w 4000 bajtów, każdy inny w 12000, a plik razem z plikami nad nim w 32000. Pomija katalogi, których
+  nazwa zaczyna się od kropki, i ścieżki wykluczone przez <code>.gitignore</code> projektu.</p>
   <dl>
     <div>
       <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>

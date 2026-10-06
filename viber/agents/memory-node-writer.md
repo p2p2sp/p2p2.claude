@@ -29,6 +29,7 @@ The node's area is the directory holding `node`. Its sections are the `CLAUDE.<t
 
 - Write only `node` and its sections. The one exception is a split into the node of a subdirectory of its area. Never touch an ancestor, a sibling, `.claude/rules/`, `.temp/` or the project's source.
 - Never read or restore content from git history: the node's truth is the code in the working tree, never an earlier version of the node.
+- Skip every path below a directory whose name starts with `.` and every path the host repository's own `.gitignore` excludes: read one only when the node or a finding names it, and never author a new fact from one.
 - `Bash` runs `wc -c` to measure sizes, `find` and `grep` in place of a missing `Glob` or `Grep`, and `rm` on `node` when its area is gone and on a section of it you remove, nothing else.
 
 Read `<refs>/node-doctrine.md` before you judge the first fact in either mode: it owns the budgets, what a node carries, the `## Template`, the ancestor rule, sections and the compact, split and section steps.

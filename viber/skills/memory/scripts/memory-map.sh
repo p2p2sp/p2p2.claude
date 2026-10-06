@@ -40,6 +40,12 @@
 #            path, or an unknown first argument - usage on stderr, nothing
 #            printed on stdout); 3 when the call was refused.
 #
+# excluded - memory never maps a path below a directory whose name starts
+#            with ".", nor a file the host repository's own ignore rules
+#            (.gitignore, .git/info/exclude, core.excludesFile) exclude, even
+#            a tracked one: no line of any kind names one, none counts toward
+#            a candidate or an orphan, and --reset refuses one as not-a-node.
+#            A file whose own name starts with "." is mapped like any other.
 # id      - this run's stamp, which the caller spends as .temp/viber/<id>/.
 # state   - "none" when no CLAUDE.md is tracked anywhere, "complete" when a
 #           root node exists and every candidate directory carries its own
@@ -64,8 +70,8 @@
 #            text of that node never names its file.
 # orphan  - a node with no other tracked file anywhere beneath its directory,
 #           its own sections not counted: it documents nothing.
-# cand    - a directory that deserves a node and has none: tracked, no path
-#           segment starting with ".", and at depth 1 or 2 at least three
+# cand    - a directory that deserves a node and has none: tracked, not
+#           excluded, and at depth 1 or 2 at least three
 #           tracked files beneath it. Deeper, it directly holds a build
 #           manifest (below), or at least twenty tracked files beneath it
 #           while it is no passthrough - a directory holding no file of its
@@ -122,8 +128,32 @@ cd "$root" || exit 0
 # copies the whole string, which bash 3.2 (the macOS system shell) turns into
 # seconds on a repository of a few thousand files. The command substitution
 # strips the final newline, so it is put back: every entry ends in $NL.
-tracked="$(git ls-files -z 2>/dev/null | tr '\0' '\n')"
+# Memory never maps a path below a directory whose name starts with "." nor
+# a tracked file the host's own ignore rules exclude (force-added, or tracked
+# before its rule): both are cut here, once, so no node, section, candidate
+# or orphan is ever drawn from them. The ignored list comes first in the
+# stream, ended by one empty record - git never prints an empty path.
+tracked="$(
+  { git ls-files -z -c -i --exclude-standard 2>/dev/null; printf '\0'; git ls-files -z 2>/dev/null; } | tr '\0' '\n' | awk '
+    !list && $0 == "" { list = 1; next }
+    !list { ignored[$0] = 1; next }
+    $0 == "" || ($0 in ignored) { next }
+    {
+      n = split($0, seg, "/")
+      for (i = 1; i < n; i++) if (substr(seg[i], 1, 1) == ".") next
+      print
+    }'
+)"
 [ -z "$tracked" ] || tracked="$tracked$NL"
+
+# True for a path memory never maps, tracked or not: one below a directory
+# whose name starts with ".", or one the host's own ignore rules exclude.
+is_excluded() {
+  case "/$1" in
+    */.*/*) return 0 ;;
+  esac
+  git check-ignore -q --no-index -- "$1" 2>/dev/null
+}
 
 is_tracked() {
   case "$NL$tracked" in
@@ -224,6 +254,7 @@ while IFS= read -r -d '' record; do
   code="${record:0:2}"
   path="${record:3}"
   is_node "$path" || is_section "$path" || continue
+  ! is_excluded "$path" || continue
   if [ "$code" = "??" ]; then
     dirty_nodes="$dirty_nodes$path untracked$NL"
   else
@@ -384,13 +415,13 @@ done < <(
 )
 
 # --- the directories that deserve a node -----------------------------------
-# One `wc -c` pass over the whole index, attributed to every directory above
+# One `wc -c` pass over the mapped tree, attributed to every directory above
 # each file inside awk: a host repository holds thousands of tracked files,
 # and a `wc` per file would be thousands of processes.
 cand_out=""
 if [ -n "$tracked" ]; then
   cand_out="$(
-    git ls-files -z 2>/dev/null | xargs -0 wc -c 2>/dev/null | awk -v manifests="$MANIFESTS" '
+    printf '%s' "$tracked" | tr '\n' '\0' | xargs -0 wc -c 2>/dev/null | awk -v manifests="$MANIFESTS" '
       function is_manifest(base,   i, n, list) {
         n = split(manifests, list, " ")
         for (i = 1; i <= n; i++) if (base == list[i]) return 1
@@ -401,11 +432,6 @@ if [ -n "$tracked" ]; then
         bytes[dir] += size
         if (direct && base == "CLAUDE.md") node[dir] = 1
         if (direct && is_manifest(base)) tool[dir] = 1
-      }
-      function dotted(dir,   i, n, seg) {
-        n = split(dir, seg, "/")
-        for (i = 1; i <= n; i++) if (substr(seg[i], 1, 1) == ".") return 1
-        return 0
       }
       {
         size = $1 + 0
@@ -430,7 +456,7 @@ if [ -n "$tracked" ]; then
       # its own and a single subdirectory.
       END {
         for (dir in files) {
-          if ((dir in node) || dotted(dir)) continue
+          if (dir in node) continue
           if (split(dir, part, "/") <= 2) {
             if (files[dir] < 3) continue
           } else if (!(dir in tool)) {

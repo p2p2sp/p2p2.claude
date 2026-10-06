@@ -33,3 +33,6 @@ Duplicated on purpose - change together:
   `skills/memory/SKILL.md`, whose step 6 keeps a target while any counter is not zero. `rules-auditor`'s
   `AUDIT:` line keeps its own counters.
 - The frozen `_`-prefixed rule file: `rules-map.sh`, `rules-auditor`, `rules-writer`.
+- Memory skips every path below a directory whose name starts with `.` and every path the host's
+  ignore rules exclude, tracked or not: `memory-map.sh` (its `tracked` list and `is_excluded`),
+  `memory-auditor`, `memory-node-writer`.
