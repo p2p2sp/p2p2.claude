@@ -1,6 +1,6 @@
 {
   "name": "supercc",
-  "version": "0.78.1",
+  "version": "0.79.0",
   "description": "Writes, audits and tunes Claude Code skills and agents.",
   "author": {
     "name": "Dariusz Lenartowicz",
