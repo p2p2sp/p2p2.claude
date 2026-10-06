@@ -2,9 +2,26 @@
 
 Answers one question about an idea: is it worth turning into a side project?
 
-It is judged as a side-income product that keeps earning on a few hours a week after launch, not as
-a startup. The building is assumed cheap, because an AI does it, so what decides the verdict is the
-problem, how you would reach people, and what the thing will demand from you in month three.
+## Why superbiz
+
+### Judged as a side project
+The bar is a product that keeps earning on a few hours a week, never a startup. An AI builds it
+cheaply, so the verdict rests on the problem, how you reach people, and what it demands from you
+in month three.
+
+### Every number has a source
+A figure carries its source or is marked as missing. Nothing is filled in with a plausible guess.
+
+### It argues with itself
+Seven advisors argue both sides by name, and the verdict comes with a dissenting opinion next to
+it.
+
+### It ends with a test plan
+Six to eight experiments, each with its pass threshold written down before you have any results.
+
+### Honest about its limits
+Only the experiments can tell you people will pay. Read a Go as "worth testing", never as "worth
+building".
 
 ## Install
 
@@ -23,12 +40,12 @@ Needs web access for the research and Python 3 to render the report. No packages
 /superbiz:idea-validator ./my-idea.md --quick
 ```
 
-Pass the idea as text or as a path to a file. `--quick` makes the run shorter, and the report says
-when it was used. Write the idea in the language you want the report in.
+Pass the idea as text or as a file path. `--quick` makes the run shorter, and the report says so.
+Write the idea in the language you want the report in.
 
-It asks you one batch of questions first: who it is for, where, how it makes money, how many hours
-a week you have, and what audience you already have. "Don't know" is a valid answer and is recorded
-as one. Then it researches, scores and argues with itself, and takes a while.
+It first asks one batch of questions: who it is for, where, how it makes money, how many hours a
+week you have, and what audience you already have. "Don't know" is a valid answer. Then it
+researches, scores and debates, which takes a while.
 
 ## What you get
 
@@ -36,14 +53,5 @@ as one. Then it researches, scores and argues with itself, and takes a while.
 docs/business/<slug>/report.html
 ```
 
-One self-contained HTML file that opens anywhere: a nine-dimension scorecard with its sources, seven
-advisors arguing both sides by name, a Go / Pivot / No-Go verdict with the arithmetic shown and a
-dissenting opinion next to it, and six to eight experiments whose pass thresholds are written down
-before you have any results.
-
-Every number carries a source or is marked as missing. Nothing is filled in with a plausible figure.
-
-## What it does not claim
-
-It does not tell you that people will pay. Nothing but the experiments can. Read a Go as "worth
-testing", not as "worth building".
+One self-contained HTML file that opens anywhere: a nine-dimension scorecard with its sources, the
+advisors' debate, a Go / Pivot / No-Go verdict with the arithmetic shown, and the experiments.
