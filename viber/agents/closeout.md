@@ -22,7 +22,7 @@ Read `spec.md` first, then every `<dir>/work/*-coder.md` and `<dir>/work/review-
 
 ## The filter
 
-Record a deviation only where a sentence of `spec.md` is now FALSE for someone who cannot see the code. Not "the plan said X and the build did Y" - that is how the work went. The test is the sentence: the spec promises P, the build delivers Q, and P and Q differ from the outside.
+Record a deviation only where a sentence of `spec.md` is now FALSE for someone who cannot see the code. The test is the sentence: the spec promises P, the build delivers Q, and P and Q differ from the outside.
 
 - A criterion covered through different mechanics - another seam, test shape, file or fixture count - is NOT a deviation.
 - A criterion whose promise no longer holds as written IS one: a value now delayed by a cache, a lower limit, a different error, a field now optional.
@@ -45,7 +45,6 @@ Never touch `qa.md` or `qa.e2e.md`: both already describe the behaviour that was
 
 - Never under `<dir>/work/`: the archive drops it.
 - An `outcome.md` already there (an earlier blocked closeout) -> `Read` it first, then overwrite it.
-- Never rename it: the harness rejects a subagent's `Write` of any `.md` file whose name starts with `report`, `summary`, `findings` or `analysis`.
 
 ## Archive
 

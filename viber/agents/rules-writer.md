@@ -42,9 +42,9 @@ Measure before you write: `wc -c` on the file you are changing, and `wc -c` on e
 - 4000 bytes per rule file, 40000 over the directory.
 - A split, a merge or a move of what the directory already carries records no new convention and never counts: the cap is on growth, not on tidying.
 - The directory at its cap takes a new rule only by merging it into an existing one or replacing one.
-- Narrow the `paths:` glob rather than widen the file. A rule that loads on every task is a rule nobody reads.
+- Narrow the `paths:` glob rather than widen the file.
 - Over a cap, in this order:
-  1. Compact: drop a second example where one carries the rule, a bullet a competent developer would write anyway, a convention a type or a lint rule now enforces, a bullet the build contradicted.
+  1. Compact: drop a second example where one carries the rule, a bullet failing the admission gate, a bullet the build contradicted.
   2. Split into one file per convention, each in its own area's directory with its own narrower `paths:`. A file carrying ONE convention and still over is too wordy rather than too broad - compact it further instead.
   3. Write it over budget and report it.
 

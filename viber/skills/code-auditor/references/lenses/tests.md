@@ -20,44 +20,6 @@ Async waits, sleeps, the real clock, randomness, dependence on test order or sha
 ### dead-tests
 `skip`, `only`, `todo` or `@Disabled` hiding a regression; a stray `.only` silently runs nothing else. A slow end-to-end test as the only cover for logic a unit test could pin.
 
-## Map signals
-Rank a source unit higher the more of these signals it carries: critical code with no test, fixed often while its test rarely changed, tests skipped, hollow, mock-heavy or flaky. Compare each source file's churn with its test's churn in the second list, and rank by fixes relative to size (`wc -l`).
-
-Source files with no test file mentioning their name:
-```bash
-git ls-files -- <scope> | grep -v -i -E 'test|spec' | grep -E '\.(js|jsx|ts|tsx|py|go|rs|java|rb|sh)$' | while read -r f; do b=$(basename "$f"); b=${b%.*}; git grep -q -F -e "$b" -- '*test*' '*spec*' || echo "$f"; done | head -40
-```
-
-Churn of the last 12 months, source and test files together:
-```bash
-git log --no-merges --since='12 months ago' --name-only --format= -- <scope> | grep -v '^$' | sort | uniq -c | sort -nr | head -60
-```
-
-Fix hotspots, source files only:
-```bash
-git log --no-merges -i -E --grep='fix|bug|regress|revert' --since='12 months ago' --name-only --format= -- <scope> | grep -v '^$' | grep -v -i -E 'test|spec' | sort | uniq -c | sort -nr | head -30
-```
-
-Skipped, focused and pending tests:
-```bash
-git grep -n -E '(it|test|describe)[.](skip|only|todo)|[^a-z]x(it|describe)[(]|@Disabled|@Ignore|pytest[.]mark[.](skip|xfail)|t[.]Skip[(]' -- <scope> | head -40
-```
-
-Hollow assertions:
-```bash
-git grep -n -E 'expect[(]true[)]|assert[(]true[)]|assert[.]ok[(]true[)]|assertTrue[(]true[)]|toBeDefined[(][)]|toBeTruthy[(][)]|toMatch(Inline)?Snapshot' -- <scope> | head -40
-```
-
-Mock density per file; rank by mocks per assertion:
-```bash
-git grep -c -E 'jest[.]mock|vi[.]mock|mock[.]patch|Mockito|sinon[.]|toHaveBeenCalled' -- <scope> | sort -t: -k2 -nr | head -30
-```
-
-Flake risk inside test files:
-```bash
-git grep -n -E 'sleep[(]|setTimeout|waitForTimeout|Thread[.]sleep|Date[.]now|new Date[(][)]|Math[.]random|https?://' -- <scope> | grep -i -E 'test|spec' | head -40
-```
-
 ## Excluded
 - Coverage percentage on its own, and anything argued only from it.
 - Generated, vendored, migration-snapshot and fixture code.
@@ -72,14 +34,14 @@ git grep -n -E 'sleep[(]|setTimeout|waitForTimeout|Thread[.]sleep|Date[.]now|new
 ## Verify
 Worktree: required
 
-The oracle is a surviving mutant for a coverage or assertion finding and a reproduced failure for a flakiness finding. Every clean checkout comes from `scripts/worktree.sh`: add it, apply the mutant inside it, run the test, and remove it through the same script, restoring the line first.
+The oracle is a surviving mutant for a coverage or assertion finding and a reproduced failure for a flakiness finding. Apply each mutant inside the clean checkout, run the test, and restore the line before the next mutant.
 
 Mutation procedure:
 1. Run the target test unchanged; it must pass. A failing baseline goes to the flake procedure, or INCONCLUSIVE.
 2. Reachability probe: replace the cited line with a throw or panic and run again. The test still passes: it never reaches the line, VERIFIED as a coverage gap. It fails: continue.
 3. One mutant per line, in this order: extreme mutation (empty body, or the type's default), relational operator flip or boundary move, `&&` and `||` swapped, statement or call deleted, arithmetic change last.
 4. Equivalence check before running: skip arid nodes and equivalent forms (`size() == 0` to `<= 0`, null-check rewrites, cache removal, float literals), and write one sentence on the observable behaviour the mutant changes. Not writable: the mutant is equivalent, REFUTED.
-5. Run only the affected test, with the single-test command from the repository's `CLAUDE.md`, else `node --test FILE`, `npx jest FILE -t NAME`, `npx vitest run FILE`, `pytest FILE::NAME`, `go test -run NAME ./pkg` or `cargo test NAME`.
+5. Run only the affected test, with the single-test command of the run file's `## Conventions`, else `node --test FILE`, `npx jest FILE -t NAME`, `npx vitest run FILE`, `pytest FILE::NAME`, `go test -run NAME ./pkg` or `cargo test NAME`.
 
 Flake procedure:
 1. Run the test 20 times unchanged; any mixed result is VERIFIED.

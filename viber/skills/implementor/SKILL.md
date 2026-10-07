@@ -34,8 +34,7 @@ You orchestrate and delegate: every piece of work runs inside a subagent. Open n
 
 Every question below offers some of these four answers, each doing exactly this wherever it is offered:
 
-- `retry`: dispatch again, with its own dispatch lines, the agent that failed or was refused; after failed review or test rounds that is the task's coder or the repair coder.
-  - After a `FAIL`, or a `PASS` with its `DOD:` line short of its total: one tier up (`haiku` -> `sonnet` -> `opus` -> `fable`), never past `tiers.max`, where it stays, carrying `reason: <the returned REASON>` on a coder's own failure, `reason: <the short DOD: line>` when no `REASON:` came, or the last `REVIEW` or `REPORT` path as `report:` after failed rounds; the task's attempt count starts over, and a `TaskUpdate` rewrites the task's subject with the new tiers.
+- `retry`: dispatch again, with its own dispatch lines, the agent that was refused.
   - After a `DENIED`: same model, same round, a task's coder adding `reason: <the returned REASON>`.
   - After a failed commit: run the same call again.
 - `skip`: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip "<plan>" "<id>"` for that task, then the same call for every task depending on it, directly or through another dependent, one call per message, each with its `TaskUpdate` -> completed. Its half-finished files stay uncommitted in the tree; name them in the final summary.
@@ -128,7 +127,7 @@ decision: <task-id>: <text>
 - `deferred`: the index entries naming this id plus every `--defer` this build passed naming it.
 - `prior`: the notes of the tasks its `deps` names.
 - `decision:`: one line per index `decision:` line plus one per `--decide` this build recorded, whose `<task-id>` is this task or one it depends on, directly or through another.
-- Tier: the attempt's tier (below), raised too by the user's `retry`.
+- Tier: the attempt's tier (below).
 - Every coder re-run - a next attempt, a `WAIT:` hold, `retry` - is this same fresh dispatch, every labelled line above plus the `report:`, `reason:` or `decision:` line its answer names, and a `resume:` line carrying every path an `EXTRA:` line of the task's earlier coders returned.
 
 Reviewer dispatch: `viber:task-reviewer` (Agent tool, `model` = the review tier) carrying the task's `task:`, `notes:`, `out:`, `refs:`, `deferred:` and `decision:` lines, any line a fragment of this step adds, and:
@@ -150,7 +149,7 @@ Attempts: an attempt is one coder dispatch, a `WAIT:` hold and the retry of a `V
 - Each attempt after the first runs one tier up from the last, clamped into `tiers.max`, its review tier rising with it (a waived review stays waived) and raised to `sonnet` from `haiku`; a `TaskUpdate` rewrites the task's subject with the new tiers.
 - A next attempt is the task's coder dispatched fresh, carrying `reason: <the returned REASON>` (`<the short DOD: line>` when no `REASON:` came, `<the commit's error>` after a refused commit), the returned `REVIEW` path as `report:` after a review failure, and its `decision:` lines.
 
-Arbiter dispatch: `viber:arbiter` (Agent tool, no `model`) carrying `case:`, `options:` (the closed list, its first the fallback), `task:`, `report:` and `reason:` lines as the case below names, the last two omitted when empty. Its `RULED` return is recorded, then carried out, without a question:
+Arbiter dispatch: `viber:arbiter` (Agent tool) carrying `case:`, `options:` (the closed list, its first the fallback), `task:`, `report:` and `reason:` lines as the case below names, the last two omitted when empty. Its `RULED` return is recorded, then carried out, without a question:
 
 - A `RULING` naming no listed option -> take the first option, the mismatch named in the final summary.
 - Record it: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --rule "<plan>" "<subject>" "<ruling>" "<why>" "<cost>"`, `<subject>` being the task's id, else the case name (`baseline`, `tests`, `final-review`, `commit`), the `RULING`, `WHY` and `COST` each one line with every double quote, dollar sign, backtick or backslash rewritten into words. Exit non-zero -> name it in the final summary, rule nothing further, retry nothing, and carry the ruling out.
@@ -162,7 +161,7 @@ Commit outside a task: every `commit-task.sh` commit but a task's own commit and
 Start with every task whose `deps` are done, in one message. On every return, answer with ONE message carrying every dispatch now legal plus at most one commit. Never wait for a batch to drain; when a constraint forces a choice, start whatever unblocks the most tasks.
 
 - Coder `VERDICT: FAIL` carrying `WAIT:` -> hold the task; once every task in flight at that return has returned, dispatch its coder fresh at the same tier, counting as no attempt and asking nothing. Nothing else in flight at that return, or the task already waited once on a path it names -> act on it as an ordinary `FAIL` below.
-- Coder failure on attempt 1 to 4 -> the next attempt, asking nothing. From attempt 2 on, a `DECIDE:` line -> first the arbiter: `case: decide`, `options:` those options only, `task: <dir>/tasks/<id>.md`, `report: <dir>/work/<id>-coder.md`, `reason:` the returned `REASON:` (the short `DOD:` line when none came); record its ruling with subject `<id>`, then `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --decide "<plan>" "<id>" "auto: <ruling>"`, that text made one line with every double quote, dollar sign, backtick or backslash in it rewritten into words, then the next attempt with its `decision:` lines, the new one among them, the attempt count not starting over. No `DECIDE:` line -> no arbiter.
+- Coder failure on attempt 1 to 4 -> the next attempt, asking nothing. From attempt 2 on, a `DECIDE:` line -> first the arbiter: `case: decide`, `options:` those options only, `task: <dir>/tasks/<id>.md`, `report: <dir>/work/<id>-coder.md`, `reason:` the returned `REASON:` (the short `DOD:` line when none came); record its ruling with subject `<id>`, then `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --decide "<plan>" "<id>" "auto: <ruling>"`, that text made one line and escaped as for `--rule`, then the next attempt with its `decision:` lines, the new one among them, the attempt count not starting over. No `DECIDE:` line -> no arbiter.
 - Coder failure on attempt 5, reviewer `FAIL` on attempt 5, or a task commit exiting other than 4 on attempt 5 -> the limit: the arbiter with `case: cap` (never `decide`), `task: <dir>/tasks/<id>.md`, `report:` lines for `<dir>/work/<id>-coder.md` and the task's last `REVIEW` path when it has one, `reason:` the failure's `REASON:` or the commit's error, and `options: accept | skip` after a review failure, `options: skip` otherwise. Record its ruling with subject `<id>`, then carry it out: `accept` -> the task's commit with `--unreviewed` appended, the task named unreviewed in the final summary; `skip` -> the `skip` answer's calls. An `accept` commit exiting other than 4 -> the arbiter again with `options: skip`, that commit's error as `reason:` and the same `report:` lines, its ruling recorded and carried out the same way.
 - Coder `VERDICT: DENIED` -> `AskUserQuestion` naming the task: retry / skip / abort.
 - Coder `PASS`, and review due or a non-empty `extra:` or `recheck:` line -> reviewer dispatch at the next round.
@@ -185,7 +184,7 @@ Dispatch `viber:test-runner` with report path `<dir>/work/tests-<round>.md`, rou
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" build.baseline-tests "${CLAUDE_SKILL_DIR}" baseline-close
 ```
 
-Repair dispatch: `viber:task-coder` (model `sonnet` clamped into the tiers range, raised only by `retry`) with `spec: <dir>/spec.md`, the last `REPORT` path as `report:`, `notes: <dir>/work/repair-<round>-coder.md`, `out: .temp/viber/repair-<round>/` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`.
+Repair dispatch: `viber:task-coder` (model `sonnet` clamped into the tiers range) with `spec: <dir>/spec.md`, the last `REPORT` path as `report:`, `notes: <dir>/work/repair-<round>-coder.md`, `out: .temp/viber/repair-<round>/` and `refs: ${CLAUDE_PLUGIN_ROOT}/references`.
 
 Repair commit, every path on the coder's `FILES:` line through the form that owns it:
 

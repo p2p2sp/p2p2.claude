@@ -38,13 +38,11 @@ Before writing a task, decide which files get created, modified or deleted and w
 
 The specification half is `${CLAUDE_SKILL_DIR}/templates/spec-lite.md` or `${CLAUDE_SKILL_DIR}/templates/spec-full.md`, whichever shape the input names; the task half is `${CLAUDE_SKILL_DIR}/templates/tasks.md` under either. Fill the spec, append the task half under it, and write the result into the plan file plan mode names in its system message, the only file you may write while planning. Keep every section and every HTML marker of both templates, except one a template comment says to drop; add no section of your own.
 
-Write that plan file's absolute path into the frontmatter's `source:` key with forward slashes only, a Windows drive written `C:/`: approval may clear this context, and that line is then the only way back to the file. Fill the frontmatter's `issue:` key from the input's `Issue:` line, never from the scope, exactly when the input carries one; with no such line drop the key, unless the plan continues a draft (below). Fill the `prototype:` key the same way from the input's `Prototype:` line, carried over by a draft round like `issue:`; its value stays that `.temp/` source path, read only by `plan-path.sh`. A task building the screen the mockup shows names matching "the mockup under `## Prototype`" in its `DoD`.
+Fill the frontmatter per its placeholders: `source:` is the only way back to the file once approval clears this context; `issue:` and `prototype:` come only from the input's `Issue:` / `Prototype:` lines, never from the scope, and a draft round carries them over (below). A task building the screen the mockup shows names matching "the mockup under `## Prototype`" in its `DoD`.
 
 A round continuing a draft reads `docs/<directories.runs>/<key>/plan.md` first and carries its specification over, changing only what the input's remarks change - its `issue:` line travels with the rest of that specification unless a remark changes it - and writes the key into the frontmatter's `into:` key; any other plan drops that line.
 
-An input carrying a roadmap fills `## Roadmap` in the template's shape with the ordered subprojects, marks the entry this plan covers `(this plan)`, lists every later entry's settled decisions as indented `- ` lines under it and repeats every later entry under `### Out of scope`; no roadmap in the input means no such section. What a later entry brings stays absent: no task delivers a stand-in for it, no acceptance criterion depends on it, nothing is stubbed, mocked or temporarily substituted. A part is never a release: no acceptance criterion needs a working application between parts.
-
-An input carrying a `Roadmap: <path>` line continues a roadmap: read that `roadmap.md`, mark every earlier entry `(built)`, and move this plan's own entry's decisions from the roadmap into the specification, out of the `## Roadmap` section.
+An input carrying a roadmap, or a `Roadmap: <path>` line (read that `roadmap.md`), fills `## Roadmap` per its template comment and repeats every later entry under `### Out of scope`; no roadmap in the input means no such section. What a later entry brings stays absent: no task delivers a stand-in for it, no acceptance criterion depends on it, nothing is stubbed, mocked or temporarily substituted. A part is never a release: no acceptance criterion needs a working application between parts.
 
 A plan stopping at a draft writes the specification half alone: no `## Tasks`, no `## Contracts` appendix, no decision record screening.
 
@@ -77,7 +75,7 @@ Every round and every retry is a new `Agent` dispatch, never a `SendMessage` to 
 
 A reply with no `VERDICT:` line gets one more dispatch with the same input; a second reply without one is handled as `VERDICT: DENIED` with `REASON: no verdict returned`.
 
-- `VERDICT: PASS` - go to step 4 without writing the plan again: its Minor findings stay unapplied, since any write after the PASS voids it.
+- `VERDICT: PASS` - go to step 4 without writing the plan again; its Minor findings stay unapplied.
 - `VERDICT: FAIL` - show the findings, fix the plan, re-run `plan-index.sh` after every fix unless the plan is a draft, then dispatch again. A finding that needs a decision only the user can make gets asked first through one `AskUserQuestion`, and the answer starts a fresh round 1.
 - `VERDICT: DENIED` - one `AskUserQuestion` naming the refused call from its `REASON:` line: permission added and retry, dispatching again in the same round, or stop with the plan unreviewed and no hand-off.
 

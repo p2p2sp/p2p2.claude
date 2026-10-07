@@ -21,9 +21,7 @@ Turn a raw intent into an understanding a planner can act on. You write no code,
 
 ## Returning to a draft
 
-A draft the user points at - a landed plan carrying a specification and not one task block - is resumed, not interviewed again. Read that file first, then ask only about what the round of remarks changed: everything the draft already states is settled and costs no question. Ask through one `AskUserQuestion` which this round is: another draft round to circulate, or the task half on top of the settled specification. Close on the same confirmed summary, stating that round decision and naming the draft's run key so the next round lands in its own directory.
-
-A `roadmap.md` the user points at is resumed the same way: its first entry with no `(built)` or `(this plan)` marker is the next part, and its listed decisions are settled and cost no question. Ask only what the builds since changed and that part's open unknowns. The summary carries that part's decisions as settled, the later parts as boundaries, and closes on the `Roadmap:` line naming the file.
+A landed plan carrying a specification and not one task block, or a `roadmap.md`, that the user points at: read `${CLAUDE_SKILL_DIR}/references/resume.md` first and follow it.
 
 ## Before the first question
 
@@ -42,12 +40,8 @@ Decide this before the first detail question.
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" planning.fast-path "${CLAUDE_SKILL_DIR}" fast-path
 ```
 
-- One coherent capability, or any scope of an estimated 30 plan tasks or fewer: interview it whole and skip the rest of this section.
-- A larger scope, the shape of "build the whole application" or "a platform with chat, file storage, billing and analytics": ask no detail question yet. Split it as a mechanical cut of that one specification - a part is never a release, and size is the only reason to cut, never a theme, a milestone or a risky piece set apart. Every part holds an estimated 8 tasks or more: merge a smaller one into its neighbour, and a split left with one part is no split. Propose the split, one line per part - what it owns, what it consumes from the ones before it, its estimated task count - plus the order, then ask through one `AskUserQuestion`: `Accept` or `Correct`, the correction typed in its free-text field. `Correct` with nothing typed -> ask in prose what to correct. Correct it until the user accepts it.
-- Order the parts so each one consumes only what earlier ones produced. Two pieces that cannot be ordered that way are not independent and belong to one part.
-- A part boundary is not a delivery. What a later part brings is absent until its own build, never replaced by a stub, a mock, a hardcoded value or a temporary alternative, and no criterion may need a working application between parts. So never ask what works between parts, never ask what to use instead, and never let an answer invent one: the absence belongs in the boundaries, as out of scope.
-
-Once the split is accepted, interview every part in order, each with the questions of `## The interview`. A question that hangs on code an earlier part writes is not asked: it becomes an unknown for that part, resolved at the start of that part's own plan.
+- One coherent capability, or any scope of an estimated 30 plan tasks or fewer: interview it whole.
+- A larger scope, the shape of "build the whole application" or "a platform with chat, file storage, billing and analytics": read `${CLAUDE_SKILL_DIR}/references/split.md` before any detail question and follow it.
 
 ## Propose the spec shape
 
@@ -69,7 +63,7 @@ Never ask an interview question through `AskUserQuestion`: the interview is pros
 - Each answer narrows the next question. An answer that opens a new unknown makes that unknown the next question.
 - Challenge weak reasoning out loud. An answer that contradicts the code or an earlier answer gets said plainly and asked again.
 - Number each decision, then number its options by that decision: decision 2's options are `2.1`, `2.2`, `2.3`, and a branch goes one level deeper (`2.1.1`...), so the user can point to an answer without re-typing it.
-- Arguments carrying `--prove`: before showing each question, dispatch `Agent` with `subagent_type: viber:prover`, a `context:` line (the change being planned and the answers settled so far) and `question:` followed by the drafted question verbatim. Pass no `model:`. Show the question only after the verdict: on `REVISED` rewrite it to the findings and add one line under it naming what verification changed; on `CONFIRMED` show it as drafted; name any `UNVERIFIED:` claim in that same line; on `DENIED` show it as drafted and say it went unverified. The settled line and the summary are not questions: never dispatch for them. `--prove` is a switch, never part of the intent: it stays out of the summary and the planner hand-off.
+- Arguments carrying `--prove`: read `${CLAUDE_SKILL_DIR}/references/prove.md` before showing the first question and follow it for every question.
 - Skip anything a competent implementer decides on its own.
 
   **Example question:**
@@ -104,7 +98,7 @@ Solution shape comes last and only where the user holds an opinion. Design decis
 
 Stop when you can state, without guessing: the problem, the acceptance criteria, what is out of scope, the binding constraints. Every unknown carries a named way to resolve it and no question to the user is left open.
 
-Show that as a summary under 15 lines and ask for confirmation through one `AskUserQuestion`: `Confirm` or `Correct`, the correction typed in its free-text field. `Correct` with nothing typed -> ask in prose what to correct. A change that alters a screen, in a conversation carrying no `Prototype:` line, adds a third option, `Prototype first`: on it, say in one line to type `/viber:prototype` (user-only, never invoked from here) and end the turn - its hand-off returns here with that line, and the conversation then settles everything, so the next round goes straight to this summary and confirms again. The summary closes on the spec shape and, when the user asked for one, the draft mode. A split intent opens its summary with the accepted roadmap, one line per part plus which one this cycle covers, carrying under each later part the decisions settled for it and its open unknowns, and names every later part among the boundaries; its cap is 15 lines plus up to 5 per later part carrying its decisions. A summary resuming a roadmap.md closes with the line `Roadmap: <repo-relative path of roadmap.md>`. On a correction, fix the summary and confirm again. On confirmation, take the first branch that applies:
+Show that as a summary under 15 lines and ask for confirmation through one `AskUserQuestion`: `Confirm` or `Correct`, the correction typed in its free-text field. `Correct` with nothing typed -> ask in prose what to correct. A change that alters a screen, in a conversation carrying no `Prototype:` line, adds a third option, `Prototype first`: on it, say in one line to type `/viber:prototype` (typed by the user, never invoked from here) and end the turn - its hand-off returns here with that line, and the conversation then settles everything, so the next round goes straight to this summary and confirms again. The summary closes on the spec shape and, when the user asked for one, the draft mode. On a correction, fix the summary and confirm again. On confirmation, take the first branch that applies:
 
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-done

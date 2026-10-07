@@ -11,9 +11,7 @@ This directory owns one markdown file per agent registered in `viber/.claude-plu
 
 ## Relationships
 
-- `implementor` dispatches `task-coder` (also as the repair and final-fix coder), `task-reviewer`, `test-runner`, `arbiter`, and through its switch fragments `final-reviewer` (`final-review.true.md`), `memory-writer`, `rules-writer`, `qa-writer` and `closeout` (`cleanup.true.md`); `intent`'s `fast-path.true.md` dispatches `test-runner` too, and `intent --prove` dispatches `prover`.
-- `planner` dispatches `planner-review`, and `adr-screener` through `skills/planner/references/adr-tasks.md`; `plain-plan-review` runs only on the plan gate's request. `memory` dispatches `memory-auditor` and `memory-node-writer`; `rules` dispatches `rules-auditor` and `rules-writer`; `e2e` dispatches `e2e-writer`; `prototype` dispatches `prototype-writer`; `code-auditor` dispatches the four auditor agents.
-- Reference reads: `node-doctrine.md` (`memory-writer`, `memory-auditor`, `memory-node-writer`), `rule-admission.md` (`rules-auditor`, `rules-writer`), `qa-format.md` (`qa-writer`, `e2e-writer`), `plan-rules.md` (`planner-review`), `adr-admission.md` (`adr-screener`), `test-strategy.md` (`task-coder`, `task-reviewer`), `integration-tests.md` (`planner-review`, `task-coder`, `task-reviewer`). `hunter` writes to the schema of `skills/code-auditor/references/synthesis.md`; `hunter` and `critic` get a clean checkout only for a lens reading `Worktree: required`, through `skills/code-auditor/scripts/worktree.sh` and, on the diff scope, `diff-overlay.sh`. `mapper`, `scout`, `hunter` and `critic` read the run file and one lens file of `skills/code-auditor/references/lenses/`.
+- Reference reads: `node-doctrine.md` (`memory-writer`, `memory-auditor`, `memory-node-writer`), `rule-admission.md` (`rules-auditor`, `rules-writer`), `qa-format.md` (`qa-writer`, `e2e-writer`), `plan-rules.md` (`planner-review`), `adr-admission.md` (`adr-screener`), `test-strategy.md` (`task-coder`, `task-reviewer`), `integration-tests.md` (`planner-review`, `task-coder`, `task-reviewer`). `hunter` writes to the schema of `skills/code-auditor/references/synthesis.md`; `hunter` and `critic` get a clean checkout only for a lens reading `Worktree: required`, through `skills/code-auditor/scripts/worktree.sh` and, on the diff scope, `diff-overlay.sh`. `mapper`, `scout`, `hunter` and `critic` read the run file and one lens file of `skills/code-auditor/references/lenses/`; `mapper` also reads that lens's `<lens>.signals.md`.
 - Skill calls from agents: `task-coder` invokes `viber:tdd` on a `TDD: required` task; `prototype-writer` invokes `impeccable`, else `superui:pro-designer`, when either is in its skill listing.
 
 ## Contracts
@@ -32,10 +30,10 @@ This directory owns one markdown file per agent registered in `viber/.claude-plu
 
 ## Change together
 
-- The "Stop what you started" block is verbatim in `task-coder`, `task-reviewer`, `final-reviewer`, `test-runner` and `e2e-writer`.
+- The "Stop what you started" block is verbatim in `task-coder`, `task-reviewer`, `final-reviewer`, `test-runner`, `e2e-writer` and `skills/extension/templates/extension.md`.
 - The tools paragraph and the `DENIED` / `REASON: <refused tool name>: <the exact refused command, or the path for a file tool>` output wording are verbatim across every non-auditor agent (`prover` adds the URL or query for a web tool).
 - Memory audit vocabulary (`STALE`, `GONE`, `UNVERIFIABLE`, `MISS`, `SHAPE`, `OK`) and the `<out><slug>-audit.md` name (`/` -> `--`): `memory-auditor`, `memory-node-writer` and `skills/memory/SKILL.md`. The rules counterpart (adding `DROP` and `MOVE:`): `rules-auditor`, `rules-writer` and `skills/rules/SKILL.md`.
-- The clean-checkout steps (`worktree.sh add`, `diff-overlay.sh`, replay, `worktree.sh remove`, and `WORKTREE_FAILED` / `OVERLAY_FAILED` ending in `NO FINDING` for `hunter` and `INCONCLUSIVE` for `critic`): `hunter.md`, `critic.md` and `skills/code-auditor/references/synthesis.md` `## Clean-checkout verification`.
+- The clean-checkout steps (`worktree.sh add`, `diff-overlay.sh`, replay, `worktree.sh remove`, and `WORKTREE_FAILED` / `OVERLAY_FAILED` ending in `NO FINDING` for `hunter` and `INCONCLUSIVE` for `critic`): `hunter.md` and `critic.md`.
 - An agent added, removed or renamed: `plugin.json` `agents[]`, every `viber:<name>` dispatch in `skills/`, and for `planner-review`/`plain-plan-review` `hooks/scripts/plan-gate.sh`.
 - `planner-review`'s input labels (`refs:`, `memory:`, `input:`): `planner-review.md`, `skills/planner/SKILL.md` and the dispatch text `hooks/scripts/plan-gate.sh` prints in its deny message.
 

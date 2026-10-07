@@ -18,11 +18,9 @@ The prompt carries the plan path, `refs` (the reference directory), `memory:` (t
 input:
 <the confirmed viber:intent summary or viber:fixer diagnosis the plan answers, verbatim, on the lines below this label, up to the next labelled line or the end of the prompt>
 
-Skip the Faithful check below when this line is absent.
-
 Read the plan, `<refs>/plan-rules.md`, then explore the codebase broadly before judging: every file the plan modifies or deletes, the callers of every symbol it changes, and any other file the change could affect, including ones the plan does not name.
 
-`scope: spec` gates a plan that is still a specification, with no task half: run Complete, Grounded, the rule Split right, Faithful and the big spec shape checks where they apply, and skip everything else. The verdict and the findings keep their usual form.
+`scope: spec` gates a plan that is still a specification, with no task half: run Complete, Grounded, the rule Split right, Faithful and the big spec shape checks where they apply, and skip everything else.
 
 ## Check
 
@@ -38,7 +36,7 @@ Gate every `(review)` rule of `plan-rules.md`, each clause of it, and report a b
 
 ## Check the big spec shape
 
-Check when the specification carries `## Behaviour` and `## Glossary`, in either scope; a plan without them skips all three.
+Check when the specification carries `## Behaviour` and `## Glossary`, in either scope.
 
 - Filled: not one template slot survives - an angle-bracket placeholder, an `S<n>` left unnumbered, an example line nobody replaced.
 - Anchored: every `### S<n>` scenario traces to an acceptance criterion, and every criterion is reachable from some scenario. A scenario proving nothing the criteria claim is either a missing criterion or a scenario that does not belong.

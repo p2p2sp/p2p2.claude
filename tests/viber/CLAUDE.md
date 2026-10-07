@@ -4,7 +4,7 @@ One test file per viber script, hook script or `.ts` module, named after it, plu
 
 ## Relationships
 
-- SUTs: `viber/scripts/`, `viber/skills/*/scripts/`, `viber/hooks/scripts/`, `viber/hooks/write/report-name.ts`, and the lens files of `viber/skills/code-auditor/references/lenses/` (their shape by `lenses.unit.test.ts`, their map-signal commands by `lens-map-signals.test.ts`).
+- SUTs: `viber/scripts/`, `viber/skills/*/scripts/`, `viber/hooks/scripts/`, `viber/hooks/write/report-name.ts`, and the lens files of `viber/skills/code-auditor/references/lenses/` (their shape by `lenses.unit.test.ts`, the map-signal commands of their `<lens>.signals.md` files by `lens-map-signals.test.ts`).
 - `help.unit.test.ts` imports `contrastRatio` and `parseColor` from `superui/skills/pro-designer/scripts/check_contrast.ts`: changing those exports breaks a viber test.
 - `viber/scripts/run-branch.sh` and `viber/hooks/register.tsx` have no test file.
 
@@ -27,6 +27,6 @@ One test file per viber script, hook script or `.ts` module, named after it, plu
 
 ## Traps
 
-- `lens-map-signals.test.ts` lifts every fenced `bash` block under a lens's `## Map signals` verbatim, replaces `<scope>` (the only placeholder a block may hold) by `.` and runs it in a throwaway repository: exit 0, or exit 1 with empty stderr, passes. Git accepts a malformed `--since` with exit 0 and an empty log, so only its fix-history window case (a 5-day-old fix listed, a 400-day-old one and a non-fix commit left out) proves the window real. Without a bash on `PATH` the cases skip and pass vacuously.
+- `lens-map-signals.test.ts` lifts every fenced `bash` block of a lens's `<lens>.signals.md` verbatim, replaces `<scope>` (the only placeholder a block may hold) by `.` and runs it in a throwaway repository: exit 0, or exit 1 with empty stderr, passes. Git accepts a malformed `--since` with exit 0 and an empty log, so only its fix-history window case (a 5-day-old fix listed, a 400-day-old one and a non-fix commit left out) proves the window real. Without a bash on `PATH` the cases skip and pass vacuously.
 - The stale-reference sweep of `code-auditor.unit.test.ts` reads the git index and assembles its `FORBIDDEN` tokens from fragments so it passes over itself: an untracked file is not swept, and a token written whole in that test file would flag it.
 - `session-start.test.ts` and `plan-hints.test.ts` compare the injected context to `viber/hooks/content/manifest.md` and `plan-hints.md` with trailing newlines trimmed: editing the content needs no test change, editing how it is emitted does.

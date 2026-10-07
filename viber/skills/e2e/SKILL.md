@@ -92,4 +92,4 @@ It derives its own subject and stages only what it is given. A non-zero exit mea
 
 At most five sentences - the handoff, the commit, how many IDs this pass skipped as already automated, how many are still pending - then one line per ID that has an outcome: `file <path>`, `blocked - <reason>` or `skipped - <reason>`. An ID an abort never reached gets no line; the sentences carry that count.
 
-The only bytes you wrote are the logs under `.temp/viber/e2e/`. The application you launched is left running - stopping it is the user's call.
+The application you launched is left running - stopping it is the user's call.

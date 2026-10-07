@@ -13,7 +13,7 @@ disable-model-invocation: true
 "${CLAUDE_SKILL_DIR}/scripts/rules-map.sh"
 ```
 
-The block above is this host project's rules layer as the script measured it: the run's `id:`, the `state:`, one `rule:` line per scored rule with its byte count, its declared globs, the tracked files they match and its budget flag, one `frozen:` line per rule held out of scoring, one `dead:` line per rule whose scope matches nothing, one `dirty:` line per file holding uncommitted work, and the directory total. A section with nothing to report printed no line at all.
+The block above is this host project's rules layer as the script measured it; a kind of line with nothing to report printed none.
 
 It is self-verifying and trusted. Never re-count a rule, never glob the tree to check what a scope matches, never run git to decide what is dirty: every fact you route on is already above.
 
@@ -24,7 +24,7 @@ Your whole tool set is `AskUserQuestion`, `Agent`, `SendMessage` and the two map
 Before any question, one line per fact worth deciding on:
 
 - each `rule:` line with its size, its globs and its match count. `OVER-FILE` is past 4000 bytes, and `total:` closes on `OVER-DIR` past 40000 over the directory. A rule already over a budget is reported here and compacted or split by the writer, never by you.
-- each `frozen:` line, named as a file the layer keeps and this command never scores, never audits, never resets and never rewrites. It is reported and nothing more.
+- each `frozen:` line, named as a file this command reports and never scores, audits, resets or rewrites.
 - each `dead:` line, named as a rule whose declared scope matches no tracked file.
 - each `dirty:` line with its `modified` or `untracked` word.
 
@@ -83,7 +83,7 @@ out: .temp/viber/<id>/
 refs: ${CLAUDE_PLUGIN_ROOT}/references
 ```
 
-`<id>` is the `id:` value of the map above. A rule whose `paths` field reads `none` gates the whole repository: pass `**` as its scope and `none` as its matches, that scope never being dead. A scope with no rule is the proposing direction: `target: none`, `scope` that directory, `matches: none`, and only missing conventions can come back.
+`<id>` is the `id:` value of the map above. A rule whose `paths` field reads `none` gates the whole repository: pass `**` as its scope and `none` as its matches. A scope with no rule is the proposing direction: `target: none`, `scope` that directory, `matches: none`, and only missing conventions can come back.
 
 Each call returns one line:
 

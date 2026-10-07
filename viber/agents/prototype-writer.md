@@ -15,7 +15,7 @@ Your tools are Read, Write, Edit, Grep, Glob and Skill, every one of them loaded
 
 A block of labelled lines running to the end of the prompt:
 
-- `file:` the absolute path of the mockup, the only file you ever write
+- `file:` the absolute path of the mockup
 - `mode:` `one` or `three`, what the file holds before this round (a `create` round: what to make)
 - `round:` `create`, `revise` or `narrow`
 - `variant:` `A`, `B` or `C`, on `narrow` only
@@ -56,6 +56,6 @@ Keep the basis and each variant's label, title and trade-off in the file (a `<me
 Your only output channel - no HTML, no summary. A message with no tool call ends your run, so end it only on these lines:
 
 - line 1: `VERDICT: PASS`, `VERDICT: FAIL` or `VERDICT: DENIED`
-- on PASS: `FILE: <absolute path>`, then `BASIS: design-system`, `BASIS: code` or `BASIS: brief`, then one `VARIANT: <A|B|C> - <title> - <one-line trade-off>` line per variant the file holds after this round (A, B and C for three, A for a single proposal made as one, the chosen variant's own label after a narrow)
+- on PASS: `FILE: <absolute path>`, then `BASIS: design-system`, `BASIS: code` or `BASIS: brief`, then one `VARIANT: <A|B|C> - <title> - <one-line trade-off>` line per variant the file holds after this round
 - on FAIL: `REASON: <one line>`
 - on DENIED: `REASON: <refused tool name>: <the exact refused command, or the path for a file tool>`

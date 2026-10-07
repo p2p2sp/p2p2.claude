@@ -15,6 +15,7 @@ You settle one hunter's claim independently, by the lens's own method, without t
 - `Claim: <path>` - one claim sidecar: a `LOCATION`, a `CLASS` and a `## Reproduce` section. That is the whole claim; the reasoning behind it is withheld from you on purpose.
 - `Run file: <path>` - the run's frame: `Lens:`, `Scope:`, `Target root:` and `## Map` with the repository's severity calibration.
 - `Lens file: <path>` - the lens: its `## Verify` is your procedure and defines each verdict; its `## Excluded` names what never counts.
+- `Variant: yes`, when present - the claim comes from a variant-wave hunt.
 - `Worktree script: <path>` and `Worktree: <path>`, when present - a clean checkout reserved for you alone. Use both exactly as given; never invent a path.
 - `Overlay script: <path>`, when present - `diff-overlay.sh`, which lays the working tree's uncommitted changes onto that checkout.
 
@@ -30,7 +31,6 @@ You settle one hunter's claim independently, by the lens's own method, without t
    Run the overlay line right after `WORKTREE_READY`, and only when the brief carries `Overlay script:`. Substitute every placeholder literally in every call: shell variables do not persist between calls. `WORKTREE_FAILED` or `OVERLAY_FAILED` means no clean checkout was possible: remove the worktree and return `INCONCLUSIVE`.
 3. Brief carries no `Worktree:` - check the cited locations and evidence in place, the way the lens's `## Verify` sets, running nothing that writes.
 4. Settle the verdict by the oracle and the definitions of the lens's `## Verify`. Where no oracle can settle the claim, that is `INCONCLUSIVE`.
-5. Judge severity from what you observed, not from any impact the claim implies.
 
 ## Output
 Return exactly this in your final message:
@@ -38,7 +38,7 @@ Return exactly this in your final message:
 VERDICT: VERIFIED | REFUTED | PARTIALLY VERIFIED | INCONCLUSIVE
 COMMAND: <the exact command or check performed>
 OBSERVED: <what was seen>
-SEVERITY: <your independent 0-10 judgement, or "unchanged" if you agree with the original>
+SEVERITY: <your independent 0-10 judgement>
 ```
 
 - `PARTIALLY VERIFIED` names in `OBSERVED` which sub-claims held.

@@ -38,7 +38,7 @@ What each case's options mean:
 - When the reports settle nothing, rule the first option.
 - Copy `RULING` verbatim from `options:`, character for character: never reword, combine, shorten or invent an option.
 - Ground `WHY` in what a report or the code shows, and mark an inference as one, never stated as fact.
-- Write `WHY` and `COST` in plain words on one line each, with no double quote, dollar sign, backtick or backslash.
+- Write `WHY` and `COST` in plain words, one line each.
 
 ## Output
 

@@ -2,7 +2,7 @@ Run the project's own extensions, once every writer above has returned and the c
 
 The steps are the config block's `build.extensions:` line, split on `, `; a step is one name or several joined by ` + `. Inside a step, skip each name the index's `closed:` line holds as `extension:<name>`. The `Run extensions` entry's `TaskUpdate` -> completed lands once every step has finished, or at once when there is none.
 
-Dispatch each extension by its bare agent name (Agent tool, no `model`) carrying these labelled lines and nothing else:
+Dispatch each extension by its bare agent name (Agent tool) carrying these labelled lines and nothing else:
 
 ```
 run: <dir>
@@ -13,12 +13,11 @@ out: .temp/viber/extension-<name>/
 
 Run the steps in listed order. Dispatch every name of a step in one message, then handle the returns as they arrive: when several are waiting, one commit per message, the others held for the next. Start the next step only once every return of the current one has been handled and its commits have run.
 
-- `VERDICT: WRITTEN` -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --extension "<plan>" "<name>" "<file>" ["<file>"...]` with its `FILES:` paths, one call per message, never beside another `commit-task.sh` call.
+- `VERDICT: WRITTEN` -> `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --extension "<plan>" "<name>" "<file>" ["<file>"...]` with its `FILES:` paths.
 - `VERDICT: NONE` -> no commit, nothing recorded.
-- `VERDICT: FAIL` -> its `REASON:` goes to the final summary with that extension's name, no retry, no arbiter, no question.
-- An agent type the harness reports as not found -> that name goes to the final summary with the hint to reload the session so the harness loads the new agent file, no retry, no arbiter, no question.
+- `VERDICT: FAIL` -> its `REASON:` goes to the final summary with that extension's name.
+- An agent type the harness reports as not found -> that name goes to the final summary with the hint to reload the session so the harness loads the new agent file.
 - `VERDICT: DENIED` -> `AskUserQuestion` naming that extension: retry / accept / abort.
-- A reply with no `VERDICT:` line gets the one reminder above, then counts as `VERDICT: FAIL`.
-- An `--extension` call exiting non-zero -> its paths named uncommitted in the final summary, no retry, no arbiter, no question.
+- An `--extension` call exiting non-zero -> its paths named uncommitted in the final summary.
 
-A `FAIL`, a not-found agent type and a refused commit never stop the archive. Every `build.extensions-missing:` name other than `none` goes to the final summary as a listed extension with no agent file, also when no step is dispatched. Every outcome above reaches the final summary.
+A `FAIL`, a not-found agent type or a refused `--extension` commit gets no retry, arbiter or question and never stops the archive. Every `build.extensions-missing:` name other than `none` goes to the final summary as a listed extension with no agent file, also when no step is dispatched.

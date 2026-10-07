@@ -13,7 +13,7 @@ disable-model-invocation: true
 "${CLAUDE_SKILL_DIR}/scripts/memory-map.sh"
 ```
 
-The block above is this host project's memory layer as the script measured it: the run's `id:`, the `state:`, one `node:` line per `CLAUDE.md` with its own character count, the count of the chain a reader loads with it and its budget flag, one `section:` line per tracked `CLAUDE.<topic>.md` with its size and flag, one `unlinked:` line per section no node names, one `orphan:` line per node whose area is gone, one `cand:` line per directory that carries no node, one `dirty:` line per node or section holding uncommitted work, and the total. A kind of line with nothing to report printed none.
+The block above is this host project's memory layer as the script measured it; a kind of line with nothing to report printed none.
 
 It is self-verifying and trusted. Never re-measure a node, never walk the tree for a candidate of your own, never run git to decide what is dirty: every fact you route on is already above.
 

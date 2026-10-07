@@ -19,8 +19,7 @@ The prompt's first line is the report path: where this run writes its report, a 
 - `baseline: <path>` - comparison mode: the report path is this run's report, `<path>` the baseline report recorded earlier.
 - Neither `mode:` nor `baseline:`: everything below runs as written, the two modes' rules ignored.
 - `suite: fast | full`, optional - the scope, resolved under Run.
-- `run: <dir>` - the change is every path changed since the commit that first added `<dir>/plan.md`, plus the uncommitted and untracked paths.
-- No `run:` line - the change is the uncommitted and untracked paths of the working tree.
+- `run: <dir>` - the run directory; it bounds the change (Selecting, step 1).
 
 ## Baseline mode
 
@@ -28,7 +27,7 @@ The prompt's first line is the report path: where this run writes its report, a 
 - No file there: run as below, once, then write the report on `PASS`, `SKIP` and `FAIL` alike, never on `DENIED`. First line `status: pass | skip | fail | build-failed`, then:
   - under `fail`, one line per failing test: `<test name> | <file> | <assertion or error>`
   - under `build-failed`, one line: `<build command> | <first error line>`
-- Return `VERDICT: PASS` or `VERDICT: SKIP`; on `FAIL` add `REPORT: <report path>`, and `BUILD: failed` when the build failed.
+- A failed build adds `BUILD: failed` after the verdict lines.
 
 ## Comparison mode
 
@@ -84,7 +83,7 @@ Never paste the log - the whole point is that it stays here.
 - The harness refuses one of your tool calls: write nothing to the report path and return:
   - line 1: `VERDICT: DENIED`
   - line 2: `REASON: <refused tool name>: <the exact refused command, or the path for a file tool>`
-- The build failed, or a test failed: write to the report path (the build command and its first error line for a build failure, run no test after it; otherwise one line per failure - test name, file, and the assertion or error), then return:
+- The build failed, or a test failed: write to the report path (the build command and its first error line for a build failure; otherwise one line per failure - test name, file, and the assertion or error), then return:
   - line 1: `VERDICT: FAIL`
   - line 2: `REPORT: <report path>`
 

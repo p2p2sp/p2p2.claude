@@ -2,7 +2,7 @@
 name: fixer
 description: Traces a reported bug to its root cause and proves it with a failing test, then hands the diagnosis to the planner - it applies no fix itself. Use whenever user reports a bug and wants to fix it. Not for a fix the user asked to apply directly, without a plan.
 argument-hint: "[bug report, or an issue number/URL when github.issues is on]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Skill, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-templates.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-create.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*)
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Skill
 user-invocable: true
 disable-model-invocation: false
 effort: high
@@ -10,8 +10,7 @@ effort: high
 
 # fixer
 
-## Overview
-A traced diagnosis, proven by a failing test: that is the output. The plan and the fix are made downstream.
+Every script run is one literal Bash line spelled as in this skill: never prefixed with an interpreter word, never assigned to a variable, never preceded by `cd`, never chained with `;`.
 
 ## The Iron Law
 
@@ -43,10 +42,9 @@ Three laws, in this order. None substitutes for another.
 ## The reproduction test
 - Read `${CLAUDE_PLUGIN_ROOT}/references/test-strategy.md` before writing it: every rule it marks `(blocking)` binds this test, and no later stage may change it.
 - Narrowest level that reproduces the divergence - unit at the diverging layer, not an end-to-end run of the symptom.
-- Test the divergence, not the symptom reported by the user.
 - **Actually run it - never simulate it mentally.**
 - It must fail because the defect is present - not from a syntax error, missing import, typo, harness misconfig, or wrong fixture path.
-- Passes immediately? The diagnosis is wrong or the test misses it. Return to step 1 - never weaken the assertion to force a failure.
+- Passes immediately? The diagnosis is wrong or the test misses it. Return to step 2 - never weaken the assertion to force a failure.
 - The test stays in the repo, RED, as the handoff evidence and the regression guard afterwards.
 - It opens with a header comment of at most 5 lines: root cause as file + symbol, actual vs expected at the diverging step, fix direction. Nothing else goes in.
 
@@ -72,7 +70,7 @@ The handoff payload - state it in context, in this order. No report file: the pa
 ```
 
 ## Handoff [GATE]
-Invoke the `viber:planner` skill, restating every part of the diagnosis verbatim in that invocation. Stop there - do not implement, do not "just apply the one-liner first".
+Invoke the `viber:planner` skill, restating every part of the diagnosis verbatim in that invocation. Stop there.
 
 ## Bypass authorization
 The reproduction test is unconditional. When reproduction is genuinely infeasible (hard race, rendering artifact, unreachable third-party state), stop and ask the user through one `AskUserQuestion` for explicit authorization to hand off without it, stating what blocks reproduction: `Authorize` or `Keep trying`. `Keep trying` -> return to step 3. Never decide this alone; "hard to test" is not infeasible.

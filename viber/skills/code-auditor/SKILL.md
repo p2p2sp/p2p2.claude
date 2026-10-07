@@ -32,7 +32,7 @@ No agent is dispatched before Map, and every stop below prints its one line and 
    A second call follows only an answer of Performance (Web, Runtime) or Quality (Design, Tests); a group token puts that follow-up in place of the first question. Bugs -> `bugs`, Security -> `security`, Performance + Web -> `web-performance`, Performance + Runtime -> `runtime-performance`, Quality + Design -> `design`, Quality + Tests -> `tests`; Changes -> `diff`, Directory -> a directory, Whole repository -> `repo`. After a Directory answer, ask in prose for its path.
 2. `<root>`: the output of `git rev-parse --show-toplevel` in the current directory, else the current directory.
 3. A directory is read against `<root>`; an absolute one is accepted only under `<root>` and rewritten root-relative, and a leading `./` is dropped. One that does not exist, lies outside `<root>` or carries a `..` segment -> stop with `code-auditor: area directory not found under <root>: <value> (lenses: bugs, security, web-performance, runtime-performance, tests, design)`.
-4. `<lens-file>` is the absolute path of the selected one of `${CLAUDE_SKILL_DIR}/references/lenses/bugs.md`, `references/lenses/security.md`, `references/lenses/web-performance.md`, `references/lenses/runtime-performance.md`, `references/lenses/tests.md` and `references/lenses/design.md`. Read only the selected lens file, never the other five. Its `## Hunts` gives the angle slugs, its `## Verify` the `Worktree:` line.
+4. `<lens-file>` is the absolute path of the selected one of `${CLAUDE_SKILL_DIR}/references/lenses/bugs.md`, `references/lenses/security.md`, `references/lenses/web-performance.md`, `references/lenses/runtime-performance.md`, `references/lenses/tests.md` and `references/lenses/design.md`. Read only the selected lens file, never the other five. Its `## Hunts` gives the angle slugs, its `## Verify` the `Worktree:` line. `<signals-file>` is the same path ending in `.signals.md` in place of `.md`, read only by the mapper.
 5. Diff scope only: run `sh "${CLAUDE_SKILL_DIR}/scripts/diff-files.sh" "<root>"`, with `<sha>` appended as its base argument for `diff:<sha>`. Then, in this order:
    - `BAD_BASE` -> stop with `code-auditor: diff base not found: <sha>`;
    - `NOT_A_REPO` -> stop: the diff scope needs a git repository;
@@ -42,7 +42,7 @@ No agent is dispatched before Map, and every stop below prints its one line and 
 
 ## Map
 
-7. Dispatch `viber:mapper` on every scope with `Run file: <ws>/run.md`, `Lens file: <lens-file>` and `Output: <ws>/map.md`. It takes the signal scope from the run file's `Scope:` line: `.` for `diff` and `repo`, the directory otherwise.
+7. Dispatch `viber:mapper` on every scope with `Run file: <ws>/run.md`, `Lens file: <lens-file>`, `Signals file: <signals-file>` and `Output: <ws>/map.md`. It takes the signal scope from the run file's `Scope:` line: `.` for `diff` and `repo`, the directory otherwise.
 8. Map gate: `map.md` must hold `## Conventions`, `## History`, `## Severity calibration` and `## Units`. A missing file or heading -> dispatch the mapper once more with the same brief; a second miss -> stop with `code-auditor: map unavailable after two attempts`.
 9. `## Units` reading `none: <reason>` -> stop with `code-auditor: nothing to audit for <lens>: <reason>`.
 10. Append `## Map` and then `map.md` verbatim to `run.md`.
@@ -75,4 +75,4 @@ Offer one variant wave through `AskUserQuestion` only when at least one finding 
 - Diff scope: one `V-<n>` hunt per confirmed class, `n` from 1, carrying `Angle: <its angle slug>` and that class's `Seed:` line, searching the repository outside the changed files.
 - Directory and repository: one `U<n>` hunt per uninvestigated unit, best first within the scope's budget, each carrying every `Seed:` line.
 
-Every other brief line is as in Hunt. Verify the new claims, then rebuild `findings.md` from every report and verdict of the run and show it again. A run offers one wave only.
+Every other brief line is as in Hunt. Verify the new claims, each critic brief adding `Variant: yes`, then rebuild `findings.md` from every report and verdict of the run and show it again. A run offers one wave only.

@@ -1,4 +1,4 @@
-Baseline, only when no task on the index is `done` and the index carries no `dirty:` line: before the first task dispatch, dispatch `viber:test-runner` once, with no `model`, carrying:
+Baseline, only when no task on the index is `done` and the index carries no `dirty:` line: before the first task dispatch, dispatch `viber:test-runner` once, carrying:
 
 ```
 <dir>/work/tests-baseline.md

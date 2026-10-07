@@ -7,11 +7,9 @@ user-invocable: false
 
 # Test-Driven Development
 
-Write the test first. Watch it fail. Write the minimal code that passes. Refactor. If you did not watch the test fail, you do not know whether it tests the right thing.
-
 ## Iron law
 
-New behavior gets no production code before a failing test for it exists and has been watched to fail. `TDD: required` on the task is the authorization, decided before this skill loads: nothing reopens it here. Production code this cycle wrote before its failing test is deleted, then rewritten from that test. A test never watched failing on an assertion backs no `DoD` clause, and a test that passes on its first run is sharpened and taken through red again.
+New behavior gets no production code before a failing test for it exists and has been watched to fail. `TDD: required` on the task is the authorization, decided before this skill loads: nothing reopens it here. Production code this cycle wrote before its failing test is deleted, then rewritten from that test. A test never watched failing on an assertion backs no `DoD` clause.
 
 On `resume`, `reason` or `report` input, the code already in the tree is existing work, not a violation: keep it. For each of its behaviors that no existing test covers, write that test, see it fail on an assertion once by temporarily reverting the behavior it covers, never the test, confirm the failure names the gap, then restore that code so the test passes. Leave every test already in the tree as it is. A behavior new to this cycle still goes through red before green.
 
@@ -40,6 +38,4 @@ Only code this task wrote. Never refactor while red; the file stays green throug
 
 ## Workflow
 
-1. Decide the public interface before coding. The behaviors are the plan task's numbered `DoD` clauses, one failing test each. Where the task leaves a choice open, take it; where it leaves the behavior under test unnameable, stop and report the task failed with that reason.
-2. Run the full cycle on one behavior first.
-3. Repeat for each remaining behavior.
+Decide the public interface before coding. The behaviors are the plan task's numbered `DoD` clauses, one failing test each. Where the task leaves a choice open, take it; where it leaves the behavior under test unnameable, stop and report the task failed with that reason.

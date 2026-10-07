@@ -20,49 +20,18 @@ A producer and a consumer each correct alone but disagreeing: a config key writt
 ### past-fix-variant
 For each recent bug-fix commit, find the root cause and search for the same mistake elsewhere. Widen one element at a time, and stop once more than half the matches are noise.
 
-## Map signals
-History only ranks units, it is never a finding. Recent fixes weigh more than old ones, and commit subjects are noisy: some teams label feature work "fix". Rank a unit higher the more of these signals it carries; rank churn relative to size (`wc -l`), not absolute churn.
-
-Fix history, the files touched by fix, hotfix, revert and regression commits of the last 12 months (seeds the past-fix-variant hunt):
-```bash
-git log --no-merges -i -E --grep='fix|bug|regress|revert' --since='12 months ago' --name-only --format= -- <scope> | grep -v '^$' | sort | uniq -c | sort -nr | head -30
-```
-
-Churn over the same window:
-```bash
-git log --no-merges --since='12 months ago' --name-only --format= -- <scope> | grep -v '^$' | sort | uniq -c | sort -nr | head -30
-```
-
-Co-change pairs, coupling the import graph misses, feed the contract-mismatch hunt. Release and bump commits are skipped, or every pair is a version bump; the thresholds (at least 5 shared commits, commits of 30 files or fewer) are code-maat defaults:
-```bash
-git log --no-merges --since='12 months ago' --invert-grep -i -E --grep='^(chore|release|bump)' --name-only --format=format:@ -- <scope> | awk 'function e(){if(n>1&&n<=30)for(i=1;i<n;i++)for(j=i+1;j<=n;j++)c[f[i]" | "f[j]]++;n=0} /^@$/{e();next} NF{f[++n]=$0} END{e();for(k in c)if(c[k]>=5)print c[k],k}' | sort -nr | head -30
-```
-
-Error-swallowing density, per file:
-```bash
-git grep -c -E 'catch *(\([^)]*\))? *\{ *\}|except[^:]*: *pass|\|\| *true|2>/dev/null|rescue *nil|_ = err' -- <scope> | sort -t: -k2 -nr | head -30
-```
-
-Producer and consumer surface: the keys JSON files carry. Search each key in the code; a key found on one side only is a contract-mismatch candidate:
-```bash
-git grep -h -o -E '"[a-z_][a-zA-Z0-9_.-]{2,}" *:' -- '<scope>/*.json' | sort | uniq -c | sort -nr | head -50
-```
-
 ## Excluded
-- Pre-existing issues outside the diff, when the scope is a diff.
+- Pre-existing issues outside the diff, when the scope is a diff (a variant-wave hunt excepted).
 - Style, naming, formatting, missing comments or docs, and anything a linter, type checker or compiler in the repository already reports.
 - General quality or refactor advice, "could be cleaner".
 - Speculative issues with no concrete triggering input, or needing a precondition the code rules out (validated upstream, enforced by a type, an unreachable caller). Trace the callers before filing.
 - Violations silenced on purpose: a suppression comment, or a reason documented in a `CLAUDE.md`.
 - Missing input validation on trusted, internal-only inputs.
 - An empty catch whose skipped work is optional and documented as best-effort.
-- Behaviour of live external services. Never drive them.
 - Theoretical races with no shared state.
 
 ## Verify
 Worktree: required
-
-The critic tries to break the finding, working only from its location, class and recipe.
 
 1. Read the cited lines and trace every caller and the guards between. A precondition that makes the trigger unreachable: REFUTED, quoting the guard.
 2. Prove it in the clean worktree with the strongest oracle available: (a) a minimal failing test in the repository's own framework asserting the correct behaviour; (b) a command that exits non-zero, crashes or prints the wrong value; (c) a resource count that grows across runs (handles, temp directories, processes); (d) for a contract mismatch, an artifact the producer writes fed to the consumer that misbehaves, or both quoted lines plus one input showing the disagreement.
@@ -71,7 +40,7 @@ The critic tries to break the finding, working only from its location, class and
 Verdicts:
 - VERIFIED: the oracle fails as predicted and the implied fix makes it pass.
 - PARTIALLY VERIFIED: the bug is real but narrower than claimed; state the corrected scope.
-- REFUTED: a guard or precondition is shown, or the oracle passes on the recipe's input.
+- REFUTED: a guard or precondition is shown, or the oracle passes on the input of the claim's `## Reproduce`.
 - INCONCLUSIVE: the proof needs a live external service, an unavailable OS or toolchain, a harness that will not run, or a race that cannot be forced.
 
 Never upgrade a verdict on reasoning alone.

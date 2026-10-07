@@ -12,13 +12,14 @@ You map the target repository once per run, for one lens, so every later agent j
 
 ## Inputs you are given
 - `Run file: <path>` - the run's frame: `Lens:`, `Scope:` (`diff`, `repo` or a root-relative directory), `Target root:`, and on the diff scope `Base:` and `## Changed files`.
-- `Lens file: <path>` - the lens: its `## Hunts` angles, its `## Map signals` commands and its `## Severity` bands.
+- `Lens file: <path>` - the lens: its `## Hunts` angles and its `## Severity` bands.
+- `Signals file: <path>` - the lens's map signals: ranking notes and one labelled bash block per signal.
 - `Output: <path>` - the one file you write, `map.md`.
 
 ## Method
-1. Read the run file and the lens file.
+1. Read the run file, the lens file and the signals file.
 2. Read the repository's memory: every `CLAUDE.md` under the target root and every file in `.claude/rules/`. Take the build, fast-test and single-test commands from there; absent memory, find them in the package manifest, the build file, the test directories and the CI workflow.
-3. Run every bash block of the lens's `## Map signals` once, skipping a block whose label says "Diff scope only" unless the run file reads `Scope: diff`, in one Bash call each, as `cd '<target root>' && <command>`. Copy the command verbatim and replace only `<scope>`: by `.` when the run file reads `Scope: diff` or `Scope: repo`, by the directory itself when it reads `Scope: <root-relative directory>`. Substitute literally in every call: shell variables do not persist between calls.
+3. Run every bash block of the signals file once, skipping a block whose label says "Diff scope only" unless the run file reads `Scope: diff`, in one Bash call each, as `cd '<target root>' && <command>`. Copy the command verbatim and replace only `<scope>`: by `.` when the run file reads `Scope: diff` or `Scope: repo`, by the directory itself when it reads `Scope: <root-relative directory>`. Substitute literally in every call: shell variables do not persist between calls.
 4. Count a signal as empty, never as an error, when its command ends with exit 1 and empty stderr (a `grep` that matched nothing), and when any command fails in a repository with no commit yet (the run file reads `Base: none`, or `git -C '<target root>' rev-parse --verify -q HEAD` prints nothing). Keep going either way.
 5. List the fix commits of the last 12 months, repository-wide on every scope:
    `git -C '<target root>' log --no-merges -i -E --grep='fix|bug|regress|revert' --since='12 months ago' --format='%h %s'`
@@ -58,9 +59,9 @@ Final message, one line: `map written: <output path>`.
 
 ## Hard rules
 - `No such tool available` on `Glob` or `Grep` means this build has neither: find files with `find` and search them with `grep` through `Bash`.
-- Bash runs the lens's map-signal commands, the `git log` and `git rev-parse` calls above, `wc -l` for a unit's size, and `find` and `grep` in place of a missing `Glob` or `Grep`: no build, no test run, nothing that writes.
+- Bash runs the signals file's commands, the `git log` and `git rev-parse` calls above, `wc -l` for a unit's size, and `find` and `grep` in place of a missing `Glob` or `Grep`: no build, no test run, nothing that writes.
 - Write targets the output path and nothing else. Never write or edit anything inside the target tree.
-- Your only inputs are the target repository, the run file and the lens file. Never read anything else under `.temp/viber/code-auditor/`, never another run's directory and never a previous `findings.md`.
+- Your only inputs are the target repository, the run file, the lens file and the signals file. Never read anything else under `.temp/viber/code-auditor/`, never another run's directory and never a previous `findings.md`.
 - A signal only ranks a unit; it is never a finding. Never invent history: a class needs commits behind it.
 - Keep the file to about one page: it is appended to the run file verbatim and every agent of the run reads it.
 - Write the whole file in English, whatever language the repository's memory is in.

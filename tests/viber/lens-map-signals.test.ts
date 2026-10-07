@@ -1,19 +1,19 @@
 /*
- * lens-map-signals.test.ts - proves every map-signal command an audit lens
- * file in viber/skills/code-auditor/references/lenses/ tells the mapper to run
- * is one bash actually executes: each ```bash block is lifted from the lens
- * verbatim, its `<scope>` placeholder replaced by `.`, and run with empty stdin
+ * lens-map-signals.test.ts - proves every map-signal command a lens signals
+ * file (`<lens>.signals.md` in viber/skills/code-auditor/references/lenses/)
+ * tells the mapper to run is one bash actually executes: each ```bash block is
+ * lifted from the signals file verbatim, its `<scope>` placeholder replaced by `.`, and run with empty stdin
  * from the root of a throwaway repository holding a few source files and a
  * fix history. A command passes on exit 0, or on exit 1 with empty stderr (a
  * grep or git grep matching nothing); anything else is a broken command.
  *
- * It also proves the window of the bugs lens's first block, the fix-history
- * command: git answers a `--since` value it cannot parse with exit 0 and an
+ * It also proves the window of the bugs signals file's first block, the
+ * fix-history command: git answers a `--since` value it cannot parse with exit 0 and an
  * empty log, so only running it shows a 5-day-old fix listed and a
  * 400-day-old fix and a non-fix commit left out.
  *
- * One case per lens file carries the file name, so
- * `--test-name-pattern "bugs\.md"` selects that lens alone.
+ * One case per signals file carries the file name, so
+ * `--test-name-pattern "bugs\.signals"` selects that lens alone.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -40,7 +40,7 @@ async function assertBash(fn: (shell: Shell) => void | Promise<void>) {
   }
 }
 
-/** Every ```bash block of a lens file, `<scope>` substituted by `.` the way
+/** Every ```bash block of a signals file, `<scope>` substituted by `.` the way
  *  the mapper substitutes the repository-wide scope. */
 function mapSignalCommands(file: string): string[] {
   const text = fs.readFileSync(path.join(LENSES, file), "utf-8");
@@ -107,10 +107,10 @@ function allOk(commands: string[]): { command: string; verdict: string }[] {
   return commands.map((command) => ({ command, verdict: "ok" }));
 }
 
-const LENS_FILES = fs.readdirSync(LENSES).filter((name) => name.endsWith(".md")).sort();
+const SIGNALS_FILES = fs.readdirSync(LENSES).filter((name) => name.endsWith(".signals.md")).sort();
 
-for (const file of LENS_FILES) {
-  test(`every map-signal command of the lens file ${file} runs under bash in a throwaway repository and exits 0, or 1 with empty stderr`, async () => {
+for (const file of SIGNALS_FILES) {
+  test(`every map-signal command of the signals file ${file} runs under bash in a throwaway repository and exits 0, or 1 with empty stderr`, async () => {
     const commands = mapSignalCommands(file);
     await withGitRepo(async (repo) => {
       await buildHistory(repo);
@@ -121,8 +121,8 @@ for (const file of LENS_FILES) {
   });
 }
 
-test("the first map-signal command of bugs.md, the fix history, lists a 5-day-old fix and leaves out a 400-day-old fix and a non-fix commit (git takes a --since it cannot parse as an empty window)", async () => {
-  const fixHistory = mapSignalCommands("bugs.md")[0];
+test("the first map-signal command of bugs.signals.md, the fix history, lists a 5-day-old fix and leaves out a 400-day-old fix and a non-fix commit (git takes a --since it cannot parse as an empty window)", async () => {
+  const fixHistory = mapSignalCommands("bugs.signals.md")[0];
   await withGitRepo(async (repo) => {
     await buildHistory(repo);
     await assertBash(async (shell) => {

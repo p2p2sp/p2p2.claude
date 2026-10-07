@@ -3,8 +3,7 @@
 ## Subject - `type(scope): description`
 
 - `type` ∈ {feat, fix, refactor, docs, chore, test} - match what the diff DOES.
-- `scope` - module / area in parens (`auth`, `agents`). Drop the parens
-  entirely when no single scope fits; a forced scope is worse than none. Area - always one word.
+- `scope` - one word naming the module or area, in parens (`auth`, `agents`). Drop the parens entirely when no single scope fits; a forced scope is worse than none.
 - `description` - imperative, lowercase, one line, no trailing period; what the change does, the way a reviewer skimming `git log` reads it.
 - Subject only by default. Add a footer only per the rule below; never invent a body.
 

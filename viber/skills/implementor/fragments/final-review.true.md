@@ -1,6 +1,5 @@
 Skip this step, completing its `Final review` entry, when the index's `closed:` line names `final-review`, the build ended on `abort`, or no task was committed this run.
 
-The `Final review` entry's `TaskUpdate` -> completed lands once every dispatch below has returned, committed or been accepted.
 Cut every task of the index, in index order, skipped ones included, into groups of at most 8 consecutive tasks, one group per slice.
 
 Dispatch one `viber:final-reviewer` (Agent tool, `model` opus clamped into the tiers range) per slice, all in one message, each carrying:
@@ -40,7 +39,7 @@ memory: <the config block's build.memory value>
 
 - Recheck `VERDICT: PASS` -> commit the fix.
 - Recheck `VERDICT: DENIED` -> `AskUserQuestion`: retry / accept / abort; `accept` commits the fix, its refused call named in the final summary.
-- Recheck `VERDICT: FAIL` -> no second fix round: the arbiter (no `model`) with `case: final-review`, `options: accept`, `report:` the recheck's `REPORT` path. Record its ruling with subject `final-review`, then commit the fix, that `REPORT` path named in the final summary.
+- Recheck `VERDICT: FAIL` -> no second fix round: the arbiter with `case: final-review`, `options: accept`, `report:` the recheck's `REPORT` path. Record its ruling with subject `final-review`, then commit the fix, that `REPORT` path named in the final summary.
 - Commit the fix: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --review "<plan>" "<file>" ["<file>"...]` naming every fix path.
 
 Complete the entry. Carry to the final summary: every `FIXED:` line the fix coder returned, every `OWNER:` line any reviewer or recheck returned, every fix coder's `REASON:` on `FAIL`, every accepted recheck `REPORT`, and every refusal accepted through this step.

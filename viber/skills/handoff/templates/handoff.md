@@ -1,6 +1,5 @@
 Fill rules, never copied into the file (the file is the fenced block alone):
-- Write every heading and every line in the language of the conversation with the user. Translate the headings; keep all five sections, in this order.
-- A section with nothing to say gets one line saying so, never disappears.
+- Write every heading and every line in the language of the conversation with the user. Translate the headings; keep all five sections, in this order, one line saying so when a section has nothing to say.
 - Name files by path and code by symbol, never by line number.
 - Every decision carries its rejected alternatives, each with the reason; a decision with none considered says so.
 - What's next is an ordered list; its first step is one concrete action a fresh session can take without asking.

@@ -1,6 +1,6 @@
 ---
 name: prototype
-description: Turns a UI change into one working, self-contained HTML mockup in the project's own look - a single proposal or three variants to choose from - refines it in a UI-only conversation, then carries the conclusions to viber:intent, onto the GitHub issue it started from, or both. Takes the change in prose, or an issue number or URL when github.issues is on.
+description: Turns a UI change into one working, self-contained HTML mockup in the project's own look - a single proposal or three variants to choose from - refines it in a UI-only conversation, then carries the conclusions to viber:intent, onto the GitHub issue it started from, or both. Use when the user wants to see or compare a UI change before planning it. Takes the change in prose, or an issue number or URL when github.issues is on.
 argument-hint: "[the UI change, or an issue number/URL when github.issues is on]"
 allowed-tools: Read, Grep, Glob, Agent, Skill, AskUserQuestion, Edit(./.temp/viber/prototype/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/open-page.sh:*)
 user-invocable: true
@@ -11,7 +11,7 @@ disable-model-invocation: false
 
 Turn a UI change into one mockup the user sees in the browser, settle it in conversation, then carry the conclusions on. `viber:prototype-writer` alone writes and edits the mockup: never write or edit it yourself, and never edit host code.
 
-Your tools: `Read`, `Grep`, `Glob` (where this build has neither, read-only `find` and `grep` through `Bash` in their place), `Agent` for the writer, `Skill` for `viber:intent` alone, `AskUserQuestion` for a question offering options, and the script lines below.
+Use `Skill` only for `viber:intent`.
 
 Every script run is one literal Bash line spelled as in this skill: never prefixed with an interpreter word, never assigned to a variable, never preceded by `cd`, never chained with `;`.
 

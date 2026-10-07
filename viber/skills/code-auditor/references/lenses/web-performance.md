@@ -2,7 +2,7 @@
 Audits what changes the bytes, their order or their timing in the browser: initial JavaScript weight, the largest-contentful-paint path, layout stability, hydration and interaction cost, asset weight and delivery headers. Server data-access latency belongs to the runtime performance lens, a wrong result to the bugs lens, an exploitable flaw to the security lens, and structure without a measurable cost to the design lens.
 
 ## Hunts
-Order of impact, the Vercel react-best-practices ordering: waterfalls and bundle size first, micro-optimizations last. Every finding names a route, a byte count or an element, and the metric it affects.
+Order of impact: waterfalls and bundle size first, micro-optimizations last. Every finding names a route, a byte count or an element, and the metric it affects.
 
 ### initial-js-weight
 A heavy dependency reaching the entry chunk of a primary route: barrel or `import *` imports, no lazy split for modals, editors and charts, a `"use client"` root, polyfills. Per framework: Next `"use client"` in `layout.tsx`; Vite or Rollup putting all vendors in one chunk; Vue global component registration; Angular routes without `loadComponent`.
@@ -19,64 +19,6 @@ Static content hydrated as client components; a root context `value` rebuilt eve
 ### asset-and-delivery
 Third-party tags loaded eagerly or in `<head>` (tag manager, chat, A/B testing); fonts not WOFF2, many weights or loaded by CSS `@import`; raw multi-MB images with no optimizer; hashed assets without a long `max-age` or `immutable`; HTML cached with a long `max-age`.
 
-## Map signals
-Rank units by route reach (root layout first, then the landing page), then by the signals below and by churn. No frontend framework found by the first two blocks: the units line is `none: <reason>`, this lens has nothing to audit, and the run stops there.
-
-Framework config files:
-```bash
-git ls-files -- <scope> | grep -E '(^|/)(next|vite|nuxt|astro|svelte|remix|angular|webpack)\.(config\.)?(m?[jt]s|json)$'
-```
-
-Framework dependencies:
-```bash
-git grep -lE '"(react|vue|svelte|@angular/core|solid-js|preact)"' -- '<scope>/*package.json'
-```
-
-Entry files:
-```bash
-git ls-files -- <scope> | grep -E '(^|/)(app/.*(page|layout)|pages/[^/]+|routes/.*|src/main|index)\.(t|j)sx?$|index\.html$'
-```
-
-Heavy imports:
-```bash
-git grep -nE "from ['\"](moment|lodash|@mui/icons-material|chart\.js|three|monaco-editor|xlsx|pdfjs-dist|highlight\.js|firebase|aws-sdk)['\"]|import \* as" -- <scope> | head -50
-```
-
-Client roots in layouts and providers:
-```bash
-git grep -lE "^['\"]use client['\"]" -- <scope> | grep -E 'layout|providers|_app'
-```
-
-Unsized media, line-based and approximate:
-```bash
-git grep -nE '<(img|iframe|video)[ >]' -- <scope> | grep -v 'width=' | head -50
-```
-
-Fetch waterfalls in effects:
-```bash
-git grep -nA4 'useEffect(' -- <scope> | grep -E 'fetch\(|axios|\.get\(' | head -50
-```
-
-Third-party tags and fonts:
-```bash
-git grep -nE 'googletagmanager|gtag|hotjar|intercom|beforeInteractive|fonts\.googleapis|@font-face|font-display' -- <scope> | head -50
-```
-
-Largest binaries:
-```bash
-git ls-files -z -- '<scope>/*.png' '<scope>/*.jpg' '<scope>/*.jpeg' '<scope>/*.gif' '<scope>/*.ttf' '<scope>/*.otf' | xargs -0 -I{} du -k {} | sort -rn | head -20
-```
-
-Cache headers in the repository:
-```bash
-git grep -nE 'Cache-Control|max-age|immutable' -- '<scope>/vercel.json' '<scope>/netlify.toml' '<scope>/_headers' '<scope>/next.config.*'
-```
-
-Churn:
-```bash
-git log --no-merges --since='6 months ago' --name-only --format= -- <scope> | grep -v '^$' | sort | uniq -c | sort -nr | head -30
-```
-
 ## Excluded
 - Memoization or `useCallback` advice where React Compiler is enabled or the render is not shown to be expensive; loop and property-access micro-optimizations.
 - Dev-only code: tests, Storybook, scripts, devDependencies, dev-server config.
@@ -90,7 +32,7 @@ Worktree: required
 
 Oracle: static evidence plus measurement from the production build. Never start a browser or a dev server.
 
-1. Read the build command from the project memory. In the clean worktree install with the lockfile, then build. No build command in memory: static evidence only, and the verdict is capped at PARTIALLY VERIFIED.
+1. Take the build command from the run file's `## Conventions`. In the clean worktree install with the lockfile, then build. No build command there: static evidence only, and the verdict is capped at PARTIALLY VERIFIED.
 2. Find the output directory: `dist/`, `build/`, `.output/public/`, `.svelte-kit/output/client/`, `dist/client/`, or the framework's static chunks directory.
 3. Find the route's initial chunks. Generic: the targets of the `<script src>` and `<link rel="modulepreload">` or `<link rel="stylesheet">` tags in the built HTML of the route (locate the prerendered `.html` with `find`). Vite: the `isEntry` chunk of `.vite/manifest.json` plus a recursive walk of its `imports`, never `dynamicImports`.
 4. Measure each file with `gzip -9 -c FILE | wc -c` and sum per route.
