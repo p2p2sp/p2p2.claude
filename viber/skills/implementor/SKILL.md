@@ -251,6 +251,4 @@ After the summary and outside its 7 lines, list every `FIXED:` line the final re
 
 After those, also outside its 7 lines, list the rulings: each index `ruling:` line, then each ruling this session recorded that is not already one, every one with its ruling, `why:` and `cost if wrong:`.
 
-A run of more than 5 tasks adds one line after the summary, outside its 7: propose running `code-review`.
-
 With a `next: part` index line and a build not ended on `abort`, the last line, after the summary and outside its 7, is `/viber:intent <archive path>/roadmap.md` in the archived form, `/viber:intent <dir>/roadmap.md` in the screen form.
