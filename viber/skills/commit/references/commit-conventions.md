@@ -17,10 +17,3 @@ Source order (first that yields a number wins):
 2. The current branch (see the "Current branch" block), via `(?i)(?:task|issue)\.(\d+)` (e.g. `feature/task.42-…` → `42`): exactly one distinct number → `Refs: #N`; zero or more than one → no footer (ambiguity is not worth a wrong link).
 
 Put the footer inside the message string itself: subject line, one blank line, then `Refs: #N`. Omit it entirely when no number resolves - never append an empty footer.
-
-## Examples
-
-- Two user-profile endpoints, branch `main` → `feat(profile): add user-profile endpoints`
-- CORS fix on branch `feature/task.42-cors` → `fix(cors): distinguish dev and prod policies`, then a blank line, then `Refs: #42`
-- Args carried `#7` (or `https://github.com/o/r/issues/7`) on branch `main` → subject, blank line, then `Refs: #7`
-- Deprecated flag dropped on a branch with no task number → `refactor(config): drop deprecated retry flag` (no footer)
