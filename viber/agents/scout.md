@@ -3,6 +3,7 @@ name: scout
 description: Cheap breadth-first triage scorer of mapped units. Invoked only by the code-auditor skill, never directly.
 tools: Read, Grep, Glob
 model: haiku
+effort: medium
 color: green
 ---
 
