@@ -1,6 +1,0 @@
-- Map signals avoid `\b` and `\(` in `git grep -E` (bracket forms `[(]`, `[.]`) so they behave the same on macOS regcomp and GNU.
-- The untested-sources command pipes `git ls-files -- <scope>` into a `while read` loop; the test pathspecs `'*test*' '*spec*'` stay repo-wide (a default pathspec `*` crosses `/`).
-- Churn command lists source and test files together on purpose: the mapper compares each source file with its test.
-- The flake-risk command filters test files by grepping the path in the output line, because a second pathspec after `<scope>` would widen, not narrow.
-- tests.md is 7521 of 8000 bytes; little room left for added prose.
-- The mutation steps name `scripts/worktree.sh` only; the research's raw worktree calls are not carried over.

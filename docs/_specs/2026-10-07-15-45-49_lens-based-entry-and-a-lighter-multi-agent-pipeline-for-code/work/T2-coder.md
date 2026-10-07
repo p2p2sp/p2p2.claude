@@ -1,5 +1,0 @@
-- Every security.md map-signal block ends `-- <scope>` (the diff-scope block is `git diff -- <scope> | grep ...`), so the mapper's `.` substitution covers all of them.
-- The research's entry-point and sink greps use `git grep -c ... | sort -t: -k2 -nr` (per-file counts, like the bugs lens) instead of `-n`, so the mapper ranks units rather than reading line dumps; the SQL, crypto and secrets blocks keep `-n` with `head -30`.
-- The research's `\|safe` and bare `DES` alternatives are dropped from the patterns: `\|` is a literal pipe in ERE, and `-i DES` matches ordinary words.
-- Severity adjustments (-2 / +1) sit as a prose line after the bands so the bands stay `<low>-<high>: ...` bullets covering 1-10.
-- The six gate names and the INCONCLUSIVE conditions are in `## Verify` step 4 and the verdict list; the file is 6917 bytes.

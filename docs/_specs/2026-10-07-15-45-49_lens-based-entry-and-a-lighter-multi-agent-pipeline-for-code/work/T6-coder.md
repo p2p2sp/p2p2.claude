@@ -1,5 +1,0 @@
-- design.md scopes every map-signal block with `-- <scope>` (git pathspec), so the mapper's `.` substitution covers all seven; the dead-export lead is prose only, no block.
-- Version-bump skip uses `-i -E --grep='^(chore|build)(\([^)]*\))?: *(bump|release)|^(bump|release)'` with `--invert-grep`, narrower than bugs.md's `^(chore|...)` so ordinary chore commits still count; the commit-size cap is 30 files and the pair floor is 3 shared commits (the lens's own pain-evidence gate).
-- The fan-in and fan-out commands were [unverified] in the research; the map-signals test now runs them (exit 0 in the throwaway repo).
-- The research's `git log -S'<literal>'` is prose in the lens: a second `<word>` placeholder would break the C1 rule that `<scope>` is the only one.
-- The map-signals test passes vacuously when no bash is found; here bash ran (the case reported a real duration).

@@ -1,8 +1,0 @@
-- SKILL.md still dispatches profiler, edge-scout and detective and reads jobs.md: those agents are gone from plugin.json now, so the auditor is broken until T10 rewrites SKILL.md.
-- help.html code-auditor card: only the agent sentence was rewritten (formula sentence dropped, Node.js 22.6 line kept, it holds until T10); T11 owns the rest of the card (lenses, scopes, Start, Arguments).
-- Polish help text calls a lens "soczewka" and keeps "hunter" untranslated (declined "huntera"); T11 should keep the same terms.
-- Mapper's fix-commit list is its own `git -C ... log --format='%h %s'` call (bugs.md's fix-history signal prints file counts only, no hashes); no test runs it now that profiler.test.ts is gone.
-- "Confirmed" is defined in synthesis.md as VERIFIED or PARTIALLY VERIFIED; it drives K in the header and the variant-wave offer.
-- Tie order by hunt: U<n> ascending, then A-<slug> in the lens's angle order, then V-<n>, then k; a merged group takes its first member's <hunt id>-<k>.
-- Hunter's and critic's final step on OVERLAY_FAILED removes the worktree before NO FINDING / INCONCLUSIVE.
-- CLAUDE.md nodes (viber/agents, viber/skills, tests/viber) still describe profiler/detective/edge-scout and profiler.test.ts: out of scope, left for the memory close.

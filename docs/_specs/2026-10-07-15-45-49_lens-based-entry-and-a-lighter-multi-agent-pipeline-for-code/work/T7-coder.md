@@ -1,6 +1,0 @@
-- diff-files.sh is invoked through `sh`, so it stays 100644; the portability sweep passes with it.
-- Paths are read with `-z` and mapped to newlines, so a path holding a newline is unsupported (stated in the header).
-- A missing repo-root argument exits 2 with usage on stderr; C4 does not name this case.
-- A `-`-prefixed explicit base is answered `BAD_BASE` without calling git, so it can never be read as an option.
-- The harness keeps `.gitconfig-global` inside every test repo dir: an uncommitted fixture must exclude it (`.git/info/exclude`) or it shows as untracked.
-- I ran `git add -N` on both new files only to make the portability sweep see them; the index holds intent-to-add entries for them.

@@ -1,6 +1,0 @@
-- Every block ends in a `-- <scope>` or `'<scope>/<glob>'` pathspec; the package.json block uses `'<scope>/*package.json'` so monorepo manifests match (git pathspec `*` crosses `/`).
-- The one-command rule dropped the research's two-part detection into two blocks (config files, framework dependencies); the `none: <reason>` rule is stated in the prose over both.
-- The binaries block uses `xargs -0 -I{} du -k {}` so empty input runs nothing (GNU `xargs -0 du` alone would list the whole tree).
-- The Next HTML path is left out on purpose: the Verify step says to locate the prerendered `.html` with `find` (research marked the Next 16 path unverified).
-- The research's per-block tail (`head -50`) was added to the noisy greps; the heavy-import and effect-fetch blocks stay approximate, line-based signals.
-- The segment tag pattern was dropped from the third-party block: it matches far too many lines in ordinary code.
