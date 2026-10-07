@@ -1,10 +1,12 @@
 /*
- * register.tsx - viber's task panel and its report-name write. The panel reads
- * the active run (the newest run directory of docs/<runs>/) from disk at session
- * start, after Bash calls naming a run script, after task dispatches and every
- * 15 seconds, draws a button above the prompt only while a run is active, and
- * opens a pane listing the run's tasks; its tool.call hooks pass their calls
- * through unchanged. The Write hook answers one refusal only: the harness guard
+ * register.tsx - viber's task panel and its report-name write. The panel shows
+ * only the runs this session builds: a run becomes the session's when the session
+ * dispatches one of its tasks or calls commit-task.sh or plan-index.sh --split on
+ * its plan. It reads the active run (the newest of those run directories of
+ * docs/<runs>/) from disk at session start, after Bash calls naming a run script,
+ * after task dispatches and every 15 seconds, draws a button above the prompt only
+ * while a run is active, and opens a pane listing the run's tasks; its tool.call
+ * hooks pass their calls through unchanged. The Write hook answers one refusal only: the harness guard
  * rejecting a viber agent's Write of a .md file whose name starts with report,
  * summary, findings or analysis, for a path inside the project root; it writes
  * that file itself and returns the Write result. The logic it draws from is
@@ -13,7 +15,7 @@
 
 import type { EngineInterface, Register } from 'claude-code'
 
-import { dispatchedTaskId, isRunScriptCall } from './panel/run-events'
+import { claimedRunKey, dispatchedTask, isRunScriptCall } from './panel/run-events'
 import { activeRun, isCleanupOn, panelOf, runsDirectory } from './panel/run-state'
 import type { ActiveRun, RunCandidate } from './panel/run-state'
 import { isInsideRoot, isReportNameRefusal, isViberAgent } from './write/report-name'
@@ -33,8 +35,15 @@ function textOf($: EngineInterface, path: string): Promise<string | null> {
     )
 }
 
-/** The active run as the disk shows it now, or null for none. */
+let run: ActiveRun | null = null
+let seq = 0
+const running = new Set<string>()
+const owned = new Set<string>()
+let stopClock: (() => void) | undefined
+
+/** The active run among this session's runs as the disk shows it now, or null for none. */
 async function loadRun($: EngineInterface): Promise<ActiveRun | null> {
+  if (owned.size === 0) return null
   const viberYml = await textOf($, '.claude/viber.yml')
   const runs = `docs/${runsDirectory(viberYml)}`
   const entries = await Promise.resolve()
@@ -45,17 +54,13 @@ async function loadRun($: EngineInterface): Promise<ActiveRun | null> {
     )
   const candidates: RunCandidate[] = []
   for (const entry of entries) {
+    if (!owned.has(entry.name)) continue
     const plan = await textOf($, `${runs}/${entry.name}/plan.md`)
     if (plan === null) continue
     candidates.push({ key: entry.name, plan, status: await textOf($, `${runs}/${entry.name}/status.md`) })
   }
   return activeRun(candidates, isCleanupOn(viberYml))
 }
-
-let run: ActiveRun | null = null
-let seq = 0
-const running = new Set<string>()
-let stopClock: (() => void) | undefined
 
 /** Reads the active run again and redraws; a read that a newer one overtook is dropped. */
 async function refresh($: EngineInterface): Promise<void> {
@@ -88,13 +93,18 @@ export const register: Register = (on) => {
   })
 
   on('tool.call', { tool: 'Agent' }, async ($, e, next) => {
-    const id = dispatchedTaskId(e.subagent_type, e.prompt)
-    if (id !== null) {
-      running.add(id)
-      try {
-        $.ui.invalidate('ui.render')
-      } catch {
-        // the next refresh redraws
+    const task = dispatchedTask(e.subagent_type, e.prompt)
+    if (task !== null) {
+      running.add(task.id)
+      if (owned.has(task.run)) {
+        try {
+          $.ui.invalidate('ui.render')
+        } catch {
+          // the next refresh redraws
+        }
+      } else {
+        owned.add(task.run)
+        void refresh($)
       }
     }
     const ran = await next(e)
@@ -104,6 +114,8 @@ export const register: Register = (on) => {
 
   on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
     const ran = await next(e)
+    const key = claimedRunKey(e.command)
+    if (key !== null) owned.add(key)
     if (isRunScriptCall(e.command)) void refresh($)
     return ran
   }).catch((_$, e, next) => next(e))

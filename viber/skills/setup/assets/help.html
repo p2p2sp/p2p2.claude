@@ -1627,11 +1627,15 @@ active run the button is hidden and the pane says <code>No active viber run.</co
 <code>viber tasks</code>, który wypisuje każde zadanie jako <code>T3 - &lt;tytuł zadania&gt;</code> ze stanem
 przy prawej krawędzi: <code>done</code>, <code>skipped</code>, <code>running</code> albo <code>pending</code>. Escape zamyka panel.
 Bez aktywnego przebiegu przycisk jest ukryty, a panel pokazuje <code>No active viber run.</code></p>
-<p lang="en">The active run is the newest run directory. The panel only reads <code>plan.md</code> and
+<p lang="en">The panel shows only the runs this session builds: a run becomes the session's when the session
+dispatches one of its tasks or commits one of its steps, so a second console open on the same repository shows no
+button. The active run is the newest of those run directories. The panel only reads <code>plan.md</code> and
 <code>status.md</code> from disk, at session start, after a run script or a task dispatch and every 15 seconds. It
 writes nothing, changes no tool call and costs no model tokens. It needs a Claude Code version that loads hooks
 modules; on an older one the panel does not appear and nothing else changes.</p>
-<p lang="pl">Aktywny przebieg to najnowszy katalog przebiegu. Panel tylko czyta z dysku <code>plan.md</code>
+<p lang="pl">Panel pokazuje tylko przebiegi, które buduje ta sesja: przebieg staje się jej, gdy sesja uruchomi
+jedno z jego zadań albo zatwierdzi jeden z jego kroków, więc druga konsola otwarta na tym samym repozytorium nie
+pokazuje przycisku. Aktywny przebieg to najnowszy z tych katalogów przebiegu. Panel tylko czyta z dysku <code>plan.md</code>
 i <code>status.md</code>: przy starcie sesji, po skrypcie przebiegu lub uruchomieniu zadania i co 15 sekund. Nic nie
 zapisuje, nie zmienia żadnego wywołania narzędzia i nie zużywa tokenów modelu. Wymaga wersji Claude Code, która
 ładuje moduły hooków; na starszej panel się nie pojawia, a reszta działa bez zmian.</p>

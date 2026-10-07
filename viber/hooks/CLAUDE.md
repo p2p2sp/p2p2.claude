@@ -6,7 +6,8 @@ This area owns `hooks.json`, the four hook scripts under `scripts/`, the two tex
 
 - Plan-mode episode: the transcript lines after the last `"type":"permission-mode"` record whose mode is not `plan`. `plan-gate.sh` and `plan-hints.sh` look only inside it, so a plan approved and built earlier in the session never re-arms the gate.
 - Planner ownership: a `Skill` tool_use for `planner` (bare or `viber:`, never another plugin's `xyz:planner`) inside the episode, or one whose own following `EnterPlanMode` lies inside it, AND a plan file opening with a frontmatter `source:` line. Anything else is a plain plan.
-- Active run: the run directory with the largest key whose `plan.md` holds at least one task block under `## Tasks`. With `build.cleanup` off it stops being active once every task is in `done:` or `skipped:`; with cleanup on it stays until archived.
+- Session's run: a run key the session claimed by dispatching one of its tasks (the directory holding `tasks/` in the `task:` line) or by a Bash call of `commit-task.sh`, or `plan-index.sh` with `--split`, naming `<key>/plan.md`. Claims live in the module's memory: a reload or a resumed process starts with none until the next such call.
+- Active run: among the session's runs, the run directory with the largest key whose `plan.md` holds at least one task block under `## Tasks`. With `build.cleanup` off it stops being active once every task is in `done:` or `skipped:`; with cleanup on it stays until archived.
 
 ## Relationships
 
@@ -36,7 +37,7 @@ This area owns `hooks.json`, the four hook scripts under `scripts/`, the two tex
 - The `json_str` helper: `plan-gate.sh`, `plan-hints.sh`, `session-start.sh`.
 - The verdict regex in `plan-gate.sh`: the `pair_raw` awk and the `verdict_value` awk must stay identical, or a quoted `VERDICT: PASS is not...` ahead of the real FAIL reads as a pass.
 - `plan-gate.sh`'s `dispatch_with` text and the input each reviewer expects: `../agents/planner-review.md` (plan path, `refs:`, `memory:`, `input:`) and `../agents/plain-plan-review.md` (plan path, the user's goal).
-- `panel/run-events.ts`: `TASK_AGENTS` and the `task:` prompt line follow how `../skills/implementor/SKILL.md` dispatches coders and reviewers; `RUN_SCRIPT` follows the run script names in `../scripts/`.
+- `panel/run-events.ts`: `TASK_AGENTS` and the `task:` prompt line follow how `../skills/implementor/SKILL.md` dispatches coders and reviewers; `RUN_SCRIPT` follows the run script names in `../scripts/`; `CLAIMING_SCRIPT` follows which scripts only `implementor` calls on `<plan>` (`plan-path.sh` and plain `plan-index.sh` run in planning sessions too, so they claim nothing).
 - A hook's behavior and the `description` string of `hooks.json`.
 
 ## Traps
