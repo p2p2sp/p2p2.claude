@@ -1,0 +1,5 @@
+- Research's `grep -rn` signals became `git grep` blocks scoped `-- <scope>` or `'<scope>/*.ext'`, per T1's convention; `\s` became `[[:space:]]`.
+- The research's one-line `git show <h>` follow-up is prose, not a block (one command line per block).
+- The lens names the neighbour as `web-performance` (the slug), which the grep check counts.
+- Severity adjustments (+1 / -2 / cap 6) are a plain line after the bands, since bands must stay `- <low>-<high>:` bullets.
+- Thresholds (b >= 1.7, CV 10%, 2x) are the research's [unverified] design choices, carried without the marker.
