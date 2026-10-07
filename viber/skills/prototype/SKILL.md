@@ -4,7 +4,7 @@ description: Turns a UI change into one working, self-contained HTML mockup in t
 argument-hint: "[the UI change, or an issue number/URL when github.issues is on]"
 allowed-tools: Read, Grep, Glob, Agent, Skill, AskUserQuestion, Edit(./.temp/viber/prototype/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/open-page.sh:*)
 user-invocable: true
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # prototype
