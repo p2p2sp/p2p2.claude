@@ -88,7 +88,7 @@ claude plugin install superbiz@p2p2 --scope user
 
 | Plugin | Needs |
 | --- | --- |
-| viber | the `gh` CLI for its GitHub steps; Node.js 22.6 or newer for `/viber:code-auditor`; optional: `node` for `/viber:setup`'s settings merge, Playwright for `/viber:e2e` |
+| viber | the `gh` CLI for its GitHub steps; optional: `node` for `/viber:setup`'s settings merge, Playwright for `/viber:e2e` |
 | superui | optional: Node.js 22.6 or newer, only for the contrast check |
 | supercc | nothing |
 | superbiz | web access and Node.js 18 or newer |

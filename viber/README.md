@@ -18,8 +18,6 @@ Optional tools. A step that needs one skips with a note when it is missing:
 | Playwright | `/viber:e2e` |
 | the `gh` CLI | the GitHub steps, checked by `/viber:setup` |
 
-`/viber:code-auditor` needs `node` 22.6 or newer and stops without it.
-
 `/viber:setup` adds a bare `Bash` allow to `.claude/settings.json`. `/viber:intent`,
 `/viber:prototype`, `/viber:fixer` and `/viber:create-issue` rely on it for the script calls they
 make after a later reply of yours. Without it, each of those calls asks for permission once.
@@ -58,7 +56,7 @@ A typical run is `/viber:setup` once, then `/viber:intent`. Each step names the 
 | --- | --- |
 | `/viber:memory` | Reviews or extends your project's `CLAUDE.md` cascade. |
 | `/viber:rules` | Reviews or extends your project's `.claude/rules/`. |
-| `/viber:code-auditor` | Audits a large codebase for bugs, tech debt or another job you pick. |
+| `/viber:code-auditor` | Audits your code through one lens (bugs, security, performance, tests, design) over the current diff, one directory or the whole repository. |
 | `/viber:extension` | Creates, with you, an agent of your own that runs at the close of every build. |
 
 ### Utilities
@@ -83,8 +81,14 @@ A typical run is `/viber:setup` once, then `/viber:intent`. Each step names the 
   it take that from the conversation.
 - **`/viber:create-pr`**: opens a pull request or a draft, titles it per `github.pr-title`, pushes only on your yes,
   and posts the run's `qa.md` on it as a QA comment, once per run.
-- **`/viber:code-auditor`**: cheap agents rank every file and file pair, only the places worth it
-  get a deep investigation, and the findings are replayed on a clean checkout.
+- **`/viber:code-auditor`**: `/viber:code-auditor [<lens>] [diff | diff:<sha> | <directory> | repo]`.
+  Six lenses: `bugs`, `security`, `web-performance`, `runtime-performance`, `tests` and `design`;
+  `performance` or `quality` picks a group and asks only which of its two lenses. Three scopes: the
+  current diff (`diff`, or `diff:<sha>` to measure from a commit), one directory, or the whole
+  repository (`repo`). Whatever you leave out, it asks. One agent maps the scope for the lens, hunters
+  investigate it, and an independent critic tries to refute every finding without seeing the hunter's
+  reasoning; the lenses that run code do so on a clean checkout. The result is `findings.md` under
+  `.temp/viber/code-auditor/<run-id>/`, and your code is never edited.
 - **`/viber:extension`**: registers the agent in `build.extensions` with `parallel: false`.
 - **`/viber:handoff`**: the file holds where to look, what is done, the decisions, what comes next
   and open problems. Name a directory (`notes/`) or a `.md` path to save it elsewhere, and add a

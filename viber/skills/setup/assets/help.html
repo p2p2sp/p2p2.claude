@@ -920,9 +920,10 @@ oknie<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="current
   </div>
   <div>
     <dt><a href="#skill-code-auditor"><code data-copy>/viber:code-auditor</code></a></dt>
-    <dd><span lang="en">Audits a large codebase, investigating only where impact and opportunity are both
-    high.</span><span lang="pl">Audytuje duży kod, badając tylko miejsca, gdzie wpływ i szansa są
-    jednocześnie wysokie.</span></dd>
+    <dd><span lang="en">Audits your code through one lens (bugs, security, performance, tests or design) over
+    the current diff, one directory or the whole repository.</span><span lang="pl">Audytuje twój kod przez jedną
+    soczewkę (błędy, bezpieczeństwo, wydajność, testy lub projekt) w bieżącym diffie, jednym katalogu albo w całym
+    repozytorium.</span></dd>
   </div>
   <div>
     <dt><a href="#skill-handoff"><code data-copy>/viber:handoff</code></a></dt>
@@ -1893,12 +1894,8 @@ followed by <code>/plugin install viber@p2p2</code> does the same as the termina
   the error and pasted text still works.</span><span lang="pl">GitHub CLI (<code>gh</code>) do kroków na
   GitHubie. Bez niego krok z issue zgłasza błąd, a wklejony tekst dalej działa.</span></li>
   <li><span lang="en"><code>node</code> for the settings merge of <code>/viber:setup</code>. Without it a merge
-  into an existing settings file is skipped and the recommended block is printed.
-  <code>/viber:code-auditor</code> needs <code>node</code> 22.6 or newer as well and stops without
-  it.</span><span lang="pl"><code>node</code> do scalania ustawień w <code>/viber:setup</code>. Bez niego
-  scalanie z istniejącym plikiem ustawień zostaje pominięte i wypisany jest zalecany blok.
-  <code>/viber:code-auditor</code> też wymaga <code>node</code> w wersji 22.6 lub nowszej i bez niego kończy
-  pracę.</span></li>
+  into an existing settings file is skipped and the recommended block is printed.</span><span lang="pl"><code>node</code> do scalania ustawień w <code>/viber:setup</code>. Bez niego
+  scalanie z istniejącym plikiem ustawień zostaje pominięte i wypisany jest zalecany blok.</span></li>
   <li><span lang="en">Playwright for <code>/viber:e2e</code>. Without it <code>/viber:e2e</code> offers to
   install it, or stops.</span><span lang="pl">Playwright do <code>/viber:e2e</code>. Bez niego
   <code>/viber:e2e</code> proponuje jego instalację albo kończy pracę.</span></li>
@@ -2775,30 +2772,38 @@ z nich mówi, jak nim sterować.</p>
 
 <article class="card" id="skill-code-auditor">
   <h4><code>/viber:code-auditor</code></h4>
-  <p lang="en">Audits a codebase in depth. <a href="#agent-mapper"><code>mapper</code></a> maps the repository
-  and ranks the units worth a look, <a href="#agent-scout"><code>scout</code></a> scores them cheaply,
-  <a href="#agent-hunter"><code>hunter</code></a> investigates the best ones in depth, and
+  <p lang="en">Audits your code in depth through one lens: bugs, security, web performance, runtime performance,
+  tests or design. <a href="#agent-mapper"><code>mapper</code></a> maps the scope for that lens and ranks the units
+  worth a look, <a href="#agent-scout"><code>scout</code></a> scores them cheaply when there are too many,
+  <a href="#agent-hunter"><code>hunter</code></a> investigates in depth, and
   <a href="#agent-critic"><code>critic</code></a> tries to refute every finding without seeing the hunter's
-  reasoning. Needs Node.js 22.6 or newer.</p>
-  <p lang="pl">Dogłębnie audytuje kod. <a href="#agent-mapper"><code>mapper</code></a> mapuje repozytorium
-  i szereguje jednostki warte uwagi, <a href="#agent-scout"><code>scout</code></a> tanio je ocenia,
-  <a href="#agent-hunter"><code>hunter</code></a> dogłębnie bada najlepsze z nich, a
+  reasoning.</p>
+  <p lang="pl">Dogłębnie audytuje twój kod przez jedną soczewkę: błędy, bezpieczeństwo, wydajność w przeglądarce,
+  wydajność w czasie działania, testy lub projekt. <a href="#agent-mapper"><code>mapper</code></a> mapuje zakres
+  pod kątem tej soczewki i szereguje jednostki warte uwagi, <a href="#agent-scout"><code>scout</code></a> tanio je
+  ocenia, gdy jest ich zbyt wiele, <a href="#agent-hunter"><code>hunter</code></a> dogłębnie je bada, a
   <a href="#agent-critic"><code>critic</code></a> próbuje obalić każde znalezisko bez wglądu w rozumowanie
-  huntera. Wymaga Node.js 22.6 lub nowszego.</p>
+  huntera.</p>
   <dl>
     <div>
       <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>
-      <dd><span lang="en">Only by typing the command; no build needed. It asks for the job (bugs, tech debt,
-      coverage and others) and shows the ranked hotlist before any deep investigation.</span><span lang="pl">Tylko
-      przez wpisanie polecenia; build nie jest potrzebny. Pyta o rodzaj audytu (błędy, dług techniczny, pokrycie
-      testami i inne) i pokazuje uszeregowaną listę miejsc przed jakimkolwiek głębszym badaniem.</span></dd>
+      <dd><span lang="en">Only by typing the command; no build needed. It asks for what to audit (bugs, security,
+      performance or quality) and how much (the changes, one directory or the whole repository), skipping
+      whatever the arguments already say.</span><span lang="pl">Tylko przez wpisanie polecenia; build nie jest
+      potrzebny. Pyta, co audytować (błędy, bezpieczeństwo, wydajność lub jakość) i w jakim zakresie (zmiany,
+      jeden katalog albo całe repozytorium), pomijając to, co już mówią argumenty.</span></dd>
     </div>
     <div>
       <dt><span lang="en">Arguments</span><span lang="pl">Argumenty</span></dt>
-      <dd><span lang="en">Optionally the repository path, then one directory inside it to narrow the audit to:
-      <code>/viber:code-auditor . src/billing</code>.</span><span lang="pl">Opcjonalnie ścieżka repozytorium,
-      a po niej jeden katalog w nim, do którego audyt się zawęża:
-      <code>/viber:code-auditor . src/billing</code>.</span></dd>
+      <dd><span lang="en">Optionally a lens (<code>bugs</code>, <code>security</code>,
+      <code>web-performance</code>, <code>runtime-performance</code>, <code>tests</code>, <code>design</code>, or
+      the group <code>performance</code> or <code>quality</code>), then a scope: <code>diff</code>,
+      <code>diff:&lt;sha&gt;</code> (the diff measured from a commit), a directory or <code>repo</code>:
+      <code>/viber:code-auditor security src/billing</code>.</span><span lang="pl">Opcjonalnie soczewka
+      (<code>bugs</code>, <code>security</code>, <code>web-performance</code>, <code>runtime-performance</code>,
+      <code>tests</code>, <code>design</code> albo grupa <code>performance</code> lub <code>quality</code>), a po
+      niej zakres: <code>diff</code>, <code>diff:&lt;sha&gt;</code> (diff liczony od commita), katalog albo
+      <code>repo</code>: <code>/viber:code-auditor security src/billing</code>.</span></dd>
     </div>
     <div>
       <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>

@@ -1,0 +1,5 @@
+- The stale-reference sweep reads `git ls-files`, so an untracked file is not swept; the test file's own freedom from the tokens was checked with grep.
+- `shell-script-header.md` counts 34 tracked viber scripts, 31 with a `Contract:` block; `worktree.sh` keeps its `IN:`/`OUT:` form, `commit-task.sh` and `merge-settings.sh` open on `Usage:`.
+- `shell-awk-environ.md` now cites only `issue-facts.sh:109`; the removed collector was its second example.
+- `agent-frontmatter.md` keeps the Haiku-effort rule with `scout.md` as its one example.
+- Left for the memory close (out of scope): `tests/viber/CLAUDE.md` still names `rank.ts` and `profiler.md` traps, `viber/CLAUDE.md` still lists the five sweep agents.
