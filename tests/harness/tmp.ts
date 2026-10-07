@@ -11,14 +11,15 @@ import path from "node:path";
 import { runScript, type RunResult } from "./run.ts";
 
 /** Creates a `mkdtemp`'d dir under the OS temp root, hands it to `fn`, and
- *  removes it (recursively, ignoring already-gone/read-only files) once `fn`
- *  settles, whether it resolves or throws. */
+ *  removes it (recursively, ignoring already-gone/read-only files, retrying
+ *  on a busy or refilled dir) once `fn` settles, whether it resolves or
+ *  throws. */
 export async function withTempDir<T>(prefix: string, fn: (dir: string) => T | Promise<T>): Promise<T> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   try {
     return await fn(dir);
   } finally {
-    fs.rmSync(dir, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5 });
   }
 }
 
@@ -63,6 +64,12 @@ function writeGitConfig(dir: string, env: Record<string, string>): void {
       "\tgpgsign = false",
       "[init]",
       "\tdefaultBranch = main",
+      // A commit spawns auto maintenance, detached since git 2.47: it can
+      // still be writing into .git while the temp dir is being removed.
+      "[maintenance]",
+      "\tauto = false",
+      "[gc]",
+      "\tauto = 0",
       "",
     ].join("\n"),
   );
