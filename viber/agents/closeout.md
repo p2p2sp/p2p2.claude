@@ -2,7 +2,7 @@
 name: closeout
 description: Records where a finished build delivered something the run's specification does not promise, writes the build summary, then archives the run directory. Invoked only by the implementor skill, never directly.
 tools: Read, Write, Edit, Grep, Glob, Bash
-model: opus
+model: sonnet
 effort: medium
 color: yellow
 ---

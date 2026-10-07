@@ -3,6 +3,7 @@ name: create-issue
 description: Creates a GitHub issue from the project's issue form templates. Use when the user asks to open an issue, not to fix a bug.
 argument-hint: "[what the issue is about]"
 allowed-tools: Read, Edit(./.temp/viber/create-issue/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-templates.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-create.sh:*)
+model: sonnet
 ---
 
 # create-issue

@@ -4,6 +4,7 @@ description: Opens a pull request for the current branch per the project's branc
 allowed-tools: Read, Edit(./.temp/viber/create-pr/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pr-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pr-create.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh:*)
 user-invocable: true
 disable-model-invocation: true
+model: sonnet
 ---
 
 # create-pr

@@ -5,6 +5,7 @@ allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/scripts/open-page.sh:*)
 user-invocable: true
 disable-model-invocation: true
 model: haiku
+effort: low
 background: true
 ---
 
