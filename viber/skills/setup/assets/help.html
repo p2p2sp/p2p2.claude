@@ -1616,30 +1616,6 @@ lub <code>full</code>, wykonuje też przebieg bazowy: raz przed pierwszym zadani
 już nie przechodzi; gdy coś nie przechodzi, arbiter orzeka kontynuację, a orzeczenie zostaje zapisane. Od tej chwili
 do naprawy idą tylko błędy spowodowane przez build.</p>
 
-<h3 class="sub" id="hw-panel"><span lang="en">The task panel</span><span lang="pl">Panel zadań</span><a class="self" href="#hw-panel">#</a></h3>
-<p lang="en">While a run is active, a <code>viber tasks</code> button sits in the band above the prompt, showing
-<code>viber tasks 3/7</code>: tasks done out of all tasks of the plan. Press it to open the <code>viber tasks</code>
-pane, which lists every task as <code>T3 - &lt;task title&gt;</code> with its state at the right edge:
-<code>done</code>, <code>skipped</code>, <code>running</code> or <code>pending</code>. Escape closes the pane. With no
-active run the button is hidden and the pane says <code>No active viber run.</code></p>
-<p lang="pl">Gdy przebieg jest aktywny, w pasku nad promptem pojawia się przycisk <code>viber tasks</code>, na przykład
-<code>viber tasks 3/7</code>: liczba ukończonych zadań z wszystkich zadań planu. Naciśnij go, aby otworzyć panel
-<code>viber tasks</code>, który wypisuje każde zadanie jako <code>T3 - &lt;tytuł zadania&gt;</code> ze stanem
-przy prawej krawędzi: <code>done</code>, <code>skipped</code>, <code>running</code> albo <code>pending</code>. Escape zamyka panel.
-Bez aktywnego przebiegu przycisk jest ukryty, a panel pokazuje <code>No active viber run.</code></p>
-<p lang="en">The panel shows only the runs this session builds: a run becomes the session's when the session
-dispatches one of its tasks or commits one of its steps, so a second console open on the same repository shows no
-button. The active run is the newest of those run directories. The panel only reads <code>plan.md</code> and
-<code>status.md</code> from disk, at session start, after a run script or a task dispatch and every 15 seconds. It
-writes nothing, changes no tool call and costs no model tokens. It needs a Claude Code version that loads hooks
-modules; on an older one the panel does not appear and nothing else changes.</p>
-<p lang="pl">Panel pokazuje tylko przebiegi, które buduje ta sesja: przebieg staje się jej, gdy sesja uruchomi
-jedno z jego zadań albo zatwierdzi jeden z jego kroków, więc druga konsola otwarta na tym samym repozytorium nie
-pokazuje przycisku. Aktywny przebieg to najnowszy z tych katalogów przebiegu. Panel tylko czyta z dysku <code>plan.md</code>
-i <code>status.md</code>: przy starcie sesji, po skrypcie przebiegu lub uruchomieniu zadania i co 15 sekund. Nic nie
-zapisuje, nie zmienia żadnego wywołania narzędzia i nie zużywa tokenów modelu. Wymaga wersji Claude Code, która
-ładuje moduły hooków; na starszej panel się nie pojawia, a reszta działa bez zmian.</p>
-
 <h3 class="sub" id="hw-models"><span lang="en">The model range</span><span lang="pl">Zakres modeli</span><a class="self" href="#hw-models">#</a></h3>
 <p lang="en">The build gives every task a tier from its shape: haiku for mechanical work such as config, a
 rename or docs, sonnet for ordinary feature work, opus for a task the rest leans on, for example one whose

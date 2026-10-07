@@ -29,9 +29,9 @@ viber owns the pipeline that runs across its skills, agents, hooks, scripts and 
 ## Change together
 
 - A switch added, removed or renamed: `scripts/config.sh` (key grammar and its fixed stdout order), the key list of `scripts/switch-text.sh`, the switch list hard-coded in `skills/setup/scripts/bootstrap.sh`, `skills/setup/templates/viber.yml`, the `README.md` switch table, `help.html` in both languages, and `tests/viber/config.test.ts` / `switch-text.test.ts`.
-- `directories.runs` is parsed with the same grammar (`[A-Za-z0-9._-]+`, not `.` or `..`, default `_specs`) in `scripts/config.sh`, `scripts/plan-path.sh`, `scripts/archive-run.sh` and `hooks/panel/run-state.ts`.
-- The plan's task block (`<!-- TASK -->` ... `<!-- /TASK -->`, `### T<n> - <title>`, the `- <Field>:` lines): `skills/planner/templates/tasks.md`, `references/plan-rules.md`, `scripts/plan-index.sh` (validates and splits), `scripts/commit-task.sh` (commit subject from the heading, staging from `Files:`) and `hooks/panel/run-state.ts`.
-- `status.md`'s `done:`/`skipped:` lines: written by `commit-task.sh`, read by `plan-index.sh` and `hooks/panel/run-state.ts`.
+- `directories.runs` is parsed with the same grammar (`[A-Za-z0-9._-]+`, not `.` or `..`, default `_specs`) in `scripts/config.sh`, `scripts/plan-path.sh`, and `scripts/archive-run.sh`.
+- The plan's task block (`<!-- TASK -->` ... `<!-- /TASK -->`, `### T<n> - <title>`, the `- <Field>:` lines): `skills/planner/templates/tasks.md`, `references/plan-rules.md`, `scripts/plan-index.sh` (validates and splits), and `scripts/commit-task.sh` (commit subject from the heading, staging from `Files:`).
+- `status.md`'s `done:`/`skipped:` lines: written by `commit-task.sh`, read by `plan-index.sh`.
 - The plan frontmatter `source:` line: `skills/planner/templates/spec-full.md`/`spec-lite.md`, `planner/SKILL.md`, `implementor/SKILL.md` step 1 and `hooks/scripts/plan-gate.sh` (it picks `planner-review` over `plain-plan-review`).
 - A user-facing behavior: `README.md` and `help.html` (`en` and `pl` spans) describe the same features.
 

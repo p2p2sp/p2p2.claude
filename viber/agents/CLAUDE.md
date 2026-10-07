@@ -15,7 +15,6 @@ This directory owns one markdown file per agent registered in `viber/.claude-plu
 - `planner` dispatches `planner-review`, and `adr-screener` through `skills/planner/references/adr-tasks.md`; `plain-plan-review` runs only on the plan gate's request. `memory` dispatches `memory-auditor` and `memory-node-writer`; `rules` dispatches `rules-auditor` and `rules-writer`; `e2e` dispatches `e2e-writer`; `prototype` dispatches `prototype-writer`; `code-auditor` dispatches the five sweep agents.
 - Reference reads: `node-doctrine.md` (`memory-writer`, `memory-auditor`, `memory-node-writer`), `rule-admission.md` (`rules-auditor`, `rules-writer`), `qa-format.md` (`qa-writer`, `e2e-writer`), `plan-rules.md` (`planner-review`), `adr-admission.md` (`adr-screener`), `test-strategy.md` (`task-coder`, `task-reviewer`), `integration-tests.md` (`planner-review`, `task-coder`, `task-reviewer`). `detective` writes to the schema of `skills/code-auditor/references/synthesis.md`; `detective` and `critic` get clean checkouts only through `skills/code-auditor/scripts/worktree.sh`.
 - Skill calls from agents: `task-coder` invokes `viber:tdd` on a `TDD: required` task; `prototype-writer` invokes `impeccable`, else `superui:pro-designer`, when either is in its skill listing.
-- `hooks/panel/run-events.ts` tracks `viber:task-coder` and `viber:task-reviewer` by name (`TASK_AGENTS`).
 - `tests/viber/profiler.test.ts` lifts the single fenced `bash` block of `profiler.md` verbatim and runs it against a throwaway repo: the only agent file under test.
 
 ## Contracts
@@ -37,7 +36,7 @@ This directory owns one markdown file per agent registered in `viber/.claude-plu
 - The "Stop what you started" block is verbatim in `task-coder`, `task-reviewer`, `final-reviewer`, `test-runner` and `e2e-writer`.
 - The tools paragraph and the `DENIED` / `REASON: <refused tool name>: <the exact refused command, or the path for a file tool>` output wording are verbatim across every non-sweep agent (`prover` adds the URL or query for a web tool).
 - Memory audit vocabulary (`STALE`, `GONE`, `UNVERIFIABLE`, `MISS`, `SHAPE`, `OK`) and the `<out><slug>-audit.md` name (`/` -> `--`): `memory-auditor`, `memory-node-writer` and `skills/memory/SKILL.md`. The rules counterpart (adding `DROP` and `MOVE:`): `rules-auditor`, `rules-writer` and `skills/rules/SKILL.md`.
-- An agent added, removed or renamed: `plugin.json` `agents[]`, every `viber:<name>` dispatch in `skills/`, and for `task-coder`/`task-reviewer` `hooks/panel/run-events.ts`, for `planner-review`/`plain-plan-review` `hooks/scripts/plan-gate.sh`.
+- An agent added, removed or renamed: `plugin.json` `agents[]`, every `viber:<name>` dispatch in `skills/`, and for `planner-review`/`plain-plan-review` `hooks/scripts/plan-gate.sh`.
 - `planner-review`'s input labels (`refs:`, `memory:`, `input:`): `planner-review.md`, `skills/planner/SKILL.md` and the dispatch text `hooks/scripts/plan-gate.sh` prints in its deny message.
 
 ## Traps

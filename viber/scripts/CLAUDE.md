@@ -28,7 +28,6 @@ This directory holds the scripts more than one viber skill or agent calls: the c
 
 ## Change together
 
-- A run script renamed: `hooks/panel/run-events.ts` matches the literal names `plan-path`, `plan-index`, `commit-task` and `archive-run` to refresh the run panel, with `tests/viber/panel-run-events.unit.test.ts`.
 - The issue reference grammar (`<N>`, `#<N>`, or `https://<host>/<owner>/<repo>/issues/<N>` with any `#...` fragment or `?...` query dropped) is parsed the same way in `issue-facts.sh` and `post-comment.sh`; `qa-comment.sh` applies it to `--pr` pull request URLs.
 - A `config.sh --branching` line added or renamed: its readers in `run-branch.sh` and `pr-facts.sh`.
 

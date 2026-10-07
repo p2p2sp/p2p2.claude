@@ -4,7 +4,7 @@ One test file per viber script, hook script or `.ts` module, named after it, plu
 
 ## Relationships
 
-- SUTs: `viber/scripts/`, `viber/skills/*/scripts/`, `viber/hooks/scripts/`, `viber/hooks/panel/run-state.ts` and `run-events.ts`, `viber/hooks/write/report-name.ts`, and the one command in `viber/agents/profiler.md`.
+- SUTs: `viber/scripts/`, `viber/skills/*/scripts/`, `viber/hooks/scripts/`, `viber/hooks/write/report-name.ts`, and the one command in `viber/agents/profiler.md`.
 - `help.unit.test.ts` imports `contrastRatio` and `parseColor` from `superui/skills/pro-designer/scripts/check_contrast.ts`: changing those exports breaks a viber test.
 - `viber/scripts/run-branch.sh` and `viber/hooks/register.tsx` have no test file.
 
@@ -13,7 +13,7 @@ One test file per viber script, hook script or `.ts` module, named after it, plu
 - The shell follows the SUT's shebang: a `#!/bin/sh` script runs through `forEachShell("posix", ...)`, a `#!/usr/bin/env bash` one through `forEachShell("bash", ...)` or a plain `runScript`.
 - Hook scripts run with `shell: "bash"`, the way `hooks.json` invokes them (`bash "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/<name>.sh"`): the test proves the content, never the exec bit.
 - Hook payloads and transcript fixtures are JS objects serialized with `JSON.stringify`, never hand-escaped: the scripts read raw text with grep/sed/awk and unescape it themselves, so a hand-escaped fixture proves the wrong thing.
-- `rank.ts` and `rank_edges.ts` carry no CLI guard and run `main()` on import: they are driven only as subprocesses through `runScript`, never imported. The panel and report-name modules export pure functions, imported directly by the `*.unit.test.ts` files.
+- `rank.ts` and `rank_edges.ts` carry no CLI guard and run `main()` on import: they are driven only as subprocesses through `runScript`, never imported. The report-name module exports pure functions, imported directly by its `*.unit.test.ts` file.
 - `help.unit.test.ts` holds `viber/skills/setup/assets/help.html` to: a card per skill in `plugin.json`, the self-starting label on exactly the `user-invocable: false` skills, a line per agent, an entry per uncommented indent-0 or indent-2 key of the `viber.yml` template (plus `branching-issue-type-mappings`), every English piece paired with a Polish one, only `/viber:` commands a skill carries, no dash characters, no external load, 4.5:1 for every `--fg-*` on every `--bg-*` in both themes. Every rule is a pure function with a self-check.
 
 ## Change together

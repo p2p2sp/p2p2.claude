@@ -1,20 +1,18 @@
 # viber/hooks - viber's harness hooks and its hooks module
 
-This area owns `hooks.json`, the four hook scripts under `scripts/`, the two texts they inject under `content/`, and the `register.tsx` module with its logic in `panel/` and `write/`. It does not own `.claude/viber.yml` parsing (`../scripts/config.sh`), the reviewer agents the plan gate waits for, or the run files the panel reads.
+This area owns `hooks.json`, the four hook scripts under `scripts/`, the two texts they inject under `content/`, and the `register.tsx` module with its logic in `write/`. It does not own `.claude/viber.yml` parsing (`../scripts/config.sh`) or the reviewer agents the plan gate waits for.
 
 ## Terms
 
 - Plan-mode episode: the transcript lines after the last `"type":"permission-mode"` record whose mode is not `plan`. `plan-gate.sh` and `plan-hints.sh` look only inside it, so a plan approved and built earlier in the session never re-arms the gate.
 - Planner ownership: a `Skill` tool_use for `planner` (bare or `viber:`, never another plugin's `xyz:planner`) inside the episode, or one whose own following `EnterPlanMode` lies inside it, AND a plan file opening with a frontmatter `source:` line. Anything else is a plain plan.
-- Session's run: a run key the session claimed by dispatching one of its tasks (the directory holding `tasks/` in the `task:` line) or by a Bash call of `commit-task.sh`, or `plan-index.sh` with `--split`, naming `<key>/plan.md`. Claims live in the module's memory: a reload or a resumed process starts with none until the next such call.
-- Active run: among the session's runs, the run directory with the largest key whose `plan.md` holds at least one task block under `## Tasks`. With `build.cleanup` off it stops being active once every task is in `done:` or `skipped:`; with cleanup on it stays until archived.
 
 ## Relationships
 
 - `hooks.json` wires PreToolUse `ExitPlanMode` -> `plan-gate.sh`, PreToolUse `Bash` -> `kill-guard.sh`, UserPromptSubmit -> `plan-hints.sh`, SessionStart (matcher `startup|clear|compact`) -> `session-start.sh`, each as `bash "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/<name>.sh"` with a 10 s timeout, plus `"modules": ["./register.tsx"]`.
 - `session-start.sh` reads `content/manifest.md` and the `schema:` of `../skills/setup/templates/viber.yml`; `plan-hints.sh` reads `content/plan-hints.md`; `plan-gate.sh` runs `../../scripts/config.sh` (relative to itself) in the payload's `cwd`.
-- `register.tsx` is the only file importing `claude-code`; `panel/run-state.ts`, `panel/run-events.ts` and `write/report-name.ts` import nothing, so the unit tests load them directly.
-- Tests: `tests/viber/panel-run-state.unit.test.ts`, `panel-run-events.unit.test.ts`, `write-report-name.unit.test.ts` (unit tier); `plan-gate.test.ts`, `plan-hints.test.ts`, `kill-guard.test.ts`, `session-start.test.ts` (integration tier, CI only). `register.tsx` itself has no test.
+- `register.tsx` is the only file importing `claude-code`; `write/report-name.ts` imports nothing, so its unit test loads it directly.
+- Tests: `tests/viber/write-report-name.unit.test.ts` (unit tier); `plan-gate.test.ts`, `plan-hints.test.ts`, `kill-guard.test.ts`, `session-start.test.ts` (integration tier, CI only). `register.tsx` itself has no test.
 
 ## Contracts
 
@@ -24,12 +22,11 @@ This area owns `hooks.json`, the four hook scripts under `scripts/`, the two tex
 - `session-start.sh` puts `manifest.md` verbatim (trailing newlines cut by `$(cat)`) into `additionalContext`; wrapping markers or a preamble belong in `manifest.md`, never in the script. The banner `viber loaded <version>` goes in the top-level `systemMessage`, shown to the user and never to the model; `<version>` is the basename of `CLAUDE_PLUGIN_ROOT`, `dev` when unset. The schema note compares the column-0 `schema:` of the project's `.claude/viber.yml` (git top level of `cwd`, else `cwd`) with the template's.
 - `plan-hints.sh` prints only when stdin has `"permission_mode":"plan"`, and stays silent once the episode shows a `planner`, `intent` or `fixer` Skill tool_use or a typed `/viber:intent` or `/viber:fixer` command.
 - `kill-guard.sh` acts only for a top-level `agent_type` starting `viber:`, denies `killall`, `pkill`, `taskkill` with `/IM`, `xargs ... kill` and `kill` fed by a command substitution in command position, and never answers `allow`.
-- `register.tsx`: every `tool.call` handler runs `next(e)` first, returns its result unchanged (a handler error falls back to `next(e)` through `.catch`), and only then refreshes. The panel reloads at session start, every 15 s, after every `Agent` call and after a `Bash` command naming `plan-path`, `plan-index`, `commit-task` or `archive-run.sh`. A task shows `running` only in memory: from a `viber:task-coder` or `viber:task-reviewer` dispatch whose prompt holds a `task: <dir>/tasks/<id>.md` line, cleared when the active run's key changes.
-- The Write rescue fires only when all hold: the call came from an agent, it errored with text containing `Subagents should return findings as text`, the basename matches `^(report|summary|findings|analysis).*\.md$` (any case), the agent's type starts `viber:`, and the path is absolute, holds no `.` or `..` segment and lies under the session root (compared case-insensitively on a drive letter). It then writes the file and returns a Write result typed `create` or `update`.
+- `register.tsx` holds one `tool.call` handler, on `Write`: it runs `next(e)` first, and a handler error falls back to `next(e)` through `.catch`. The Write rescue fires only when all hold: the call came from an agent, it errored with text containing `Subagents should return findings as text`, the basename matches `^(report|summary|findings|analysis).*\.md$` (any case), the agent's type starts `viber:`, and the path is absolute, holds no `.` or `..` segment and lies under the session root (compared case-insensitively on a drive letter). It then writes the file and returns a Write result typed `create` or `update`.
 
 ## Commands
 
-- Unit tests of the module logic: `node --test tests/viber/panel-run-state.unit.test.ts tests/viber/panel-run-events.unit.test.ts tests/viber/write-report-name.unit.test.ts`
+- Unit tests of the module logic: `node --test tests/viber/write-report-name.unit.test.ts`
 
 ## Change together
 
@@ -37,7 +34,6 @@ This area owns `hooks.json`, the four hook scripts under `scripts/`, the two tex
 - The `json_str` helper: `plan-gate.sh`, `plan-hints.sh`, `session-start.sh`.
 - The verdict regex in `plan-gate.sh`: the `pair_raw` awk and the `verdict_value` awk must stay identical, or a quoted `VERDICT: PASS is not...` ahead of the real FAIL reads as a pass.
 - `plan-gate.sh`'s `dispatch_with` text and the input each reviewer expects: `../agents/planner-review.md` (plan path, `refs:`, `memory:`, `input:`) and `../agents/plain-plan-review.md` (plan path, the user's goal).
-- `panel/run-events.ts`: `TASK_AGENTS` and the `task:` prompt line follow how `../skills/implementor/SKILL.md` dispatches coders and reviewers; `RUN_SCRIPT` follows the run script names in `../scripts/`; `CLAIMING_SCRIPT` follows which scripts only `implementor` calls on `<plan>` (`plan-path.sh` and plain `plan-index.sh` run in planning sessions too, so they claim nothing).
 - A hook's behavior and the `description` string of `hooks.json`.
 
 ## Traps
