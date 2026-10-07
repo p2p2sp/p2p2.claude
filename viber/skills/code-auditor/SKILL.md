@@ -1,152 +1,78 @@
 ---
 name: code-auditor
-description: Prioritized, multi-agent investigation of a large codebase using the Impact x Opportunity law.
+description: Multi-agent code audit through one lens (bugs, security, web-performance, runtime-performance, tests or design) over one scope (the current diff, one directory or the whole repository), every finding verified by an independent agent. Use when the user asks to audit, review or hunt defects in code for one of those lenses or scopes, such as "audit security of my branch" or "check the tests in src/api".
 user-invocable: true
 disable-model-invocation: false
-argument-hint: "[<repo-path>] [<area-dir>]"
+argument-hint: "[<lens>] [diff | diff:<sha> | <directory> | repo]"
 allowed-tools: Agent, Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
 
-# Code Auditor - prioritized multi-agent codebase investigation
+# Code Auditor - one lens, one scope, many agents
 
-## The one law
-
-```
-score = Impact x Opportunity
-```
-
-- Impact - how much pain it touches if fixed: reach, dependents, blast radius, change frequency.
-- Opportunity - how broken or drifted it is right now, and how fixable today: bugginess, complexity, hotfix history, coverage gaps.
-
-Only the corner where both are high earns a frontier model. High impact with nothing to win is the "leave it" cell, and chasing it anyway is the most common waste.
-
-Cheap models for breadth, frontier models for depth. Wave plans and intermediate results live in files under the run workspace, never in this context - that is what lets a run scale to tens of subagents.
-
-## Jobs
-
-Pick the job matching the user's goal, then read `${CLAUDE_SKILL_DIR}/references/jobs.md` for its exact Impact-signal x Opportunity-signal pair: Code (Tech debt, Dead code), Reliability (Bugs, Coverage, Consistency), Cost (Spend, Performance), Growth (Conversion, SEO).
-
-Default when the user just says "find bugs / review / audit": Reliability/Bugs plus Code/Tech debt. If the goal is unclear, ask once through one `AskUserQuestion` - never silently assume a non-code job.
+A run audits one scope through one lens in five phases: Frame, Map, Hunt, Verify, Synthesize. Intermediate results live in files under the run workspace, never in this context.
 
 ## Arguments
 
-`$ARGUMENTS` holds zero, one or two whitespace-separated tokens:
+`/viber:code-auditor [<lens>] [diff | diff:<sha> | <directory> | repo]`: `$ARGUMENTS` holds up to two tokens, each read on its own:
 
-- Token 1 - the target repo path: the repository this run audits.
-- Token 2 - the area directory: the one subtree this run sweeps, scores and dispatches detectives into. Given repo-root-relative, or absolute as long as it lies inside the repo, in which case Phase 0 rewrites it to the relative form.
-- Zero tokens - Phase 0 step 1 asks for the repo and the job exactly as it does today.
-- One token - the repo is set from it; the job is still confirmed with the user.
+- a lens name (`bugs`, `security`, `web-performance`, `runtime-performance`, `tests`, `design`) -> that lens, even when a directory of that name exists; `./<name>` addresses the directory;
+- `performance` or `quality` -> that group, only its follow-up question is asked;
+- `diff` -> the diff scope; `diff:<sha>` -> the diff scope measured from `<sha>`;
+- `repo` -> the repository scope;
+- anything else -> a directory.
 
-The job never comes from `$ARGUMENTS`; it is always confirmed in Phase 0. Two tokens is the scoped run: everything the sweep emits, scores and investigates lives under the area directory.
+## Frame
 
-## Phase 0 - Frame
+No agent is dispatched before Map, and every stop below prints its one line and ends the run.
 
-1. Read the `$ARGUMENTS` tokens, then confirm the target repo path and the job: ask for both when no token was given, ask for the job alone when only the repo was given. Ask the job through one `AskUserQuestion`; the repo path stays an open question in prose.
-2. Resolve the target repo path to an absolute root (`cd "<target-repo-path>" && pwd`). If it already equals the current working directory this is a no-op - never prefix it again downstream.
-3. Validate the area directory, when token 2 was given. An absolute path is accepted only when it lies under the resolved root, and is then rewritten to its root-relative form; a relative path is read against the root. A value that does not exist as a directory under the root, that lies outside it, or that carries a `..` segment STOPS the run here: tell the user `code-auditor: area directory not found under <root>: <value>` and do nothing else. The validated root-relative value is this run's scope, carried into `job.md` and into both Phase 1 commands; with no token 2 the run has no scope and sweeps the whole repo.
-4. Run `sh "${CLAUDE_SKILL_DIR}/scripts/check_node.sh"`. `NODE_OK <cmd>` -> use `<cmd>` wherever this skill writes `node`. `NODE_MISSING` -> STOP here: the Phase 3 gates need Node.js >= 22.6, and without them the sweep, the scout fan-out and the profiler would be paid for and then discarded. Tell the user, and do not start Phase 1. Nothing that spends tokens or runs a script happens before this step - steps 1 to 3 are a conversation and a path check, nothing more.
-5. Create the workspace: `mkdir -p .temp/viber/code-auditor/<run-id>/{signals,scores,reports,hotlist,worktrees}`.
-6. Write `.temp/viber/code-auditor/<run-id>/job.md`: the job's Impact and Opportunity signals from `references/jobs.md`, the 1-5 rubric inlined from `references/scoring.md`, `Target root: <the absolute root from step 2>`, `Window: <the sweep window in days, the same number Phase 1 hands collect_signals.sh - 30 unless the user asked for another>`, and, only on a scoped run, `Scope: <the root-relative area directory from step 3>`. Every subagent scores against that one self-contained file, and every later phase addresses files relative to that root.
-7. Dispatch `viber:profiler` (Agent tool) in the same message that starts the Phase 1 scripts, so the repo profile is written while the sweep runs. Its brief carries `Target root: <root>`, `Window: <days>`, `Scope: <dir>` on a scoped run, the `job.md` path, and the output path `.temp/viber/code-auditor/<run-id>/profile.md`.
-8. Profile gate. When the profiler returns, check that `.temp/viber/code-auditor/<run-id>/profile.md` exists and carries all four headings - `## Bug classes from history`, `## Contract shape`, `## Critical paths`, `## Severity calibration`. If it does, append the whole file verbatim to `job.md` under a `## Repo profile` heading: that section is what calibrates every later agent to this repo instead of to generic priors. If it does not, dispatch the profiler once more with the same brief; after a second miss continue with no `## Repo profile` section in `job.md`, carry `repo profile unavailable` into `findings.md`'s `## Coverage notes`, and say so in the Phase 3 hotlist message, so the ranking reads as uncalibrated rather than as repo-specific.
+1. Ask what is missing through `AskUserQuestion`, both questions in the first call when neither was given:
+   - What to audit: Bugs, Security, Performance, Quality.
+   - How much: Changes, Directory, Whole repository.
 
-Every run sweeps two units, files and producer/consumer pairs. The edge track runs unconditionally alongside the file track, not only when the file track looks clean - a contract defect between two individually-correct files is invisible to a per-file scout.
+   A second call follows only an answer of Performance (Web, Runtime) or Quality (Design, Tests); a group token puts that follow-up in place of the first question. Bugs -> `bugs`, Security -> `security`, Performance + Web -> `web-performance`, Performance + Runtime -> `runtime-performance`, Quality + Design -> `design`, Quality + Tests -> `tests`; Changes -> `diff`, Directory -> a directory, Whole repository -> `repo`. After a Directory answer, ask in prose for its path.
+2. `<root>`: the output of `git rev-parse --show-toplevel` in the current directory, else the current directory.
+3. A directory is read against `<root>`; an absolute one is accepted only under `<root>` and rewritten root-relative, and a leading `./` is dropped. One that does not exist, lies outside `<root>` or carries a `..` segment -> stop with `code-auditor: area directory not found under <root>: <value> (lenses: bugs, security, web-performance, runtime-performance, tests, design)`.
+4. `<lens-file>` is the absolute path of the selected one of `${CLAUDE_SKILL_DIR}/references/lenses/bugs.md`, `references/lenses/security.md`, `references/lenses/web-performance.md`, `references/lenses/runtime-performance.md`, `references/lenses/tests.md` and `references/lenses/design.md`. Read only the selected lens file, never the other five. Its `## Hunts` gives the angle slugs, its `## Verify` the `Worktree:` line.
+5. Diff scope only: run `sh "${CLAUDE_SKILL_DIR}/scripts/diff-files.sh" "<root>"`, with `<sha>` appended as its base argument for `diff:<sha>`. Then, in this order:
+   - `BAD_BASE` -> stop with `code-auditor: diff base not found: <sha>`;
+   - `NOT_A_REPO` -> stop: the diff scope needs a git repository;
+   - a `BASE <base>` line and no path -> stop with `code-auditor: nothing changed against <base>`;
+   - `BASE none` under a lens reading `Worktree: required` -> stop with `code-auditor: <lens> verifies on a clean checkout and this repository has no commit yet: commit first, or pick the design lens`.
+6. `<ws>` is `<root>/.temp/viber/code-auditor/<run-id>`, `<run-id>` the output of `date +%Y%m%d-%H%M%S`. Create `<ws>/reports` and `<ws>/worktrees`, then write `<ws>/run.md` in the shape of `## Run file` in `${CLAUDE_SKILL_DIR}/references/synthesis.md`: `Lens:`, `Lens file: <lens-file>`, `Scope: diff | repo | <directory>`, `Target root: <root>`, and on the diff scope `Base: <base>` and `## Changed files` with every printed path.
 
-## Phase 1 - Sweep (cheap signal collection)
+## Map
 
-Run the two sweeps as two separate Bash calls, never chained, in the same message as the profiler dispatch: the signals sweep in the foreground, the edge sweep with `run_in_background`.
+7. Dispatch `viber:mapper` on every scope with `Run file: <ws>/run.md`, `Lens file: <lens-file>` and `Output: <ws>/map.md`. It takes the signal scope from the run file's `Scope:` line: `.` for `diff` and `repo`, the directory otherwise.
+8. Map gate: `map.md` must hold `## Conventions`, `## History`, `## Severity calibration` and `## Units`. A missing file or heading -> dispatch the mapper once more with the same brief; a second miss -> stop with `code-auditor: map unavailable after two attempts`.
+9. `## Units` reading `none: <reason>` -> stop with `code-auditor: nothing to audit for <lens>: <reason>`.
+10. Append `## Map` and then `map.md` verbatim to `run.md`.
 
-```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/collect_signals.sh" <window-days> <repo-root> --with-dependents --scope <area-dir> \
-  > .temp/viber/code-auditor/<run-id>/signals/signals.jsonl
-```
+## Hunt
 
-One JSON line per source file with `churn`, `fix_commits`, `recency_days`, `loc`, `dependents`, and `dependents_stem` - the lockstep-unique literal `dependents` was counted by, `null` whenever `dependents` is -1. These feed the scouts as priors, they are not the score. `--with-dependents` costs O(n) extra `git grep` calls on top of the sweep; drop it deliberately on a very large target if that cost is not worth paying.
+Hunter budget: one hunter per lens angle on the diff scope, 8 for a directory, 16 for the repository. At most 16 agents run at once in every phase; beyond that, run successive batches.
 
-```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/collect_edges.sh" <repo-root> --max-fanout 8 --max-seconds 300 --scope <area-dir> \
-  > .temp/viber/code-auditor/<run-id>/signals/edges.jsonl
-```
+- Diff scope: no scout. One hunter per angle of the lens's `## Hunts`, hunt id `A-<angle slug>`, carrying `Angle: <angle slug>`.
+- Directory and repository: with no more units than the budget, hunt every unit. Only above the budget, dispatch `viber:scout`s, each with `Run file:`, `Lens file:` and up to 8 unit lines verbatim, and keep the budget's count of best-scored units, ties and unscored units in map order. One hunter per kept unit, hunt id `U<n>`, carrying `Unit: <unit line verbatim>`.
 
-One JSON line per candidate artifact pair - two swept files sharing a path-like literal, which is evidence they share a contract. An empty `edges.jsonl` is a valid result: the edge track then contributes nothing and the run proceeds on the file track alone. Exit 3 means the 5-minute deadline passed: the edge track is skipped, `edges.jsonl` stays empty, and `findings.md`'s `## Coverage notes` gets `edge track skipped: collect_edges.sh passed its 5-minute deadline`. Set no timer and never `TaskStop` it: the script stops itself.
+Every `viber:hunter` brief: `Run file: <ws>/run.md`, `Lens file: <lens-file>`, `Schema: ${CLAUDE_SKILL_DIR}/references/synthesis.md`, `Hunt: <hunt id>`, its `Unit:` or `Angle:` line and `Reports: <ws>/reports/<hunt id>`. Only for a lens reading `Worktree: required`, add `Worktree script: ${CLAUDE_SKILL_DIR}/scripts/worktree.sh` and `Worktree: <ws>/worktrees/<hunt id>`, and on the diff scope `Overlay script: ${CLAUDE_SKILL_DIR}/scripts/diff-overlay.sh`. A `Worktree: none` lens reserves no worktree.
 
-`--scope <area-dir>` is a trailing option on both commands, written only when Phase 0 step 3 set a scope and left off entirely otherwise. With a scope the emitted records and pairs shrink to the area - a pair keeps a partner lying outside it, because a contract crossing the boundary is exactly what a scoped audit must still see - while every signal inside a record stays repo-wide, so a scoped record is byte-identical to the one an unscoped run emits for the same file.
+## Verify
 
-## Phase 2 - Score (fan out the scouts, cheap tier)
+For every `<hunt id>-<k>.claim.md` a hunter's final message lists, dispatch one `viber:critic` with `Claim: <sidecar path>`, `Run file: <ws>/run.md` and `Lens file: <lens-file>`; for a worktree lens add `Worktree script:` as above and `Worktree: <ws>/worktrees/critic-<hunt id>-<k>`, never the hunter's, and on the diff scope `Overlay script:` as above. Never hand a critic the report or its path.
 
-File scouts start once `job.md` carries its `## Repo profile` section, or the Phase 0 profile gate has recorded the profile's absence after two misses, and the signals sweep has finished. For each candidate file, or each batch of files, spawn a `viber:scout` (Agent tool). Give it the matching line from `signals.jsonl` verbatim - not a separately-resolved path - plus `job.md`. Append every verdict to `.temp/viber/code-auditor/<run-id>/scores/scores.jsonl`.
+A critic whose final message carries no `VERDICT:` line is dispatched once more with the same brief and, for a worktree lens, the worktree path suffixed `-retry`; after a second miss the finding is filed `INCONCLUSIVE` with `critic returned no verdict`.
 
-Edge-scouts start once the background edges command has finished (its completion notice) and the same profile condition holds. For each candidate pair, or small batch of pairs, spawn a `viber:edge-scout` the same way, with the edge record line handed over verbatim. Append every verdict to `.temp/viber/code-auditor/<run-id>/scores/edge_scores.jsonl`.
+## Synthesize
 
-- Batch to control cost: ~10-40 files per scout on a huge tree, 1 file per scout when you want maximum resolution on a hot module.
-- Launch at most 16 concurrent subagents; beyond that, run successive waves.
-- Most files rating low is the correct outcome of a sweep, not a failed one.
+Read `${CLAUDE_SKILL_DIR}/references/synthesis.md` and write `<ws>/findings.md` exactly as it specifies, reading only what its `## What the moderator reads` allows. It is the sole authority on folding verdicts, deduplication, severity and the shape of `findings.md`: never restate or reinterpret its rules.
 
-## Phase 3 - Gate (drop the noise, build the hotlist)
+Show the user the path of `findings.md` and one short summary: units mapped, hunts dispatched, confirmed findings, units not investigated.
 
-```bash
-node "${CLAUDE_SKILL_DIR}/scripts/rank.ts" \
-  --scores .temp/viber/code-auditor/<run-id>/scores/scores.jsonl \
-  --signals .temp/viber/code-auditor/<run-id>/signals/signals.jsonl \
-  --min-impact 3 --min-opportunity 3 --top 20 \
-  --run-id <run-id> --job <job> \
-  --out-json .temp/viber/code-auditor/<run-id>/hotlist/hotlist.json \
-  --out-md   .temp/viber/code-auditor/<run-id>/hotlist/hotlist.md
-```
+## Variant wave
 
-```bash
-node "${CLAUDE_SKILL_DIR}/scripts/rank_edges.ts" \
-  --edges .temp/viber/code-auditor/<run-id>/signals/edges.jsonl \
-  --verdicts .temp/viber/code-auditor/<run-id>/scores/edge_scores.jsonl \
-  --signals .temp/viber/code-auditor/<run-id>/signals/signals.jsonl \
-  --top-edges 20 --run-id <run-id> --job <job> \
-  --out-json .temp/viber/code-auditor/<run-id>/hotlist/edges.json \
-  --out-md   .temp/viber/code-auditor/<run-id>/hotlist/edges.md
-```
+Offer one variant wave through `AskUserQuestion` only when at least one finding was confirmed (`VERIFIED` or `PARTIALLY VERIFIED`), and on the directory and repository scopes only while mapped units remain uninvestigated. Start none unasked: a no ends the run. Each confirmed class gives one `Seed: <angle slug>: <specific class>` line, taken from its `CLASS:` line.
 
-Both gates are deterministic, so the cut is reproducible. Show `hotlist.md` and `edges.md` to the user before spending frontier tokens.
+- Diff scope: one `V-<n>` hunt per confirmed class, `n` from 1, carrying `Angle: <its angle slug>` and that class's `Seed:` line, searching the repository outside the changed files.
+- Directory and repository: one `U<n>` hunt per uninvestigated unit, best first within the scope's budget, each carrying every `Seed:` line.
 
-## Phase 4 - Dispatch detectives (frontier tier, top-N only)
-
-Build the dispatch set as the union of three sources, then spawn one `viber:detective` (Agent tool) per entry:
-
-- `hotlist.json` `hotspots` - the file track's gate-clearing files.
-- `edges.json` `dispatch` - the edge track's gate-clearing pairs.
-- A structural budget: the top 2 rows of `edges.json` `degree[]` (highest pair-count paths) not already covered above. This is a rule of this file, not a script flag - read `degree[]` yourself and walk down it, skipping any path already in the union, until 2 slots are filled or `degree[]` is exhausted, so the budget is never spent twice on one file.
-
-A file appearing in both the file hotlist and an edge dispatch row gets one detective, not two - dispatch it with the edge as the richer entry (both endpoints), not the single file path.
-
-Give each detective:
-
-- Its entry point(s), resolved against the `Target root:` in `job.md`, so it reads the same file the sweep scored regardless of the directory this skill runs from. A hotspot or degree-slot dispatch gets ONE path as an entry point (not a fence - it may follow the trail into neighbouring code); a degree-slot dispatch additionally states that the file was selected by graph degree rather than by score. An edge dispatch gets BOTH endpoints. On a scoped run an edge whose second endpoint lies outside the area is still a valid entry: dispatch it with both endpoints, because a contract crossing the boundary is what a scoped audit exists to catch.
-- `job.md`, the report-schema path `${CLAUDE_SKILL_DIR}/references/synthesis.md`, the output path for its report (`.temp/viber/code-auditor/<run-id>/reports/<rank>-<slug>.md`), and the output path for its claim sidecar (`.temp/viber/code-auditor/<run-id>/reports/<rank>-<slug>.claim.md`), which it writes only when it files a finding.
-- The worktree-script path `${CLAUDE_SKILL_DIR}/scripts/worktree.sh`, and a unique absolute verification-worktree path reserved for this detective alone (`<target-root>/.temp/viber/code-auditor/<run-id>/worktrees/<rank>-<slug>`).
-
-Scale the count to the size of the dispatch set - 5, 20 or 50 - and never dispatch a detective to something that did not clear a gate. Launch at most 16 concurrent; run successive waves beyond that.
-
-## Phase 5 - Synthesize (verify, dedupe, score, rank)
-
-Read `${CLAUDE_SKILL_DIR}/references/synthesis.md`, then run the critic pass:
-
-1. For every detective report that is not `NO FINDING`, spawn a `viber:critic` (Agent tool), one per report. Give it four things and nothing else: the claim sidecar path (`.temp/viber/code-auditor/<run-id>/reports/<rank>-<slug>.claim.md`), `job.md`, the worktree-script path `${CLAUDE_SKILL_DIR}/scripts/worktree.sh`, and a fresh unique absolute verification-worktree path reserved for it alone (`<target-root>/.temp/viber/code-auditor/<run-id>/worktrees/critic-<rank>-<slug>`), never the one the detective used. The sidecar is the whole claim, so the report stays out of the brief: a verifier handed the discoverer's reasoning confirms that framing instead of testing it. The critic returns a tagged `VERDICT:` in its final message and writes no file.
-2. A critic whose final message carries no `VERDICT:` line is dispatched once more, same brief, with a fresh worktree path of its own (`<target-root>/.temp/viber/code-auditor/<run-id>/worktrees/critic-<rank>-<slug>-retry`). After that second miss the finding is folded as `INCONCLUSIVE` carrying the reason `critic returned no verdict`, as `synthesis.md` specifies.
-3. Rank the pool from the critics' verdict blocks, which are already in this context, plus the first four lines of each report (`# <title>`, `LOCATION`, `CLASS`, `SEVERITY`) and nothing more. Then fold the verdicts, deduplicate by root cause, assign severity and emit `.temp/viber/code-auditor/<run-id>/findings.md` exactly as `synthesis.md` specifies - the cap of ten full entries, the `## Further findings (N)` list, the tie-break and the coverage notes. A full report is opened only for an entry that made the cap, and only while that entry is being written.
-
-`synthesis.md` is the sole authority on verification, deduplication, severity and the shape of `findings.md` - do not restate or reinterpret its rules.
-
-## Phase 6 - Iterate and open new fronts
-
-The workflow is dynamic, not a fixed pipeline. After synthesis:
-
-- A confirmed bug class (a missing-authz pattern, an unchecked length) becomes the seed of a fresh scout wave that hunts the same pattern across the rest of the repo - new front, same machinery. `job.md`'s `## Repo profile` section is the second seed source: a class listed under `## Bug classes from history` is worth a wave even when no detective filed it this run, because the repo keeps re-fixing it.
-- Callers and importers of a confirmed-broken file inherit elevated Impact; re-sweep them at a lower threshold.
-- Stop when new waves stop producing top-right-corner hotspots, or when the user's budget or coverage target is met. Record in `findings.md` which areas got only a shallow pass, so a hotlist never reads as a false "all clear". Regenerate `findings.md` from the whole pool after every wave, never by appending the new wave underneath the old file: the cap applies to the run, not to a wave, so a late high-severity finding pushes an earlier one down.
-
-Re-running the same sweep is cheap and repeatable. Use it weekly and diff hotlists over time.
-
-## Output the user sees
-
-1. HOTLIST (`hotlist.md`) - the ranked triage table: what got investigated, what was skipped, and the quadrant reason. A `degenerate: true` run is reported explicitly, never as a clean zero-hotspot result.
-2. EDGE GATE (`edges.md`) - the ranked artifact-pair table alongside the hotlist, plus the structural `degree[]` list.
-3. FINDINGS (`findings.md`) - at most ten full, severity-sorted, verified entries with PoCs and fix sketches, then `## Further findings (N)` as one line per surviving finding that got no full entry, then the coverage notes.
-4. A short prose summary: how many files and pairs swept, how many hotspots, edges and degree-budget slots dispatched, how many confirmed findings, which fronts remain open, and whether the repo profile was available - a run that fell back to the generic severity bands says so here too.
+Every other brief line is as in Hunt. Verify the new claims, then rebuild `findings.md` from every report and verdict of the run and show it again. A run offers one wave only.

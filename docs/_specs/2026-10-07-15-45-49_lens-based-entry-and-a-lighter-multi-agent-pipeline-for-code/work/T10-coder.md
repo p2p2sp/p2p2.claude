@@ -1,0 +1,7 @@
+- DoD.16 vs C6: on the diff scope each `V-<n>` hunter carries only its own class's `Seed:` line (synthesis.md's reading); directory and repository wave hunters carry every `Seed:` line.
+- Every agent path is absolute under `<ws>` = `<root>/.temp/viber/code-auditor/<run-id>`; `<root>` is `git rev-parse --show-toplevel`, so the run no longer takes a repo-path argument.
+- `<run-id>` is `date +%Y%m%d-%H%M%S`; critic worktrees are `critic-<hunt id>-<k>`, retry suffixed `-retry`.
+- `NOT_A_REPO` from diff-files.sh stops with a prose line: C8 names no message for it.
+- A group token with the scope missing asks the group follow-up and the scope question in one first call.
+- tests/superui/CLAUDE.md and viber/skills/CLAUDE.md still describe viber's check_node copy, the parity case, Node.js and the profiler headings; left for the memory close (out of scope).
+- viber/skills/CLAUDE.md lists code-auditor as `disable-model-invocation: true`, but the file reads `false` (kept per DoD.1).

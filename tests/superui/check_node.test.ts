@@ -3,11 +3,7 @@
  * contract across every documented Node version threshold: `NODE_OK <cmd>`
  * (node, or node --experimental-strip-types) below the type-stripping
  * cutover, or `NODE_MISSING` when node is absent, unparsable, or too old -
- * always exiting 0 (fail-open). Also asserts it stays byte-for-byte
- * equivalent, on the same input matrix, to viber's copy
- * (viber/skills/code-auditor/scripts/check_node.sh) - the two are
- * documented to share the exact same contract, differing only in header
- * comment.
+ * always exiting 0 (fail-open).
  *
  * check_node.sh is `#!/bin/sh`, so every case runs through
  * forEachShell("posix", ...) via opts.shell, never executed directly.
@@ -27,10 +23,6 @@ import { withStub } from "../harness/stub.ts";
 import { forEachShell, type Shell } from "../harness/shells.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../superui/skills/pro-designer/scripts/check_node.sh");
-const VIBER_SUT = path.resolve(
-  import.meta.dirname,
-  "../../viber/skills/code-auditor/scripts/check_node.sh",
-);
 
 /** The real PATH, minus every directory that resolves a real `node` - so
  *  "no node on PATH" is genuine even on a dev machine that has node
@@ -114,25 +106,5 @@ test("a malformed version string -> NODE_MISSING", async () => {
       const result = await runScript(SUT, [], { shell, stubDirs: [stubDir] });
       assertOneLine(result, "NODE_MISSING");
     });
-  });
-});
-
-test("superui and viber copies behave identically on the same input matrix", async () => {
-  await assertPosix(async (shell) => {
-    const versions = [...NODE_OK_VERSIONS, ...NODE_OK_STRIP_VERSIONS, ...NODE_MISSING_VERSIONS, "not-a-version"];
-    for (const version of versions) {
-      await withStub("node", `echo '${version}'`, async (stubDir) => {
-        const a = await runScript(SUT, [], { shell, stubDirs: [stubDir] });
-        const b = await runScript(VIBER_SUT, [], { shell, stubDirs: [stubDir] });
-        assert.equal(a.status, 0);
-        assert.equal(b.status, 0);
-        assert.equal(a.stdout, b.stdout, `divergence for node version ${version}`);
-      });
-    }
-
-    const noNodeEnv = { PATH: pathWithoutNode() };
-    const a = await runScript(SUT, [], { shell, env: noNodeEnv });
-    const b = await runScript(VIBER_SUT, [], { shell, env: noNodeEnv });
-    assert.equal(a.stdout, b.stdout, "divergence when node is absent from PATH");
   });
 });
