@@ -64,7 +64,7 @@ make after a later reply of yours. Without it, each of those calls asks for perm
 | `/viber:extension` | Creates or adapts, with you, an agent of your own in `.claude/agents/` that a build runs at its close, just before the run is archived. Registers it in `build.extensions` with `parallel: false`. |
 | `/viber:code-auditor` | Audits a large codebase for bugs, tech debt or another job you pick. Cheap agents rank every file and file pair. Only the places worth it get a deep investigation, and its findings are replayed on a clean checkout. Needs Node.js 22.6 or newer. |
 | `/viber:help` | Opens this usage guide in your browser. |
-| `/viber:handoff` | Saves the conversation as one file (where to look, what is done, the decisions, what comes next, open problems) so a fresh session picks up where this one stopped. Name a directory or a `.md` path to save it elsewhere. |
+| `/viber:handoff` | Saves the conversation as one file (where to look, what is done, the decisions, what comes next, open problems) so a fresh session picks up where this one stopped. Name a directory (`notes/`) or a `.md` path to save it elsewhere, and add a loose prompt to steer the focus: `/viber:handoff notes/ focus on the migration`. |
 | "commit" | Commits your changes, or only the paths you name, with a Conventional Commits message. Name an issue (`#42`) and it becomes the `Refs:` footer. |
 
 A typical run is `/viber:setup` once, then `/viber:intent`. If you ask for a plan without an

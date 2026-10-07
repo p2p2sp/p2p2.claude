@@ -44,6 +44,8 @@ hooks/                   SessionStart manifest + UserPromptSubmit plan hints + P
 - `create-issue`, `create-pr` (its `pr-create.sh` is the only push viber makes, on the user's yes)
   and `handoff` stand outside the chain like `commit`. `handoff`, user-only and inline, writes one
   file, never overwriting (`EXISTS=true` stops it, not a question: prose drops the pre-approval).
+  Its preload gets only `'$0'`, so an apostrophe in the prompt after it cannot break the load;
+  `handoff-path.sh` takes that word as the path only when it is path-like (`TARGET=named`).
 - `help`, user-only, a background haiku fork, also stands outside the chain: its one preload opens
   `setup`'s `assets/help.html` through `open-page.sh`; moving that page updates both skills.
   `viber-flow-en.svg` and `viber-flow-pl.svg` sit beside it: a flow change updates both.

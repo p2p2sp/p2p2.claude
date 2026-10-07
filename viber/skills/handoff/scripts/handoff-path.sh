@@ -10,12 +10,17 @@
 # the `{slug}` placeholder.
 #
 # Contract:
-#   argv   : $1 optional, the target the user named, surrounding whitespace
-#            and one pair of surrounding double quotes dropped.
-#              absent or empty    -> the directory <root>/.temp/viber/handoff.
+#   argv   : $1 optional, the first word of the skill arguments (`$0`, which
+#            Claude Code leaves as the literal `$0` when no argument was
+#            given), surrounding whitespace and one pair of surrounding double
+#            quotes dropped, every `\` made `/`. It names the target only when
+#            it looks like a path: it holds a `/`, ends in `.md` or is `.`;
+#            any other word opens the user's prompt, not a path.
+#              absent, empty, `$0` or not path-like -> the directory
+#                                   <root>/.temp/viber/handoff.
 #              ending in `.md`    -> that file.
 #              anything else      -> a directory.
-#            Every `\` becomes `/`. Absolute is `/...` or `X:...`; an MSYS
+#            Absolute is `/...` or `X:...`; an MSYS
 #            form (`/c/x`) goes through `cygpath -m` where that command exists
 #            (Git Bash), unchanged elsewhere. A relative target has one leading
 #            `./` stripped and is resolved against <root>; `.` alone is <root>.
@@ -27,7 +32,7 @@
 #   env    : none.
 #   reads  : only whether FILE exists, in the `.md` case.
 #   writes : nothing. The directory is not created here: the writer does that.
-#   stdout : exactly three lines, in this order -
+#   stdout : exactly four lines, in this order -
 #              FILE=<dir>/<YYYY-MM-DD-HH-MM-SS>_{slug}.md   (a directory; the
 #                `{slug}` is literal, the caller substitutes it; the stamp
 #                reads `unknown` only when the clock cannot be read), or
@@ -36,6 +41,9 @@
 #                already exists; a directory target is always false.
 #              BRANCH=<name> | none - none outside a repository or on a
 #                detached HEAD.
+#              TARGET=named | default - named when $1 was taken as the path,
+#                so the prompt is the arguments after it; default otherwise,
+#                so the prompt is the whole arguments.
 #   stderr : always empty.
 #   exit   : ALWAYS 0. A non-zero exit in a `!` preload aborts the skill load.
 #
@@ -60,7 +68,12 @@ case "$arg" in
 esac
 arg="${arg//\\//}"
 
-if [ -z "$arg" ]; then
+named="false"
+case "$arg" in
+  */* | *.md | .) named="true" ;;
+esac
+
+if [ "$named" = "false" ]; then
   target="$root/.temp/viber/handoff"
 else
   case "$arg" in
@@ -99,5 +112,10 @@ esac
 printf 'FILE=%s\n' "$file"
 printf 'EXISTS=%s\n' "$exists"
 printf 'BRANCH=%s\n' "$branch"
+if [ "$named" = "true" ]; then
+  printf 'TARGET=named\n'
+else
+  printf 'TARGET=default\n'
+fi
 
 exit 0

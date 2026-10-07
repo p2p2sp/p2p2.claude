@@ -1,7 +1,8 @@
 /*
  * handoff-path.test.ts - proves viber/skills/handoff/scripts/handoff-path.sh's
- * contract: exactly three lines (FILE=, EXISTS=, BRANCH=) naming where the
- * handoff file goes and on which branch the conversation stands.
+ * contract: exactly four lines (FILE=, EXISTS=, BRANCH=, TARGET=) naming where
+ * the handoff file goes, on which branch the conversation stands and whether
+ * the first argument word was taken as the path or left to the prompt.
  *
  * Two properties carry the design. It always exits 0 with an empty stderr,
  * because it runs as a `!` preload where a non-zero exit aborts the whole
@@ -39,22 +40,25 @@ interface Printed {
   file: string;
   exists: string;
   branch: string;
+  target: string;
 }
 
-/** The three lines, asserted present, in order, and nothing else. */
+/** The four lines, asserted present, in order, and nothing else. */
 function parse(result: RunResult): Printed {
   assert.equal(result.status, 0, `stderr: ${result.stderr}`);
   assert.equal(result.stderr, "");
   const lines = result.stdout.split("\n");
-  assert.equal(lines.length, 4, `expected three lines, got ${JSON.stringify(result.stdout)}`);
-  assert.equal(lines[3], "");
+  assert.equal(lines.length, 5, `expected four lines, got ${JSON.stringify(result.stdout)}`);
+  assert.equal(lines[4], "");
   assert.match(lines[0], /^FILE=/);
   assert.match(lines[1], /^EXISTS=(true|false)$/);
   assert.match(lines[2], /^BRANCH=/);
+  assert.match(lines[3], /^TARGET=(named|default)$/);
   return {
     file: lines[0].slice("FILE=".length),
     exists: lines[1].slice("EXISTS=".length),
     branch: lines[2].slice("BRANCH=".length),
+    target: lines[3].slice("TARGET=".length),
   };
 }
 
@@ -88,11 +92,25 @@ test("no argument inside a repository is a stamped placeholder under <root>/.tem
   });
 });
 
-test("an empty or blank argument is the default directory (the preload passes '' when the user named nothing)", async () => {
+test("an empty, blank or literal $0 argument is the default directory (Claude Code leaves $0 unsubstituted when the user named nothing)", async () => {
   await withGitRepo(async (repo) => {
-    for (const arg of ["", "   "]) {
-      const dir = stampedDir(parse(await run([arg], repo.dir, repo.env)).file);
+    for (const arg of ["", "   ", "$0"]) {
+      const printed = parse(await run([arg], repo.dir, repo.env));
+      const dir = stampedDir(printed.file);
       assert.ok(dir.endsWith("/.temp/viber/handoff"), `${JSON.stringify(arg)} -> ${dir}`);
+      assert.equal(printed.target, "default");
+    }
+  });
+});
+
+test("a first word that is not path-like opens the prompt: default directory, TARGET=default (a bare word like 'notes' is a prompt, not a directory)", async () => {
+  await withGitRepo(async (repo) => {
+    fs.mkdirSync(path.join(repo.dir, "notes"));
+    for (const arg of ["notes", "focus", "C:"]) {
+      const printed = parse(await run([arg], repo.dir, repo.env));
+      const dir = stampedDir(printed.file);
+      assert.ok(dir.endsWith("/.temp/viber/handoff"), `${JSON.stringify(arg)} -> ${dir}`);
+      assert.equal(printed.target, "default");
     }
   });
 });
@@ -115,6 +133,7 @@ test("a relative .md argument is that file under the root, also from a subdirect
       const printed = parse(await run(["docs/notes.md"], cwd, repo.env));
       assert.ok(sameFile(rootOf(printed.file, "docs/notes.md"), repo.dir));
       assert.equal(printed.exists, "false");
+      assert.equal(printed.target, "named");
     }
   });
 });
@@ -141,13 +160,14 @@ test("an MSYS absolute argument (/c/...) becomes the C:/ form through cygpath", 
   });
 });
 
-test("an argument not ending in .md is a directory: stamped placeholder inside it, never EXISTS=true even when the directory exists", async () => {
+test("a path-like argument not ending in .md is a directory: stamped placeholder inside it, never EXISTS=true even when the directory exists", async () => {
   await withGitRepo(async (repo) => {
     fs.mkdirSync(path.join(repo.dir, "notes"));
-    for (const arg of ["notes", "notes/"]) {
+    for (const arg of ["notes/", "./notes/", "notes\\"]) {
       const printed = parse(await run([arg], repo.dir, repo.env));
       assert.ok(sameFile(rootOf(stampedDir(printed.file), "notes"), repo.dir), printed.file);
       assert.equal(printed.exists, "false");
+      assert.equal(printed.target, "named");
     }
   });
 });

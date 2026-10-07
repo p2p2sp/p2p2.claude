@@ -1357,10 +1357,17 @@ wznowić w nowej sesji albo na innym komputerze.</p>
   <summary><span lang="en">Another path, open builds and secrets</span><span lang="pl">Inna ścieżka, otwarte buildy i sekrety</span></summary>
   <ul class="rare">
     <li><span lang="en">Give a directory or a <code>.md</code> path to save it elsewhere:
-    <code>/viber:handoff notes/csv-export.md</code>. It never overwrites a file: a path that exists stops
+    <code>/viber:handoff notes/csv-export.md</code>. A directory needs its slash (<code>notes/</code>): a bare
+    word starts the prompt instead. It never overwrites a file: a path that exists stops
     it.</span><span lang="pl">Podaj katalog albo ścieżkę <code>.md</code>, żeby zapisać plik gdzie indziej:
-    <code>/viber:handoff notes/eksport-csv.md</code>. Nigdy nie nadpisuje pliku: istniejąca ścieżka go
+    <code>/viber:handoff notes/eksport-csv.md</code>. Katalog musi mieć ukośnik (<code>notes/</code>): samo
+    słowo zaczyna prompt. Nigdy nie nadpisuje pliku: istniejąca ścieżka go
     zatrzymuje.</span></li>
+    <li><span lang="en">Add a loose prompt after the path, or alone, to steer what the file stresses or leaves
+    out: <code>/viber:handoff notes/ focus on the migration</code>. The file still covers only this
+    conversation.</span><span lang="pl">Dopisz luźny prompt po ścieżce albo bez niej, żeby wskazać, co plik ma
+    podkreślić albo pominąć: <code>/viber:handoff notes/ skup się na migracji</code>. Plik nadal opisuje tylko
+    tę rozmowę.</span></li>
     <li><span lang="en"><code>/viber:setup</code> has git ignore <code>.temp/</code>. To carry the file to
     another machine, save it at a path you commit.</span><span lang="pl"><code>/viber:setup</code> każe gitowi
     ignorować <code>.temp/</code>. Żeby przenieść plik na inny komputer, zapisz go pod ścieżką, którą
@@ -2868,9 +2875,12 @@ z nich mówi, jak nim sterować.</p>
     </div>
     <div>
       <dt><span lang="en">Arguments</span><span lang="pl">Argumenty</span></dt>
-      <dd><span lang="en">Optionally a directory or a <code>.md</code> path to save it elsewhere:
-      <code>/viber:handoff notes/csv-export.md</code>.</span><span lang="pl">Opcjonalnie katalog albo ścieżka
-      <code>.md</code>, żeby zapisać plik gdzie indziej: <code>/viber:handoff notes/eksport-csv.md</code>.</span></dd>
+      <dd><span lang="en">Optionally a directory (with its slash, <code>notes/</code>) or a <code>.md</code> path
+      to save it elsewhere, then optionally a loose prompt steering the focus:
+      <code>/viber:handoff notes/csv-export.md focus on the parser</code>.</span><span lang="pl">Opcjonalnie
+      katalog (z ukośnikiem, <code>notes/</code>) albo ścieżka <code>.md</code>, żeby zapisać plik gdzie indziej,
+      a potem opcjonalnie luźny prompt wskazujący, na czym się skupić:
+      <code>/viber:handoff notes/eksport-csv.md skup się na parserze</code>.</span></dd>
     </div>
     <div>
       <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
