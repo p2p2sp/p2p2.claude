@@ -2,7 +2,7 @@
 name: code-auditor
 description: Prioritized, multi-agent investigation of a large codebase using the Impact x Opportunity law.
 user-invocable: true
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: "[<repo-path>] [<area-dir>]"
 allowed-tools: Agent, Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
