@@ -1,36 +1,36 @@
-# viber references - rule files read whole at runtime
+# viber/references - shared rule and format references read at runtime
 
-Each file is read in full by every consumer on every dispatch, and each consumer names it by file
-name (`<refs>/<file>.md` or `${CLAUDE_PLUGIN_ROOT}/references/<file>.md`): a rename or a move
-touches every reader below.
+The eight markdown files viber skills and agents read by path while they work: the plan rules, the test rules, the admission gates for decision records and `.claude/rules/`, the node doctrine, the QA document formats and the issue save steps. No script parses them: each is prose a model holds itself to, so its wording is its contract. Skill-private references live under `skills/<skill>/references/`, never here.
 
-## Readers not named elsewhere
+## Relationships
 
-- `plan-rules.md`: `planner` (direct path, draft rounds included) and `planner-review`.
-- `integration-tests.md`: `planner` and `planner-review` when the plan carries an integration
-  test; `task-coder` and `task-reviewer` on a task writing or running one or building the shared
-  harness.
-- `issue-save.md`: `intent`'s `issues-done.true.md`, `fixer`'s `issues-save.true.md` and
-  `create-issue`, each after its own `issue-templates.sh` run.
-- `node-doctrine.md`: `memory-writer` and `memory-node-writer`, and `memory-auditor` through `refs:`
-  (its `## Template` part only).
-- `adr-admission.md`: `adr-screener` only, through `refs:`; it is the one home of the record
-  admission test.
+- A skill reads a file as `${CLAUDE_PLUGIN_ROOT}/references/<file>`; an agent reads it as `<refs>/<file>`, `refs:` being the `${CLAUDE_PLUGIN_ROOT}/references` line its dispatching skill passes.
+- Readers per file:
+  - `plan-rules.md`: `planner` (every round, a draft included) and `planner-review`.
+  - `integration-tests.md`: `planner` and `planner-review` when the plan carries an integration test; `task-coder` and `task-reviewer` on a task writing or running one or building the shared harness.
+  - `test-strategy.md`: `task-coder` before its first test, `task-reviewer` when the work touched tests or a fixture, `fixer` before writing its reproduction test.
+  - `qa-format.md`: `qa-writer` (writes `qa.md` and `qa.e2e.md`) and `e2e-writer` (reads one entry, writes its `## Automation` line).
+  - `adr-admission.md`: `adr-screener`, dispatched through `skills/planner/references/adr-tasks.md` when `planning.adr` is on.
+  - `rule-admission.md`: `rules-writer` and `rules-auditor`.
+  - `node-doctrine.md`: `memory-writer`, `memory-node-writer` and `memory-auditor` (its `## Template` part, for `SHAPE` findings).
+  - `issue-save.md`: `create-issue` and the fragments `skills/fixer/fragments/issues-save.true.md` and `skills/intent/fragments/issues-done.true.md`, each passing `directory:`, `eligible:` and `content:`.
 
-## Tags are an interface
+## Contracts
 
-- `(blocking)` (`test-strategy.md`, `integration-tests.md`): binding for `fixer` and `task-coder`,
-  a Blocking finding for `task-reviewer` and `planner-review`. An untagged rule never blocks.
-- `plan-rules.md`: `(script)` is enforced by `plan-index.sh`, `(review)` gated by `planner-review`,
-  which reports each breach under the rule's leading name. That name is a finding label and is
-  cited elsewhere (`End-to-end` by `planner`, `Minimal`, `Consumed after`, `Memory-owned` by the
-  viber sections): renaming one updates every citation. One name on two bullets (`Exclusive`,
-  `Reproduced`, `Block body`) is one rule split into its `(script)` and `(review)` halves.
+- `plan-rules.md` tags every rule: `(script)` is a rule `scripts/plan-index.sh` rejects, `(review)` one `planner-review` gates clause by clause and reports under the rule's name. A rule tagged `(script)` with no matching check in `plan-index.sh` is enforced by nobody.
+- A rule ending in `(blocking)` in `test-strategy.md` or `integration-tests.md` is a Blocking finding for `task-reviewer` and `planner-review` and binds `task-coder` and `fixer`; an untagged rule is guidance only.
+- `plan-rules.md`'s `Memory-owned` rule reads the `build.memory` switch, which `planner-review` receives as its `memory:` line (`false` when missing).
+- `issue-save.md` consumes the `STATUS=ready` block of `scripts/issue-templates.sh` and calls `scripts/issue-create.sh` as one literal line, reading its exit codes 0, 1, 2 and its `TYPE=dropped|error` lines.
 
-## Duplicated on purpose - change together
+## Change together
 
-- The test layers (unit, component with in-memory fakes never an in-memory database, integration
-  against a disposable real dependency, e2e): `plan-rules.md`'s `Layers`, `Layered` and
-  `Shared harness` rules, `test-strategy.md`'s unit and component bullets,
-  `integration-tests.md`'s opening bullet, `task-reviewer`'s `Tested` line and `task-coder`'s
-  seam sentence.
+- Memory budgets (4000 root, 12000 per node and section, 32000 per chain): `node-doctrine.md`, `skills/memory/scripts/memory-map.sh` (`ROOT_BUDGET`, `NODE_BUDGET`, `CHAIN_BUDGET`), `skills/memory/SKILL.md`, `agents/memory-node-writer.md` (the root's 4000), `README.md` and `tests/viber/memory-map.test.ts`.
+- The test layers are defined in parallel wording in `plan-rules.md` (`Layers`, `Layered`, `Shared harness`, `TDD`), `test-strategy.md` (unit and component) and `integration-tests.md` (integration); `PRODUCT.md` names the same four layers.
+- The end-to-end rule (written only when the user asked in their own words, run only when they asked for a run): `plan-rules.md`'s `End-to-end`, `test-strategy.md`'s first `(blocking)` rule and `skills/planner/SKILL.md`.
+- `issue-save.md` step 6 and the argv and exit contract in the header of `scripts/issue-create.sh`.
+- `qa-format.md`'s `qa.e2e.md` headings and `## Automation` lines and the ID handling of `skills/e2e/SKILL.md`, which lists IDs from `## UI scenarios` / `## API scenarios` and skips `## Not automatable`.
+
+## Traps
+
+- `plan-rules.md` carries some rule names twice (`Exclusive`, `Reproduced`, `Block body`): one half `(script)`, the other `(review)`. Editing one never removes the other.
+- Every reader loads a file whole on each dispatch, `plan-rules.md` (the largest) on every planner round and review: a sentence added here is paid on every run.

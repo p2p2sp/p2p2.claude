@@ -1,131 +1,51 @@
-# viber hooks - session start, plan gate, plan hints, kill guard, task panel and report-name write
+# viber/hooks - viber's harness hooks and its hooks module
 
-`content/manifest.md` names two skills only to scope rules (`viber:fixer`'s reproduction test,
-`viber:intent`'s fast path, where a design approved in chat counts as an approved plan);
-renaming either skill renames it there too, or the rule silently stops covering it.
+This area owns `hooks.json`, the four hook scripts under `scripts/`, the two texts they inject under `content/`, and the `register.tsx` module with its logic in `panel/` and `write/`. It does not own `.claude/viber.yml` parsing (`../scripts/config.sh`), the reviewer agents the plan gate waits for, or the run files the panel reads.
 
-## Session start
+## Terms
 
-`scripts/session-start.sh` fires on the `hooks.json` matcher `startup|clear|compact` (that is
-where `resume` is excluded, not the script). Any wrapping markers or preamble for the manifest
-live in `content/manifest.md` itself, never in the script. The `viber loaded <version>` banner
-is a top-level `systemMessage` (nested in `hookSpecificOutput` it is silently ignored), its
-version the plugin-root basename, `dev` when `CLAUDE_PLUGIN_ROOT` is unset. It always exits 0.
+- Plan-mode episode: the transcript lines after the last `"type":"permission-mode"` record whose mode is not `plan`. `plan-gate.sh` and `plan-hints.sh` look only inside it, so a plan approved and built earlier in the session never re-arms the gate.
+- Planner ownership: a `Skill` tool_use for `planner` (bare or `viber:`, never another plugin's `xyz:planner`) inside the episode, or one whose own following `EnterPlanMode` lies inside it, AND a plan file opening with a frontmatter `source:` line. Anything else is a plain plan.
+- Active run: the run directory with the largest key whose `plan.md` holds at least one task block under `## Tasks`. With `build.cleanup` off it stops being active once every task is in `done:` or `skipped:`; with cleanup on it stays until archived.
 
-The banner carries a schema note when the project's `.claude/viber.yml` `schema:` (payload `cwd`,
-0 when missing or not a number) is lower than `skills/setup/templates/viber.yml`'s (run
-`/viber:setup`) or higher (update the plugin); equal, no file or an unreadable template leaves the
-plain banner. The note never touches the manifest.
+## Relationships
 
-## Plan-mode episode
+- `hooks.json` wires PreToolUse `ExitPlanMode` -> `plan-gate.sh`, PreToolUse `Bash` -> `kill-guard.sh`, UserPromptSubmit -> `plan-hints.sh`, SessionStart (matcher `startup|clear|compact`) -> `session-start.sh`, each as `bash "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/<name>.sh"` with a 10 s timeout, plus `"modules": ["./register.tsx"]`.
+- `session-start.sh` reads `content/manifest.md` and the `schema:` of `../skills/setup/templates/viber.yml`; `plan-hints.sh` reads `content/plan-hints.md`; `plan-gate.sh` runs `../../scripts/config.sh` (relative to itself) in the payload's `cwd`.
+- `register.tsx` is the only file importing `claude-code`; `panel/run-state.ts`, `panel/run-events.ts` and `write/report-name.ts` import nothing, so the unit tests load them directly.
+- Tests: `tests/viber/panel-run-state.unit.test.ts`, `panel-run-events.unit.test.ts`, `write-report-name.unit.test.ts` (unit tier); `plan-gate.test.ts`, `plan-hints.test.ts`, `kill-guard.test.ts`, `session-start.test.ts` (integration tier, CI only). `register.tsx` itself has no test.
 
-Both plan hooks look only at the current episode: the transcript after the last
-`"type":"permission-mode"` record whose mode is not `plan`. That is why a plan approved and built
-earlier in the session never re-arms the gate.
+## Contracts
 
-## Plan gate
+- Each script's header `Contract:` block is its authoritative I/O contract; the `description` of `hooks.json` summarizes all of them.
+- Every hook exits 0 and fails open: empty stdin, a parse miss, an unreadable file or a malformed awk result allows (or prints nothing). The one exception: under a planner signal, an unreadable or missing plan file keeps `planner-review` rather than loosening to the plain path. JSON is read with grep/sed/awk or bash regexes, never `jq`.
+- `plan-gate.sh` arms only on a Write/Edit whose `"file_path"` has a `plans` segment and ends `.md` (either separator), inside the episode. The plain path is gated only when `config.sh` prints `planning.plain-plan-review: true`; no `cwd` in the payload means off. It allows only when a dispatch of the chosen reviewer after the last plan write paired with `VERDICT: PASS` and the plan file's mtime is no later than that verdict's transcript timestamp plus 2 s. A dispatch carrying a `toolu_` id pairs only with a verdict line holding that id; one without an id pairs with the first verdict after it; the last completed pair wins. `VERDICT: DENIED` denies with "grant the permission". Every deny reason opens with `Next step:`.
+- `session-start.sh` puts `manifest.md` verbatim (trailing newlines cut by `$(cat)`) into `additionalContext`; wrapping markers or a preamble belong in `manifest.md`, never in the script. The banner `viber loaded <version>` goes in the top-level `systemMessage`, shown to the user and never to the model; `<version>` is the basename of `CLAUDE_PLUGIN_ROOT`, `dev` when unset. The schema note compares the column-0 `schema:` of the project's `.claude/viber.yml` (git top level of `cwd`, else `cwd`) with the template's.
+- `plan-hints.sh` prints only when stdin has `"permission_mode":"plan"`, and stays silent once the episode shows a `planner`, `intent` or `fixer` Skill tool_use or a typed `/viber:intent` or `/viber:fixer` command.
+- `kill-guard.sh` acts only for a top-level `agent_type` starting `viber:`, denies `killall`, `pkill`, `taskkill` with `/IM`, `xargs ... kill` and `kill` fed by a command substitution in command position, and never answers `allow`.
+- `register.tsx`: every `tool.call` handler runs `next(e)` first, returns its result unchanged (a handler error falls back to `next(e)` through `.catch`), and only then refreshes. The panel reloads at session start, every 15 s, after every `Agent` call and after a `Bash` command naming `plan-path`, `plan-index`, `commit-task` or `archive-run.sh`. A task shows `running` only in memory: from a `viber:task-coder` or `viber:task-reviewer` dispatch whose prompt holds a `task: <dir>/tasks/<id>.md` line, cleared when the active run's key changes.
+- The Write rescue fires only when all hold: the call came from an agent, it errored with text containing `Subagents should return findings as text`, the basename matches `^(report|summary|findings|analysis).*\.md$` (any case), the agent's type starts `viber:`, and the path is absolute, holds no `.` or `..` segment and lies under the session root (compared case-insensitively on a drive letter). It then writes the file and returns a Write result typed `create` or `update`.
 
-`scripts/plan-gate.sh` arms on a write to `plans/*.md` in the current plan-mode episode and
-picks `planner-review` when a Skill tool_use named bare `planner` or `viber:planner` ran in it
-(or its own `EnterPlanMode`, reached before any user prompt or `plan` record, opened it: a
-mid-turn flush can record the old mode between the two) and the plan file opens with the
-planner's frontmatter `source:` line (a missing or unreadable file keeps `planner-review`), else
-`plain-plan-review` when `config.sh` (payload `cwd`) resolves `planning.plain-plan-review: true`.
-`ExitPlanMode` passes only after that agent, dispatched after the last plan write, returned
-`VERDICT: PASS` and the plan's mtime is not newer. The deny reason is the plain path's only
-instruction channel. Names match literally: renaming the skill, either agent, the switch or the
-verdict line disarms the fail-open gate silently.
+## Commands
 
-- The verdict comes from the last completed dispatch -> verdict pair. A dispatch carrying a
-  `toolu_` id binds only to a verdict line holding that same id, with no fallback; a dispatch
-  with no id takes the first verdict after it. `"status":"async_launched"` lines (they echo the
-  prompt) are never read as verdicts. A verdict from the other reviewer never counts.
-- The awk pattern that selects the verdict line and the one that reads its value must stay
-  identical, or a quoted "VERDICT: PASS is not..." becomes a false allow. Both skip markdown
-  emphasis (`*`, `_`, backtick) around the label and the value: `**VERDICT: PASS**` is a PASS.
-- Each outcome has its own deny reason: no dispatch ("review the plan"), no verdict yet ("let the
-  review finish"), `DENIED` ("grant the permission", then review again), `FAIL` ("fix the
-  findings"), plan touched after the PASS ("re-review").
+- Unit tests of the module logic: `node --test tests/viber/panel-run-state.unit.test.ts tests/viber/panel-run-events.unit.test.ts tests/viber/write-report-name.unit.test.ts`
 
-## Plan hints
+## Change together
 
-`scripts/plan-hints.sh` (UserPromptSubmit, soft) adds the closing-review and
-parallel-subagent rules, read verbatim from `content/plan-hints.md` (empty or missing: silent),
-to every prompt in plain plan mode only; its episode window and Skill
-detection are copied from `plan-gate.sh`, so rename either side together; the frontmatter check
-is gate-only, so a refused planner keeps the hint silent for the episode. Its detection alone also
-counts `intent` and `fixer` (they only hand off to `planner`), so the gate never picks
-`planner-review` for them, plus their typed `/viber:` commands: a user message opening with
-`<command-message>viber:intent</command-message>`, which records no Skill tool_use.
+- The episode window grep and the planner `Skill`/`EnterPlanMode` awk: `plan-gate.sh` and `plan-hints.sh` (the hint's copy widened to `intent`, `fixer` and their typed commands). A change on one side alone silently disarms the other.
+- The `json_str` helper: `plan-gate.sh`, `plan-hints.sh`, `session-start.sh`.
+- The verdict regex in `plan-gate.sh`: the `pair_raw` awk and the `verdict_value` awk must stay identical, or a quoted `VERDICT: PASS is not...` ahead of the real FAIL reads as a pass.
+- `plan-gate.sh`'s `dispatch_with` text and the input each reviewer expects: `../agents/planner-review.md` (plan path, `refs:`, `memory:`, `input:`) and `../agents/plain-plan-review.md` (plan path, the user's goal).
+- `panel/run-events.ts`: `TASK_AGENTS` and the `task:` prompt line follow how `../skills/implementor/SKILL.md` dispatches coders and reviewers; `RUN_SCRIPT` follows the run script names in `../scripts/`.
+- A hook's behavior and the `description` string of `hooks.json`.
 
-## Kill guard
+## Traps
 
-`scripts/kill-guard.sh` (PreToolUse on `Bash`) denies a command that stops processes by name, only
-when the top-level `agent_type` starts with `viber:`; the main session, other agents, no `agent_type`,
-unreadable input and every command it does not refuse stay silent. It never answers `allow` and
-always exits 0. Its deny reason is the model's only channel: stop the PIDs you started with
-`kill <PID>`, confirm with `kill -0 <PID>`.
-
-- Refused, in command position only (start of the command or after `;` `&` `|` `(`, a backtick, `$(` or
-  a newline): `killall`, `pkill`, `taskkill` with `/IM`, `xargs` whose command word is `kill`, `kill`
-  whose arguments hold a command substitution (`kill -0 $(cat pidfile)` included). `kill <PID>`,
-  `kill $!`, `taskkill` by PID and a name merely quoted as an argument pass; `sudo killall` or
-  `env pkill` pass too, the contract being command position.
-- Bash builtins and `[[ =~ ]]` only, so a call outside a viber agent runs no external command; the
-  JSON command is unescaped by hand. Replacement strings sit in variables (`$dq`, `$nl`): bash 3.2
-  mishandles `\"` inside a quoted `${x//a/b}` replacement. Edit the regexes with its test, and
-  keep the `hooks.json` description in step with the header.
-- The "Stop what you started" section of the five agents (`viber/CLAUDE.md`) is the soft half; this
-  is the hard edge.
-
-## Task panel
-
-`register.tsx`, declared in `hooks.json` under `modules`, draws a `viber tasks <done>/<total>`
-button above the prompt and a closable pane of the active run's tasks. The panel reads files,
-never writes one, and its two `tool.call` hooks pass every call through unchanged. Claude Code without
-hooks-module support ignores `modules`, so the four command hooks work either way; `plugin.json`
-carries no `types` or `hooks` field and must not.
-
-- The logic is split out so the unit tier can prove it: `panel/run-state.ts` and
-  `panel/run-events.ts` are pure functions with no imports, tested by
-  `tests/viber/panel-run-*.unit.test.ts`; `register.tsx` imports `claude-code` and is loaded by no
-  test, so check it with `claude plugin validate`.
-- The active run is the newest run directory (by name) whose `plan.md` has a task block, picked
-  before the cleanup rule: a settled newest run hides older unfinished ones. `runsDirectory` and
-  `isCleanupOn` re-implement `scripts/config.sh`'s `viber.yml` grammar (`viber.local.yml` ignored):
-  change one side, change both.
-- `planTasks` counts the first `###` heading of each `<!-- TASK -->` block under `## Tasks`, as
-  `plan-path.sh` counts progress. Only `status.md`'s `done:` and `skipped:` lines are read, so a
-  format change there moves `runStatus`; the pane shows task rows only, the state right-aligned.
-- The state is module-level (`run`, `seq`, `running`, `stopClock`): `claude plugin validate`
-  refuses `$` used in a function not declared at the top of the file, and `$.state` atoms need a
-  `types` field. A reload empties `running` (task ids dispatched in this session, never written
-  down); it is never pruned, `panelOf` ranks done and skipped above running.
-- A refresh runs at `session.start`, after a Bash call naming `plan-path.sh`, `plan-index.sh`,
-  `commit-task.sh` or `archive-run.sh` (`isRunScriptCall`), after a `viber:task-coder` or
-  `viber:task-reviewer` dispatch carrying a `task: .../tasks/T<n>.md` line (`dispatchedTaskId`)
-  and every 15 s; a read a newer one overtook is dropped. Renaming a script or either agent
-  there disarms the refresh silently.
-- Every `tool.call` hook ends `.catch((_$, e, next) => next(e))`: without it a throw could block a
-  call and `validate` warns "gating hook without .catch". The `AbovePrompt` hook yields only when
-  there is no run.
-- `hooks.json`'s `description` names the module: keep it in step with this section and the next.
-
-## Report-name write
-
-The harness refuses a subagent's `Write` (never `Edit`) of a `.md` file whose basename starts with
-`report`, `summary`, `findings` or `analysis`, any case, as a core validation error
-(`isError`, text `Subagents should return findings as text...`) that no permission lifts. A host
-whose domain uses such a name (`reports.pl.md`) would end a coder on `VERDICT: DENIED`, so
-`register.tsx`'s `Write` hook runs core first and answers only that refusal: in a subagent loop
-(`e.agentId`), whose `$.agent.list()` type starts with `viber:`, for an absolute path under
-`$.session.root()` with no `.` or `..` segment, it writes the file through `$.fs.write` and returns
-the `Write` result (`create`/`update`, empty `structuredPatch`). Anything else returns core's answer.
-
-- The predicates live in `write/report-name.ts` (pure, no imports), tested by
-  `tests/viber/write-report-name.unit.test.ts`. The name regex and the guard sentence mirror the
-  harness: a harness change to either silently disarms the write, which then fails as before.
-- The refusal comes before core's permission check, so this write raises no prompt; the
-  `viber:` type and the project-root bound are its only limits.
-- Our own agents still never name an output file that way (`viber/agents/CLAUDE.md`, Traps): the
-  hook covers host files, not a naming shortcut.
+- No hook script uses `set -e`: fail-open needs every non-zero exit swallowed. Each awk result is checked for its numeric shape before use, because a broken awk on PATH must allow, never deny.
+- `systemMessage` nested inside `hookSpecificOutput` is silently ignored by Claude Code: it must stay top-level.
+- `resume` is excluded by the `hooks.json` matcher, not by `session-start.sh`; SessionStart never fires for subagents.
+- Claude Code can flush the old permission mode mid-turn between the planner's Skill call and its `EnterPlanMode`, putting the Skill line before the episode start: that is why the following `EnterPlanMode` also counts, ended early by a user prompt or a plan-mode record.
+- Any write to the plan after its PASS voids it through the mtime check, applying a Minor finding included; an edit through `sed -i` or an editor is caught the same way.
+- A refused planner leaves `plan-hints.sh` silent for the rest of the episode: it runs before any plan file exists, so it cannot check the frontmatter.
+- `kill-guard.sh` runs on every `Bash` call of every session: a call from outside a viber agent must return on bash builtins alone, before any external command.
+- The Write rescue keys on the harness guard's literal error text: a reworded guard disables it silently.

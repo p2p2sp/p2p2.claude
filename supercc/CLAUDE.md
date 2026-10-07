@@ -1,17 +1,27 @@
-# supercc
+# supercc - plugin for writing, auditing and tuning Claude Code skills and agents
 
-Two skills. `skill-designer`: the authoring doctrine for skills and agents, three references read each at one workflow step, a tuning step that invokes `model-prompting`, and a linter. `model-prompting`: per-model prompting knowledge, one reference per current model plus `cross-model.md`, which every run reads; the body only picks which profile to add. No agents, no hooks, no preload, no `allowed-tools`.
+supercc owns two skills, `skill-designer` (authoring doctrine and the `lint_skill.sh` linter) and `model-prompting` (per-model prompting profiles), plus its manifest and README. It carries no agents, no hooks and no runtime dependency; what each skill's files say and how they work belongs to `skills/CLAUDE.md`.
 
-## Contracts between files
+## Relationships
 
-- The doctrine is host-neutral: it is fired on any repo's skills, so it never names this repo's other plugins, paths or its own conventions beyond what holds for every Claude Code skill. It names `supercc:model-prompting` only, which always installs with it; renaming `model-prompting` updates that Workflow pointer, and model facts (profiles, prices, effort defaults, mitigation wording) live only in `model-prompting`, never duplicated into the doctrine.
-- The hard platform caps are stated twice and move together: `SKILL.md` Frontmatter and Progressive disclosure (name 64 chars and its charset, reserved words, description 1024 chars, no angle brackets, body 500 lines, a reference over 100 lines carries a table of contents matching its `##` headings both ways round) and the matching checks in `scripts/lint_skill.sh`. Changing a cap in one without the other makes the linter contradict the doctrine it enforces.
-- The linter's style checks (emoji, em/en dash, tables, italics, shouting count over 5, hedges, caller-narrative cues, `jq`/`bc`, `I` or `you` in the description) mirror the Body and Formatting rules of `SKILL.md`; a rule added to either side is added to both or deliberately left as judgment.
-- Every file in `references/` is named in `SKILL.md` at the step that reads it: the linter WARNs on a reference the body never names. A new reference gets its one-line pointer in the Workflow, never an up-front read.
-- `model-prompting` is a dated snapshot of the lineup (date in its body): adding or retiring a model adds or deletes its reference together with its pointer in the Workflow, the model names in the `description:`, and every cross-model line naming it. A profile line states only what the model's prompting guide, release notes or system card confirms; a claim none of them carries is cut, not hedged.
-- `references/architecture.md` restates harness facts the root node also carries as invariants: `allowed-tools` pre-approves and never restricts, `disallowed-tools` never on a skill that dispatches agents, preload pattern entry, direct invocation, single-quoting `?`/`*`/`[`. A change to that harness knowledge updates both.
+- Child node: `skills/CLAUDE.md`.
+- `viber/skills/extension/SKILL.md` invokes `supercc:skill-designer` through `Skill` when it is in the session's skill listing, and silently skips the step when it is not: the skill's name is a cross-plugin contract.
+- The deliverable is the user's own skill or agent file: supercc writes no `docs/<layer>/` output.
 
-## Linter
+## Contracts
 
-- A directory target (or a file named `SKILL.md`) sweeps every `.md` under it plus `scripts/` and `references/`; any other file target lints that file alone, so linting one agent never reports a sibling's violations.
-- Exit 1 on any FAIL, 0 otherwise; the last line is `FAIL=<n> WARN=<n>`. The CLAUDE.md-read check is a WARN on purpose: it cannot tell a worker's own memory from a host repo's.
+- `.claude-plugin/plugin.json` `skills[]` lists `./skills/skill-designer/` then `./skills/model-prompting/`; there is no `agents[]` key.
+
+## Commands
+
+- No suite under `tests/` covers supercc, and `lint_skill.sh` has no test file. The only check is the linter itself: `bash supercc/skills/skill-designer/scripts/lint_skill.sh <skill-dir | file.md>` (exit 1 on any FAIL).
+
+## Change together
+
+- Renaming or removing `skill-designer` updates `plugin.json`, the README and the `supercc:skill-designer` line in `viber/skills/extension/SKILL.md`.
+- The set of covered models lives in three places: the files under `skills/model-prompting/references/`, the `model-prompting` description and workflow list, and the README's "Tuned for each model" line.
+- The README's example requests show what each skill fires on: a change to a skill's `description:` that narrows its triggers updates them.
+
+## Traps
+
+- The README says "No dependencies": the linter is plain bash called through `bash`, and any new script must keep that true or the README changes with it.

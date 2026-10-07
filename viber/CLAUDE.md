@@ -1,157 +1,43 @@
-# viber - interview, plan, build, remember
+# viber - the idea-to-commit workflow plugin
 
-Every skill, agent and script here is a stage of one run, so most edits touch a contract two or
-three files share. `PRODUCT.md` holds the testing assumptions that `references/plan-rules.md`
-(planning), `references/test-strategy.md` (writing a test, read by `fixer`, `task-coder` and
-`task-reviewer` only) and `references/integration-tests.md` turn into rules.
+viber owns the pipeline that runs across its skills, agents, hooks, scripts and references: the `.claude/viber.yml` config, the run directory and its archive, the plan gate, and the user docs (`README.md`, `BRANCHING.md`, `PRODUCT.md`, the help page). Each subdirectory's own contracts live in its node; this file carries only what spans them.
 
-## Layout
+## Terms
 
-```
-skills/<name>/           18 skills: SKILL.md plus files read at one step;
-                         setup, memory, rules, handoff, commit, extension, code-auditor bundle scripts/
-agents/                  23 agents
-scripts/                 17 plugin-wide scripts
-references/              read at runtime: by agents through `refs:`, by skills by direct path
-hooks/                   SessionStart manifest + UserPromptSubmit plan hints + PreToolUse plan gate, kill guard;
-                         register.tsx, the task panel and report-name write module
-```
+- Run: one approved plan being built in `docs/<directories.runs>/<yyyy-mm-dd-HH-mm-ss>_<slug>/` (default `_specs`), its directory name being the run key. The archive is `docs/<directories.specifications>/<same name>/` (default `specs`).
+- Switch: a key of `.claude/viber.yml` that counts only as a child of its own group (`build.qa`, never a flat `qa`), on only when it reads `true`. `build.baseline-tests` is three-valued (`off`, `fast`, `full`); `build.extensions` is a map of agent entries, not a switch; `github.*-title`, `directories`, `tiers` and `branching` are settings.
+- Fragment: `skills/<skill>/fragments/<name>.<value>.md`, the switch-dependent text a skill preloads through `scripts/switch-text.sh`. No file for a value means that value adds no text.
+- Tier: `haiku` < `sonnet` < `opus` < `fable`. `implementor` clamps every dispatch into `tiers.min`..`tiers.max` and a retry climbs one tier; `fable` is reached only when a project names it.
+- Close: the build's end steps after the final test run, in order `memory`, `rules`, `qa`, `extensions`, `cleanup`, each driven by its switch.
 
-## The chain
+## Relationships
 
-- `intent` (interview) or `fixer` (RED reproduction test + diagnosis) -> `planner` -> `implementor`.
-  `planner` treats any other input as unresolved and suggests `intent`; `implementor` refuses a
-  draft (a landed plan with no TASK block). Under `planning.fast-path`, `intent` builds a small change
-  itself (`CLAUDE.switches.md`).
-- `intent` and `fixer` take an issue reference only under `github.issues`; each can also save its
-  conclusion as a new issue (`fixer` a bug one). An `Issue: <URL>` handoff line becomes the plan frontmatter
-  `issue:`, carried into `spec.md`; `plan-index.sh` and `commit-task.sh` foot commits `Refs: #<N>`.
-- `intent --prove` has `prover` (read-only plus web, no `model`) check each drafted question
-  before it is shown; its `CONFIRMED`/`REVISED`/`DENIED`, `FINDINGS:`, `UNVERIFIED:` lines are one
-  loop with `intent`'s interview bullet. `--prove` never reaches the summary or the planner.
-- `prototype`, user-only, has `prototype-writer` build a UI change into one HTML mockup under
-  `.temp/viber/prototype/`, then hands to `intent` with a `Prototype:`
-  line; `intent` offers it (`Prototype first`) before the hand-off when a change alters a screen,
-  `planner` writes the line into the plan's `prototype:` key, `plan-path.sh --land` copies the
-  file into the run as `prototype.html` and `plan-index.sh --split` commits it and names it in
-  every task file's `## Prototype`. Its `mode:`, `round:`, `variant:` lines and the writer's `VERDICT:`, `FILE:`, `BASIS:`,
-  `VARIANT:` lines are one loop: renaming either side breaks it.
-- `triage` sits before the chain: it assesses one issue, names `/viber:fixer #N`, `/viber:intent #N`
-  or a one-line summary for pasted text, and invokes nothing; with `github.issues` off it never
-  fetches or publishes and drops the `#<N>` form. Its publish answer is an `AskUserQuestion`
-  tool result, not a user message, so its `disallowed-tools:` removal holds through the publish
-  call, made in the same turn.
-- `create-issue`, `create-pr` (its `pr-create.sh` is the only push viber makes, on the user's yes)
-  and `handoff` stand outside the chain like `commit`. `handoff`, user-only and inline, writes one
-  file, never overwriting (`EXISTS=true` stops it, not a question: prose drops the pre-approval).
-  Its preload gets only `'$0'`, so an apostrophe in the prompt after it cannot break the load;
-  `handoff-path.sh` takes that word as the path only when it is path-like (`TARGET=named`).
-- `help`, user-only, a background haiku fork, also stands outside the chain: its one preload opens
-  `setup`'s `assets/help.html` through `open-page.sh`; moving that page updates both skills.
-  `viber-flow-en.svg` and `viber-flow-pl.svg` sit beside it: a flow change updates both.
+- Pipeline: `setup` once; `triage`, `create-issue` and `prototype` feed `intent` (or `fixer` for a bug); `intent` hands to `planner` (not user-invocable), which writes the plan in plan mode behind the plan gate; `implementor` (not user-invocable, entered from the approved plan's `source:` line) lands it with `scripts/plan-path.sh`, dispatches agents, commits each task with `scripts/commit-task.sh` and ends on the close, where the `closeout` agent writes `outcome.md` and calls `scripts/archive-run.sh`. `tdd` is a worker skill; `e2e`, `create-pr`, `memory`, `rules`, `extension`, `code-auditor`, `help`, `handoff` and `commit` stand alone.
+- Agents are dispatched only by viber skills, as `viber:<name>`; `hooks/scripts/plan-gate.sh` looks for dispatches of `viber:planner-review` and `viber:plain-plan-review` in the transcript, and `kill-guard.sh` acts only on an `agent_type` starting with `viber:`.
+- `PRODUCT.md` holds the product assumptions (the four test layers `unit`, `component`, `integration`, `e2e`; one final test run; e2e only on explicit request) for maintainers; no shipped file reads it.
+- `BRANCHING.md` is the full `branching:` schema, linked from `README.md` and from `skills/setup/templates/viber.yml`. `skills/setup/assets/help.html` is the bilingual (`en`/`pl`) usage guide `/viber:help` opens.
+- Child nodes: `agents/CLAUDE.md`, `hooks/CLAUDE.md`, `references/CLAUDE.md`, `scripts/CLAUDE.md`, `skills/CLAUDE.md`.
 
-## Orchestrator contract
+## Contracts
 
-- `implementor` opens no file and writes none. It knows only the `config.sh`, `run-clock.sh` and
-  `switch-text.sh` preloads (its close parts reach it only as fragment text), `plan-path.sh`,
-  `plan-index.sh`, `commit-task.sh` and `qa-comment.sh` stdout (`progress: <n>/<total>`, exit 4 naming `--landed`,
-  the `refused` / `took` / `claimed by no task` warnings), and agents' return lines. Every script's stdout and agent `## Output` vocabulary is an interface: renaming one side breaks the build silently.
-- `excl` (plan `Exclusive: true`): `implementor` runs the task alone, once nothing else is ready
-  or in flight, until committed; outside `--split` `plan-index.sh` rejects a task depending on it.
-- Every agent but the five `code-auditor` ones (`viber/agents/CLAUDE.code-auditor.md`) returns
-  `VERDICT: DENIED` plus `REASON: <tool>: <call>` on a refused tool call (the auditors in place of
-  `AUDIT:`), and every caller, the plan gate included, branches on it.
-- Only coder, reviewer and repair-coder dispatches carry `model`: the task's profiled tier
-  (repair-coder: `sonnet`, raised only by `retry`) clamped into `tiers.min`..`tiers.max`
-  (defaults `haiku`/`opus`, `fable` only when named; `min` above `max` resets both). The
-  exception is `final-review.true.md`: every dispatch but the arbiter's, `final-reviewer` at
-  `opus`, its fix coder at `sonnet`, clamped the same way.
-- Every `EXTRA:` path of the task's coder or reviewer becomes `--with` (the coder's also reach
-  its reviewer as `extra:`, minus a path a not-yet-done task claims, with one `recheck:` per done
-  owner's `verify:`), coder `DEFERRED:` `--defer`, stored as `deferred:` in `status.md` and handed
-  to the owing task's coder and reviewer.
-- task-coder, task-reviewer, test-runner, e2e-writer and final-reviewer share a "Stop what you started" section;
-  `implementor`'s and `e2e`'s `SendMessage` on a "stopped with background work" notice, or a
-  reply with no `VERDICT:` line, is its other half. Every coder re-run (review failure, `WAIT:`,
-  `retry`, an arbiter ruling) is a fresh dispatch from the tree and task file, never a continuation.
-- A coder's `WAIT:` (a file outside `Files` held by another task's uncommitted change) holds its
-  task until every in-flight task returns, then a fresh coder at no attempt cost; nothing else in
-  flight, or a second wait on the same path, counts as an ordinary failure.
-- A build runs unattended: a task gets 5 attempts a session (coder failure, review failure or
-  refused commit; each one tier up), then `arbiter` rules from a closed list and the build goes on.
-  The arbiter also rules every coder `DECIDE:` on attempts 2 to 4, attempt 5 being the cap
-  (`CLAUDE.rulings.md`). The build asks only on `VERDICT: DENIED`, each index `dirty:` line
-  (continue / start over / drop), `orphan:` (commit them in a commit of their own via
-  `commit-task.sh --outside`, or leave them uncommitted), `open:` runs at landing, `plan-path.sh`
-  exit 3, a task commit's exit 4 and a refused `--skip` the arbiter did not rule.
-- Coders and reviewers keep git read-only (never `stash`, `checkout`, `restore`, `clean`):
-  parallel tasks share one working tree. A coder's two git writes are `git rm -r -q` (removal)
-  and `git update-index --chmod=+x` (exec bit): `commit-task.sh` commits only its named paths,
-  each as the index holds it, so either rides in its own task's commit only.
-- An extension is an agent of the host's own `.claude/agents/` that `implementor` runs after the
-  memory, rules and QA commits and before `closeout` (`build.extensions`, `CLAUDE.switches.md`),
-  each commit `commit-task.sh --extension`. A `FAIL`, an agent type the harness does not know
-  (a file created mid-session loads only after a reload) and a refused commit reach the final
-  summary and never stop the archive; `DENIED` asks retry / accept / abort; a name `closed:`
-  already holds never runs again. `intent`'s fast path runs none.
-- A coder's protected files are those of tasks not on `status.md`'s `done:` line: a done task's
-  file is free to change as `EXTRA:` (the reviewer re-runs its `verify:` as `recheck:`), while
-  `WAIT:` and `commit-task.sh`'s `refused` guard the ones still open.
+- `scripts/config.sh` is the one parser of `.claude/viber.yml`: resolved against the repository root, always exit 0, every switch false without the file. Skills preload it, and `switch-text.sh`, `pr-facts.sh` and `plan-gate.sh` run it rather than reading the file; only the `directories.runs` readers listed under Change together parse the file themselves. `.claude/viber.local.yml` overrides exactly `tiers.min`, `tiers.max`, `build.baseline-tests` and `github.issues`.
+- The column-0 `schema:` of `skills/setup/templates/viber.yml` is the layout the installed viber expects: `hooks/scripts/session-start.sh` compares the project's number to it, and `skills/setup/scripts/bootstrap.sh` raises the project's number to it, never lowers it.
+- Run directory, one writer per file: `plan.md` by `plan-path.sh --land` (never edited after), `spec.md` and `tasks/T<n>.md` by `plan-index.sh --split`, `status.md` and `rulings.md` (`--rule`) by `commit-task.sh` alone, `qa.md`/`qa.e2e.md` by `qa-writer`, `outcome.md` by `closeout`. `archive-run.sh` drops the scaffolding `plan.md`, `status.md`, `tasks/`, `work/` and moves everything else to the archive in one commit.
+- `implementor` opens no file: all it knows comes from its preloads and script stdout (`config.sh`, `run-clock.sh`, `plan-index.sh`, `plan-path.sh`), so a fact it needs is added to a script's output, never to a file for it to read.
+- Every agent ends on a `VERDICT:` line; a refused tool call ends it on `VERDICT: DENIED` plus `REASON: <tool>: <command or path>`, which the dispatching skill turns into a question. The five `code-auditor` sweep agents (`scout`, `edge-scout`, `profiler`, `detective`, `critic`) carry no `DENIED` line.
 
-## Commit ownership
+## Change together
 
-- Only scripts commit: `plan-index.sh --split` (the decomposition), `commit-task.sh` (every task,
-  repair, close, extension, e2e, final-review-fix and `--outside` commit, `--skip`, `--decide`, `--rule`, and `--landed <sha>` recording a task
-  another commit carried in its own `chore(viber)` commit, never with `--with`), `archive-run.sh`
-  (the archive), and outside a build the `commit` skill's `commit.sh`. No agent or skill runs
-  `git add` or `git commit`. `planner` leaves a landed draft uncommitted; `memory` and `rules`
-  leave their writes unstaged.
-- `commit-task.sh` never takes a subject from its caller (a task commit is the plan's
-  `T<n> - <title>` heading, no type prefix). It stages only the paths it is named, as literal
-  pathspecs, refuses a `.temp/` path with a warning, and adds the run's
-  `work/` trail itself. `--e2e` takes no plan: the `e2e` commit carries no `Refs:` line at all.
-- Never two `commit-task.sh` calls at once: each rewrites the index and `status.md`.
-- `commit-args.sh` is the ONE selector parser.
-- The exceptions to the literal-script-line form, under a bare `Bash` allow: the `commit` skill's
-  inline `git rev-parse` and `cat` preloads and `code-auditor`'s `sh`/`bash`/`node` calls.
+- A switch added, removed or renamed: `scripts/config.sh` (key grammar and its fixed stdout order), the key list of `scripts/switch-text.sh`, the switch list hard-coded in `skills/setup/scripts/bootstrap.sh`, `skills/setup/templates/viber.yml`, the `README.md` switch table, `help.html` in both languages, and `tests/viber/config.test.ts` / `switch-text.test.ts`.
+- `directories.runs` is parsed with the same grammar (`[A-Za-z0-9._-]+`, not `.` or `..`, default `_specs`) in `scripts/config.sh`, `scripts/plan-path.sh`, `scripts/archive-run.sh` and `hooks/panel/run-state.ts`.
+- The plan's task block (`<!-- TASK -->` ... `<!-- /TASK -->`, `### T<n> - <title>`, the `- <Field>:` lines): `skills/planner/templates/tasks.md`, `references/plan-rules.md`, `scripts/plan-index.sh` (validates and splits), `scripts/commit-task.sh` (commit subject from the heading, staging from `Files:`) and `hooks/panel/run-state.ts`.
+- `status.md`'s `done:`/`skipped:` lines: written by `commit-task.sh`, read by `plan-index.sh` and `hooks/panel/run-state.ts`.
+- The plan frontmatter `source:` line: `skills/planner/templates/spec-full.md`/`spec-lite.md`, `planner/SKILL.md`, `implementor/SKILL.md` step 1 and `hooks/scripts/plan-gate.sh` (it picks `planner-review` over `plain-plan-review`).
+- A user-facing behavior: `README.md` and `help.html` (`en` and `pl` spans) describe the same features.
 
-## Sections
+## Traps
 
-- Read `CLAUDE.plan-format.md` before changing the plan template, `plan-rules.md`, a plan
-  parser, `plan-index.sh`'s printed index or how `--split` cuts a task file.
-- Read `CLAUDE.run-branch.md` before touching `branching:`, `run-branch.sh`, `plan-path.sh --branch`.
-- Read `CLAUDE.run-directory.md` before touching a file of a run directory, `status.md`'s keys,
-  `archive-run.sh` or `closeout`.
-- Read `CLAUDE.rulings.md` before touching rulings or the arbiter.
-- Read `CLAUDE.tool-dependencies.md` before touching a `gh`, Playwright or `node` call.
-- Read `CLAUDE.switches.md` before adding or parsing a `viber.yml` key or wiring a switch into
-  planning or `intent`.
-- Read `CLAUDE.memory-rules.md` before touching the `memory` or `rules` skills, their agents or
-  `node-doctrine.md`.
-
-## Duplicated on purpose - change together
-
-- The `work/final-review-*.md` and `work/final-fix-coder-*.md` names: `final-review.true.md`,
-  `final-reviewer.md` and `commit-task.sh --review`'s trail glob.
-- The temporary-index commit of named paths (never `git commit -- <paths>`, which drops a staged
-  mode under `core.fileMode=false`): `commit-task.sh`'s `commit_named` and `commit.sh`'s paths mode.
-- An agent's `tools:` frontmatter and the tool list its opening paragraph names.
-- The extension contract: the `<!-- viber:extension -->` marker line (`extension.sh` tells a
-  contract agent from a plain one by it), the `run:`/`spec:`/`notes:`/`out:` input lines and the
-  `VERDICT: WRITTEN`/`NONE`/`FAIL`/`DENIED` plus `FILES:` output, in
-  `skills/extension/templates/extension.md` and `skills/implementor/fragments/extensions.on.md`.
-- `references/qa-format.md`, the format authority for `qa-writer`, `e2e-writer` and `e2e` (which
-  routes on its `##` headings). `e2e-writer` edits its scenario's `## Automation` line, `e2e`
-  reads each ID's state there and dispatches one scenario at a time, never two at once.
-- `help.html`'s full reference and `tests/viber/help.unit.test.ts`: every user-visible change (a
-  skill, an argument, a switch, a write location, the flow) updates the help page in the same
-  edit, and the test enforces the page against `plugin.json`, the skills' frontmatter and the
-  `viber.yml` template.
-- End-to-end tests only on the user's own ask: `test-strategy.md`, `plan-rules.md`, `planner`,
-  `intent`, `PRODUCT.md`.
-
-## Plan gate
-
-`hooks/scripts/plan-gate.sh` matches names literally: renaming `planner`, `planner-review`,
-`plain-plan-review` (agent or `planning.` switch) or `VERDICT: PASS` disarms the fail-open gate
-silently. Its contract, and `plan-hints.sh`'s: `hooks/CLAUDE.md`.
+- A new switch reaches an existing project only when `/viber:setup` reruns, and session start asks for that rerun only while the project's `schema:` is below the template's.
+- `bootstrap.sh` restores a deleted key of `planning:`, `build:`, `github:` or `directories:`, but appends `tiers:` or `branching:` only when the whole group is missing: a deleted child there silently resolves to its `config.sh` default.
+- A switch written at column 0 or under another group reads as off, with no error.
+- `BRANCHING.md`'s "part 2" (`releases:`, `version:`, release branches) does not exist: never implement or document it as present.

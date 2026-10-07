@@ -1,109 +1,47 @@
-# viber agents
+# viber/agents - the twenty-three subagents viber's skills dispatch
 
-Each agent file is its own contract: `## Input` is what its caller's dispatch lines must carry,
-`## Output` what the caller branches on. Change a line on one side, change the caller in the
-same edit.
+This directory owns one markdown file per agent registered in `viber/.claude-plugin/plugin.json` `agents[]`: each a single-purpose worker taking labelled lines and returning fixed lines. The dispatching side (what a skill sends, when, at what tier) belongs to the skills node; the reference files the agents read belong to the references node.
 
-## Callers and write scope
+## Terms
 
-| Agent | Dispatched by | Writes |
-|---|---|---|
-| `task-coder` | `implementor` (task, test-run `report:`, final-review `review:` fix) | source, its `notes` |
-| `task-reviewer`, `final-reviewer` | `implementor` (`final-review.true.md` for the second) | its report only |
-| `test-runner` | `implementor`, its baseline fragments, `intent`'s fast path | its report only |
-| `arbiter` | `implementor`, `baseline-run.<value>.md`, `final-review.true.md` | nothing |
-| `qa-writer`, `memory-writer`, `rules-writer`, `closeout` | `implementor`'s `qa`, `memory`, `rules`, `cleanup` fragments; `rules-writer` also `rules` | `qa.md`/`qa.e2e.md`; nodes below the root; `.claude/rules/`; `spec.md`, `outcome.md` |
-| `planner-review`, `adr-screener` | `planner` (`adr-screener` only under `adr: true`, once the plan is written and indexed) | nothing |
-| `plain-plan-review` | the plan gate's request | nothing |
-| `prover` | `intent --prove` | nothing (plus web) |
-| `prototype-writer` | `prototype` | its one mockup file |
-| `e2e-writer` | `e2e` | one spec file, its `## Automation` line |
-| `memory-auditor`, `memory-node-writer` | `memory` | findings file; one node below the root and its sections, or a missing root |
-| `rules-auditor` | `rules` | findings file |
-| `profiler`, `scout`, `edge-scout`, `detective`, `critic` | `code-auditor` | see `CLAUDE.code-auditor.md` |
+- Labelled input: every agent's `## Input` names the `label: value` lines its dispatch carries and what each one means; a multi-line value (`input:`, `question:`, `summary:`, `brief:`) runs to the end of the prompt. The dispatching skill sends exactly those lines and nothing else.
+- `refs:`: the plugin reference directory (`${CLAUDE_PLUGIN_ROOT}/references`), from which an agent reads the reference files its body names.
+- Sweep agents: the five `code-auditor` agents (`profiler`, `scout`, `edge-scout`, `detective`, `critic`). They take another form: a `# <Name> - <role>` heading, `## Inputs you are given`, `## Hard rules`, no tools paragraph, no `DENIED` line.
+- Coder notes: `<run>/work/<task id>-coder.md`, the at-most-8-line notes `task-coder` writes, read as `*-coder.md` by `task-reviewer`, `final-reviewer`, `closeout`, `memory-writer`, `rules-writer` and `qa-writer`.
 
-The description's `Invoked only by ...` names these callers: a new caller updates it.
+## Relationships
 
-Read `CLAUDE.code-auditor.md` before editing `profiler`, `scout`, `edge-scout`, `detective` or
-`critic`.
+- `implementor` dispatches `task-coder` (also as the repair and final-fix coder), `task-reviewer`, `test-runner`, `arbiter`, and through its switch fragments `final-reviewer` (`final-review.true.md`), `memory-writer`, `rules-writer`, `qa-writer` and `closeout` (`cleanup.true.md`); `intent`'s `fast-path.true.md` dispatches `test-runner` too, and `intent --prove` dispatches `prover`.
+- `planner` dispatches `planner-review`, and `adr-screener` through `skills/planner/references/adr-tasks.md`; `plain-plan-review` runs only on the plan gate's request. `memory` dispatches `memory-auditor` and `memory-node-writer`; `rules` dispatches `rules-auditor` and `rules-writer`; `e2e` dispatches `e2e-writer`; `prototype` dispatches `prototype-writer`; `code-auditor` dispatches the five sweep agents.
+- Reference reads: `node-doctrine.md` (`memory-writer`, `memory-auditor`, `memory-node-writer`), `rule-admission.md` (`rules-auditor`, `rules-writer`), `qa-format.md` (`qa-writer`, `e2e-writer`), `plan-rules.md` (`planner-review`), `adr-admission.md` (`adr-screener`), `test-strategy.md` (`task-coder`, `task-reviewer`), `integration-tests.md` (`planner-review`, `task-coder`, `task-reviewer`). `detective` writes to the schema of `skills/code-auditor/references/synthesis.md`; `detective` and `critic` get clean checkouts only through `skills/code-auditor/scripts/worktree.sh`.
+- Skill calls from agents: `task-coder` invokes `viber:tdd` on a `TDD: required` task; `prototype-writer` invokes `impeccable`, else `superui:pro-designer`, when either is in its skill listing.
+- `hooks/panel/run-events.ts` tracks `viber:task-coder` and `viber:task-reviewer` by name (`TASK_AGENTS`).
+- `tests/viber/profiler.test.ts` lifts the single fenced `bash` block of `profiler.md` verbatim and runs it against a throwaway repo: the only agent file under test.
 
-## Shared text - change together
+## Contracts
 
-- All eighteen but the five `code-auditor` agents carry the same "Your tools are ..., every one of them loaded" paragraph and
-  "Never narrate your work - no commentary between tool calls."
-- On native macOS and Linux builds an agent with `Bash` in `tools:` gets no `Glob` or `Grep` (a
-  call returns `No such tool available`); one without `Bash` keeps both, as on Windows. So a
-  read-only agent never takes `Bash`, and every agent holding it carries the line that makes
-  that error no refusal and sends the search to `find` / `grep` through `Bash` (`detective` under
-  `## Hard rules`); a body that narrows `Bash` names `find` and `grep` as an allowed use.
-- The `DENIED` line is `REASON: <refused tool name>: <the exact refused command, or the path for
-  a file tool>` everywhere; `prover` adds the URL or query of a web tool. `closeout` keeps its
-  `DRIFT:` line between `VERDICT: DENIED` and `REASON:`, `arbiter` drops its four lines for the
-  two. On `DENIED` no reviewer or `test-runner` writes its report and `e2e-writer` writes no
-  status line.
-- "A message with no tool call ends your run..." sits on the long-loop writers only:
-  `task-coder`, `e2e-writer`, `memory-node-writer`, `prototype-writer`.
-- `baseline: <path>`: a failure is pre-existing only when its test name and file match a line of
-  the baseline report, message ignored; a missing file makes none pre-existing. Stated in
-  `test-runner` (which writes that report: a `status: pass | skip | fail | build-failed` line,
-  then `<test name> | <file> | <assertion or error>` per failure), `task-coder` and
-  `task-reviewer`. `test-runner`'s baseline mode reuses an existing report and runs nothing.
-- `decision: <task-id>: <text>`, the build's own ruling (`auto:`-prefixed, from the arbiter),
-  beats the task file or a report. Read by `task-coder`, `task-reviewer` and `closeout`, which
-  takes them from `status.md` plus every line of `rulings.md`.
-- An integration or browser run gets an explicit timeout in minutes (a default one reads as a
-  false red): `task-coder`, `task-reviewer`, `test-runner`, `e2e-writer`.
+- Strength: `task-coder` and `task-reviewer` get the task's tier as `model`, `final-reviewer` `opus` clamped into the tiers range; every other dispatch passes no `model`, so the frontmatter `model:` and `effort:` decide. `detective`, `critic` and `profiler` carry `model: inherit` and run at the session's model.
+- Every non-sweep agent carries the tools paragraph ("Your tools are ..., every one of them loaded ...") naming exactly its `tools:` list; an agent holding `Bash` adds the sentence that `No such tool available` on `Glob` or `Grep` means using `find` and `grep` through `Bash`, and `detective`, `critic` and `profiler` state that fallback under `## Hard rules`.
+- Agents sharing the working tree (`task-coder`, `task-reviewer`, `final-reviewer`) keep git read-only (`status`, `diff`, `log`, `show`), never `stash`, `checkout`, `restore` or `clean`: one stash stack serves every coder. `task-coder`'s only writes to the index are `git rm -r -q --` and `git update-index --chmod=+x --`.
+- Write scope: a reviewer or auditor writes only its report or findings file, and only on the verdict its `## Output` names (`task-reviewer` and `final-reviewer` write nothing on `PASS`; `planner-review`, `plain-plan-review`, `adr-screener`, `arbiter`, `prover` and `critic` write nothing at all); `closeout` edits only `spec.md` and writes `outcome.md` before its one literal `archive-run.sh` call; `e2e-writer` writes one spec file plus its status line under `## Automation` of `qa.e2e.md`.
+- Baseline report: `test-runner` writes `status: pass | skip | fail | build-failed` then `<test name> | <file> | <assertion or error>` lines; `task-coder` and `task-reviewer` treat a failure as pre-existing only when its test name and file match such a line.
+- Stall path: `task-coder`'s `DECIDE:` options become `arbiter`'s `options:` for case `decide`; a ruling comes back to coders, reviewers and `closeout` as a `decision: <task-id>: <text>` line of `status.md`, which wins over the task file.
+- Join keys: `scout` echoes `path` and `edge-scout` echoes `a` and `b` byte-identical to the record it was given; `critic` is handed only the `.claim.md` sidecar (`LOCATION`, `CLASS`, `## Reproduce`), never the detective's report.
+
+## Commands
+
+- `node --test tests/viber/profiler.test.ts` after any edit to `profiler.md`'s `git log` block.
+
+## Change together
+
+- The "Stop what you started" block is verbatim in `task-coder`, `task-reviewer`, `final-reviewer`, `test-runner` and `e2e-writer`.
+- The tools paragraph and the `DENIED` / `REASON: <refused tool name>: <the exact refused command, or the path for a file tool>` output wording are verbatim across every non-sweep agent (`prover` adds the URL or query for a web tool).
+- Memory audit vocabulary (`STALE`, `GONE`, `UNVERIFIABLE`, `MISS`, `SHAPE`, `OK`) and the `<out><slug>-audit.md` name (`/` -> `--`): `memory-auditor`, `memory-node-writer` and `skills/memory/SKILL.md`. The rules counterpart (adding `DROP` and `MOVE:`): `rules-auditor`, `rules-writer` and `skills/rules/SKILL.md`.
+- An agent added, removed or renamed: `plugin.json` `agents[]`, every `viber:<name>` dispatch in `skills/`, and for `task-coder`/`task-reviewer` `hooks/panel/run-events.ts`, for `planner-review`/`plain-plan-review` `hooks/scripts/plan-gate.sh`.
+- `planner-review`'s input labels (`refs:`, `memory:`, `input:`): `planner-review.md`, `skills/planner/SKILL.md` and the dispatch text `hooks/scripts/plan-gate.sh` prints in its deny message.
 
 ## Traps
 
-- `task-coder` returns `FILES:` only without a task file (a `report:` or `review:` dispatch),
-  `DOD:` always with one, `FIXED:` only with `review:` lines. A `report:` with no task file is a
-  test-run report: every failure is Blocking.
-- `test-runner` runs the suite once, in the background, to `.temp/viber/test-runner/<report name>.log`,
-  the command ending `echo "exit=$?"` into it; a foreground wait at timeout 600000 loops on that
-  `exit=` line and is the only call it repeats. The wait has no time cap, so a suite that never
-  writes the line hangs it.
-- `test-runner`'s scope is set by `suite:` and `run:`: no `suite:` runs the host's fast command,
-  then the integration tests whose adapter (or a file it depends on) is among the change; `run: <dir>`
-  (every `implementor` final dispatch) bases the change on the commit that first added
-  `<dir>/plan.md`, no `run:` (`intent`'s fast path) on the working tree. It joins both commands
-  as `<fast> && <integration>` in the one run, so an integration failure stays hidden behind a fast
-  failure until the next round. No fast command or marker convention in the host's instructions, or
-  no plan commit found, runs every layer but end-to-end. It is `sonnet`/`effort: low`, and its
-  selection paragraph ends on "Think the problem through before you answer."
-- `final-reviewer` is the one gate where a Minor-only finding writes the report and fails: the
-  single fix round settles both levels. Owner findings go only to `OWNER:` lines. It finds each
-  task's commit by `commit-task.sh`'s subjects `<id> - <title>` and `<id>(<n>) - <title>`, and a
-  file several tasks changed belongs to the slice of the lowest-numbered one. Under `memory: true`
-  it reports nothing living in a `CLAUDE.md`.
-- `arbiter`: `case:` is one of `decide|cap|baseline|tests|final-review|commit`, matching its
-  three call sites. `RULING` is copied verbatim from `options:` (the first option is the
-  fallback), and `WHY`/`COST` hold no double quote, dollar sign, backtick or backslash: they
-  become shell arguments of `commit-task.sh --rule`.
-- `closeout` makes one Bash call, the literal `archive-run.sh "<run>"` line, and marks drift as
-  `[D<n>]` plus one appended section in `spec.md`'s own language; never `qa.md` or `qa.e2e.md`.
-  Before that call it writes its input's `summary:` block verbatim plus a `Drift:` line to
-  `<run>/outcome.md`, never under `work/`, which the archive drops; a failed write ends it on
-  `DENIED` before the archive call.
-- The harness rejects a subagent's `Write` of a `.md` file whose basename matches
-  `^(REPORT|SUMMARY|FINDINGS|ANALYSIS).*\.md$`, case-insensitive, as a tool error no permission
-  lifts: no agent's output file may take such a name (hence `outcome.md`, `review-*.md`). A host
-  file so named (`reports.pl.md`) is written by `hooks/register.tsx` in the agent's place
-  (`hooks/CLAUDE.md`, Report-name write), only where Claude Code loads hooks modules.
-- Auditor findings land at `<out><slug>-audit.md`, `/` in the scope becoming `--` (`root` for the
-  repository root, `new--<scope>` for a `rules-auditor` proposal, which writes no file when
-  nothing passes); `rules-writer` globs `*-audit.md`, `memory-node-writer` gets the path.
-- `e2e-writer` writes exactly `<spec-dir>/<qa-id>-<slug>.spec.ts`, chromium-only through
-  `test.use`, explores only through `playwright-cli`, keeps scratch under `.temp/viber/e2e/`,
-  and never edits application code: a false business assertion is `BLOCKED`, never a weakened
-  test.
-- `prototype-writer` invokes `impeccable`, else `superui:pro-designer`, through `Skill` when
-  listed: renaming superui's skill drops the advice silently. It keeps basis and variant labels
-  inside the mockup so a later round reads them back.
-- `adr-screener` proposes, never decides: its `VERDICT: NONE|FOUND|DENIED` and the `ADR:`,
-  `DEPRECATE:` and `APPEND:` lines are one loop with `planner`'s
-  `references/adr-tasks.md`, which relays every line and adds none. The test itself lives only in
-  `references/adr-admission.md`, which it reads whole through `refs:`; a criterion added to the
-  agent or to `adr-tasks.md` splits it.
-- `qa-writer` returns `KEPT` and writes nothing when `qa.md` or `qa.e2e.md` exists: a resumed build never
-  overwrites scenarios a tester may have worked through.
+- The harness rejects a subagent's `Write` of any `.md` whose name starts with `report`, `summary`, `findings` or `analysis`; `hooks/register.tsx` writes such a file in its place for a viber agent inside the project root, yet every file an agent is told to write is named otherwise (`outcome.md`, `review-*.md`, `*-audit.md`, `final-review-<n>.md`).
+- A file an agent writes that something parses (`detective`'s sidecar, `profiler`'s profile appended to `job.md`) can end on a leaked `</content>` line: those two agents read the tail back and delete it, and a new parsed output needs the same guard.
+- `scout`, `edge-scout` and `profiler` return no `VERDICT:` line (JSON lines, or `profile written: <path>`): a caller parsing them never looks for one.

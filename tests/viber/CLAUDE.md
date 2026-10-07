@@ -1,106 +1,30 @@
-# tests/viber/ - viber's script suite
+# tests/viber - viber's script, hook and shipped-content suite
 
-One file per viber script (the six under `skills/code-auditor/scripts/` included), plus
-`help.unit.test.ts`, `profiler.test.ts`, the two `panel-run-*.unit.test.ts` and
-`write-report-name.unit.test.ts` (no script: the latter import the pure `hooks/panel/*.ts` and
-`hooks/write/*.ts` functions, `register.tsx` is never loaded). Every fixture helper is local to its
-file: plan, status and run-directory builders (`planBody`, `seed`, `sourcePlan`, `seedRun`,
-`withBranchRepo`) are hand-built per file, so a plan or `status.md` format change moves the
-builders of `plan-index`, `plan-path`, `commit-task` and `archive-run` together.
+One test file per viber script, hook script or `.ts` module, named after it, plus the checks that bind shipped markdown, templates and `hooks.json` to what the scripts and `plugin.json` carry. The helpers it imports belong to `tests/harness/`; no other plugin is tested here.
 
-## How each script is run
+## Relationships
 
-- The seven `#!/bin/sh` scripts (`issue-create`, `issue-facts`, `issue-templates`,
-  `post-comment`, `pr-facts`, `pr-create`, `qa-comment`) run every case under `forEachShell("posix")` through `opts.shell`, never
-  executed directly. `commit`, `commit-args`, `commit-context`, `commit-selfcheck` and one
-  `switch-text` case run under `forEachShell("bash")`; every other file runs its bash script once (the code-auditor suites: below).
-- `commit-args.sh` is a sourced library: its test drives it through a generated bash wrapper
-  printing `COMMIT_MODE` / `COMMIT_PATHS` (joined with `|`) / `COMMIT_ISSUE_REFS`.
-- Every `!` preload script's test (`config`, `bootstrap`, `check-playwright`, `extension`, `handoff-path`,
-  `memory-map`, `rules-map`, `run-clock`, `switch-text`) expects exit 0 from the preload mode
-  on every data condition; `plan-gate`, `plan-hints` and `kill-guard` assert exit 0 on every case.
+- SUTs: `viber/scripts/`, `viber/skills/*/scripts/`, `viber/hooks/scripts/`, `viber/hooks/panel/run-state.ts` and `run-events.ts`, `viber/hooks/write/report-name.ts`, and the one command in `viber/agents/profiler.md`.
+- `help.unit.test.ts` imports `contrastRatio` and `parseColor` from `superui/skills/pro-designer/scripts/check_contrast.ts`: changing those exports breaks a viber test.
+- `viber/scripts/run-branch.sh` and `viber/hooks/register.tsx` have no test file.
 
-## Reach beyond a file's own script
+## Contracts
 
-- `run-branch.sh` has no file of its own: `plan-path.sh` sources it, and `plan-path.test.ts`'s
-  branching cases exercise it. `config.sh` is also run by `switch-text.sh`, `issue-templates.sh`,
-  `pr-facts.sh`, `run-branch.sh` (`--branching`) and, for one case, `bootstrap.test.ts`.
-- `bootstrap.test.ts` binds the template's key list to its `schema:` number (`SCHEMA_KEYS`): a
-  key added to `templates/viber.yml` without a new number and a recorded list fails it.
-- `plan-index.test.ts` reads `skills/planner/templates/`: `spec-lite.md` and `spec-full.md` must
-  each carry the four anchor lines `## Goal`, `## Acceptance criteria`, `### File map`,
-  `### Out of scope`, and no `plan.md` sits there beside `tasks.md`.
-- `merge-settings.test.ts` asserts the shape of `skills/setup/templates/settings.json`;
-  `bootstrap.test.ts` reads `templates/gitignore.txt`, `templates/viber.yml` and
-  `templates/settings.json`.
-- `commit-context.test.ts` lifts the fenced `!` block out of `skills/commit/SKILL.md`,
-  substitutes `$ARGUMENTS` and `${CLAUDE_PLUGIN_ROOT}` as Claude Code does, and asserts it is one
-  literal line calling `commit-context.sh`.
-- `session-start.test.ts` and `plan-hints.test.ts` derive their expectation from the shipped
-  `hooks/content/manifest.md` / `plan-hints.md`, so filling or emptying either stays green.
+- The shell follows the SUT's shebang: a `#!/bin/sh` script runs through `forEachShell("posix", ...)`, a `#!/usr/bin/env bash` one through `forEachShell("bash", ...)` or a plain `runScript`.
+- Hook scripts run with `shell: "bash"`, the way `hooks.json` invokes them (`bash "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/<name>.sh"`): the test proves the content, never the exec bit.
+- Hook payloads and transcript fixtures are JS objects serialized with `JSON.stringify`, never hand-escaped: the scripts read raw text with grep/sed/awk and unescape it themselves, so a hand-escaped fixture proves the wrong thing.
+- `rank.ts` and `rank_edges.ts` carry no CLI guard and run `main()` on import: they are driven only as subprocesses through `runScript`, never imported. The panel and report-name modules export pure functions, imported directly by the `*.unit.test.ts` files.
+- `help.unit.test.ts` holds `viber/skills/setup/assets/help.html` to: a card per skill in `plugin.json`, the self-starting label on exactly the `user-invocable: false` skills, a line per agent, an entry per uncommented indent-0 or indent-2 key of the `viber.yml` template (plus `branching-issue-type-mappings`), every English piece paired with a Polish one, only `/viber:` commands a skill carries, no dash characters, no external load, 4.5:1 for every `--fg-*` on every `--bg-*` in both themes. Every rule is a pure function with a self-check.
 
-## code-auditor suites
+## Change together
 
-`check_node`, `collect_signals`, `collect_edges`, `rank`, `rank_edges`, `worktree` and
-`profiler` (the `git log` block of `viber/agents/profiler.md`, lifted verbatim) drive
-`skills/code-auditor/scripts/` as real subprocesses. Each file's header states the CLI contract it
-pins: change the header with the contract.
+- `viber/hooks/hooks.json`: `kill-guard.test.ts` pins the `PreToolUse` entry (matcher `Bash`, run through `bash`), `plan-gate.test.ts` asserts the description names `planning.plain-plan-review`, `session-start.test.ts` asserts it names the schema note.
+- `viber/skills/setup/templates/viber.yml`: `config.test.ts` asserts the template resolves to a fixed table of every default; `bootstrap.test.ts` binds the template's key list to its `schema:` number in `SCHEMA_KEYS`, so a key layout change needs a new schema number and its `SCHEMA_KEYS` entry; `help.html` needs an entry for each key.
+- `viber/skills/setup/templates/gitignore.txt` and `settings.json`: `bootstrap.test.ts` and `merge-settings.test.ts` compare written files to them byte for byte, and `bootstrap.test.ts` requires the `.temp/` and `.claude/viber.local.yml` lines in `gitignore.txt`.
+- `viber/skills/planner/templates/spec-lite.md` and `spec-full.md` both keep the four anchor lines `plan-index.sh` reads: `## Goal`, `## Acceptance criteria`, `### File map`, `### Out of scope`.
+- A skill, agent or `viber.yml` key added or renamed in viber -> its card, line or entry in `help.html`, or `help.unit.test.ts` fails.
 
-- The skill calls every script through an interpreter, so the tests do too, through `opts.shell`,
-  never executing the file directly: `collect_signals.sh` ships mode `100644`. `check_node.sh`,
-  `worktree.sh` (`#!/bin/sh`): `forEachShell("posix", ...)`; `collect_signals.sh`,
-  `collect_edges.sh` and the profiler block (bash): `forEachShell("bash", ...)`. Each file wraps
-  this in its own `assertPosix`/`assertBash`, asserting every `ShellSkip` carries the expected kind
-  and a reason.
-- `rank.ts` and `rank_edges.ts` call `main()` at module load with no CLI guard: never `import`
-  them, run them only through `runScript`, inside `withTempDir`.
-- History-dependent cases (`collect_signals`, `collect_edges`, `profiler`) back-date commits with a
-  per-file `commitAt(repo, daysAgo, message)` setting `GIT_AUTHOR_DATE`/`GIT_COMMITTER_DATE` over
-  `repo.env`, so window boundaries never depend on when the suite runs. It is copied per file.
-- `--scope` cases pin that scoping narrows the record/pair set only: `dependents`, the counting
-  literal and `fanout` stay the repo-wide values. The scope fixture carries a prefix-sharing
-  sibling (`srcx/` beside `src/`) to catch a prefix match. `collect_edges.sh` with no pairs, and
-  either collector over an empty scope, exit 0 with empty stdout: a valid result.
-- `rank.test.ts` asserts stderr warnings in Python repr form (`{'path': 'no-impact.ts', ...}`)
-  because `rank.ts` reproduces Python output byte for byte.
-- `check_node.test.ts` builds its "no node" PATH by dropping every real directory holding a `node`
-  binary (`node.exe`/`.cmd`/`.bat` on win32). Its version thresholds are 22.6 (strip-types flag)
-  and 23.6 (plain `node`). `tests/superui/check_node.test.ts` also runs this script beside
-  superui's copy and asserts identical output.
-- `worktree.test.ts` passes the target root re-spelled through `slash()` as the worktree path: the
-  script must reject it whatever the separator, or `remove` deletes the repo it anchors to.
+## Traps
 
-## Fixture traps
-
-- `plan-gate` and `plan-hints` build transcript lines as JS objects through `JSON.stringify`,
-  never hand-escaped: both scripts read raw text with grep/sed/awk. `plan-hints.sh` copies the
-  episode window and Skill grep of `plan-gate.sh`, so both files share line shapes
-  (`"type":"permission-mode"`, `"name":"Skill","input":{"skill":`, `"subagent_type":`).
-- A repository root a script printed is compared as a real path (`fs.realpathSync.native`, as
-  `sameFile` / `repoRoot` in `handoff-path`, `plan-path`, `bootstrap`): git prints
-  `/private/var/...` on macOS and a `C:/` or 8.3 short form on Windows, which `slash()` alone
-  does not reconcile.
-- `kill-guard` builds each payload as a JS object through `JSON.stringify`, its `agent_type` and
-  `tool_input.command` set per case, and its last case reads the registration out of `hooks.json`.
-- `run-clock` elapsed cases freeze the clock with a stub `date` on PATH (`withStub`), so a loaded
-  machine delaying the spawn cannot move a duration by a second.
-- `gh` is always a `withStub` or absent; `open-page` also stubs `uname` and the opener on
-  `coreUtilsPath()`, so no real browser opens.
-
-## help.unit.test.ts contract
-
-Every rule is a pure function with a self-check on a synthetic bad sample; a new rule gets one
-too. The page `skills/setup/assets/help.html` must carry:
-
-- `id="skill-<name>"` per `plugin.json` skill, `id="agent-<name>"` per agent, and
-  `id="key-<key>"` / `id="key-<group>-<child>"` per uncommented `viber.yml` template key at
-  indent 0 or 2, plus `key-branching-issue-type-mappings` (shipped commented out).
-- `<span class="tag auto">` holding one `lang="en"` and one `lang="pl"` element on exactly the
-  cards of `user-invocable: false` skills.
-- Inside `<body>`, `lang` attributes alternating en, pl on the same tag name; every
-  `/viber:<x>` naming a skill; every `href="#x"` its id; no en or em dash; no external load; each
-  `id="guide-<slug>"` section carrying `class="guide"` alone; the inline script's hooks
-  (`help-search`, `data-search`, `help-no-results`, `data-copy`, `beforeprint`); no orphan
-  closing tag.
-- Every `--fg-*` / `--bg-*` token declared as a hex color in both the light `:root` and the
-  `prefers-color-scheme: dark` one, each fg on each bg at 4.5:1 or more.
+- `viber/agents/profiler.md` must hold exactly one fenced `bash` block, a `git -C ... log ... --since=` command: `profiler.test.ts` runs it verbatim after substituting `<target-root>`, `<scope or .>` and `<window>`. Git accepts a malformed `--since` with exit 0 and an empty log, so only running it proves the window is real.
+- `session-start.test.ts` and `plan-hints.test.ts` compare the injected context to `viber/hooks/content/manifest.md` and `plan-hints.md` with trailing newlines trimmed: editing the content needs no test change, editing how it is emitted does.

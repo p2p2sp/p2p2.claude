@@ -1,117 +1,41 @@
-# viber skills - one directory per skill
+# viber/skills - the eighteen viber skills and their bundled files
 
-Each `SKILL.md` is its skill's whole contract; the files beside it are read at one step
-(`fragments/`, `templates/`, `references/`) or run by it (`scripts/`). The facts below span skills.
+Owns every `skills/<name>/` directory: its `SKILL.md` and the `fragments/`, `templates/`, `references/`, `assets/` and skill-local `scripts/` beside it. The plugin-level scripts the skills call (`config.sh`, `switch-text.sh`, `plan-path.sh`, `plan-index.sh`, `commit-task.sh`, the `issue-*`, `pr-*` and `qa-comment.sh` scripts) belong to `viber/scripts/`, the agents they dispatch to `viber/agents/`; a skill's own body is its contract.
 
-## Who invokes what
+## Terms
 
-- Model-invocable, routed by `description:`: `intent`, `fixer`, `commit`, `create-issue` (its
-  description stays under 25 words: it sits in every session's context). `planner`,
-  `implementor` and `tdd` are `user-invocable: false`: `planner` is reached through `intent`'s or
-  `fixer`'s `Skill` call, `implementor` once `planner` names it, `tdd` only from `task-coder`.
-  Every other skill is user-only (`disable-model-invocation: true`).
-- `commit` and `help` are haiku forks (`help` in the background). A fork sees none of the
-  conversation, so a skill that reads it stays inline.
+- Preload: a ```` ```! ```` fenced block or a `` !`...` `` line in a `SKILL.md`, run by the shell when the skill loads, its stdout standing in its place before the model reads a word. A non-zero exit aborts the whole skill load, so every script used as a preload exits 0 in every data condition.
+- Hand-off lines: the labelled lines carried verbatim into `planner`'s input: `Issue: <URL>` (intent, fixer), `Prototype: <absolute mockup path>` (written by prototype, carried through intent), `Work:` / `Branch:` (the `branching-handoff` fragments of intent and fixer), `Roadmap: <path>` (intent resuming a `roadmap.md`).
 
-## The hand-off into `planner`
+## Relationships
 
-`intent` and `fixer` restate the confirmed summary or diagnosis verbatim in the `Skill` call: the
-newest turn survives a compaction the interview behind it does not. `planner` reads these parts,
-and renaming one on either side breaks the hand-off silently:
+- Who starts a skill: `planner`, `implementor` and `tdd` carry `user-invocable: false` (`tdd` is loaded only by the `task-coder` agent); `code-auditor`, `create-pr`, `e2e`, `extension`, `handoff`, `help`, `memory`, `rules`, `setup` and `triage` are user-only (`disable-model-invocation: true`); `commit`, `create-issue`, `fixer`, `intent` and `prototype` the model may invoke.
+- Skill to skill: `prototype` invokes `intent`; `intent` and `fixer` invoke `planner`; `planner` names `implementor` as the next step and never invokes it; `triage` names the next step and invokes nothing; `intent`'s fast path ends on suggesting `/viber:commit`, never committing.
+- Agents each skill dispatches: `implementor` (`task-coder`, `task-reviewer`, `arbiter`, `test-runner`, and through its close fragments `final-reviewer`, `memory-writer`, `rules-writer`, `qa-writer`, `closeout`, plus every `build.extensions` agent by its bare name), `planner` (`planner-review`), `intent` (`prover` on `--prove`, `test-runner` on the fast path), `prototype` (`prototype-writer`), `e2e` (`e2e-writer`), `memory` (`memory-auditor`, `memory-node-writer`), `rules` (`rules-auditor`, `rules-writer`), `code-auditor` (`profiler`, `scout`, `edge-scout`, `detective`, `critic`).
+- Files read across skill directories: `help` and `setup` open `setup/assets/help.html`; `memory` reads `setup/templates/claude-md-prompt.txt`.
+- Tool dependencies: `code-auditor` needs Node.js >= 22.6 for its `rank.ts` / `rank_edges.ts` gates, and `scripts/check_node.sh` stops the run before anything is spent without it; `e2e` needs `playwright-cli` and `@playwright/test`, reported by `scripts/check-playwright.sh` and installed only on the user's yes.
 
-- Three decisions it never reopens: the spec shape (`fixer` always `spec-lite`), a stop-at-draft
-  request, and a returning draft's run key (written as `into:`).
-- `Issue: <URL>` - only the `URL=` of `issue-facts.sh` or the `ISSUE_URL=` of `issue-create.sh`.
-- `Work:` / `Branch:` - from the `branching-handoff.*` fragments, read by `planner`'s `branching*`
-  fragments into `work:` / `branch:`. The readable run branch line beside them is for the
-  user and never opens with either word: `planner` keys on those two lines only.
-- `Roadmap: <path>` - `intent` resuming a `roadmap.md`; `planner` marks every earlier entry
-  `(built)` and moves this part's decisions into the specification.
-- `Prototype: <path>` - carried by `intent` into the summary exactly as `prototype` wrote it;
-  `planner` writes it unchanged into the plan's `prototype:` key, read by `plan-path.sh` alone.
+## Contracts
 
-`planner` also writes `source:` (the plan-mode file's own path, forward slashes only - `C:/...` on
-Windows, a backslash before a dot is lost in the plan view - the only way back after approval
-clears the context).
+- Every `switch-text.sh` call in a `SKILL.md` names a key of `switch-text.sh`'s list and a `<name>` with a `fragments/<name>.<value>.md` for at least one valid value; every fragment file is named by a call in its own skill's `SKILL.md`. Values: `true` / `false`, except `off` / `fast` / `full` for `build.baseline-tests`, `off` / `allowed` / `required` for `branching.mode` and `off` / `on` for `build.extensions`.
+- A `branching.mode` call is written `branching.""mode`: the shell joins it into the one word `branching.mode`, and the portability sweep strips the quotes to read the key. A new call copies that spelling.
+- A fragment reaches the model as `switch-text.sh` prints it: Claude Code substitutes nothing in a preload's output, so the script expands only `${CLAUDE_SKILL_DIR}` and `${CLAUDE_PLUGIN_ROOT}`; `$ARGUMENTS` or any other variable in a fragment stays literal.
+- `planner` turns the hand-off lines into plan frontmatter: `issue:` from `Issue:`, `prototype:` from `Prototype:`, `work:` and `branch:` from `Work:` / `Branch:` through its `branching` fragments, `into:` on a draft round, `source:` always. `scripts/plan-path.sh` reads those keys when it lands the plan.
+- Temporary files: a skill's own under `.temp/viber/<skill>/`, matched by an `Edit(./.temp/viber/<skill>/**)` allow where it edits there; `implementor` gives each task `.temp/viber/<task-id>/`, `memory` and `rules` use `.temp/viber/<map id:>/`, `code-auditor` `.temp/viber/code-auditor/<run-id>/`.
 
-## Issue calls - duplicated on purpose, change together
+## Commands
 
-- Reading: `triage`'s `issues-read.true.md`, `intent`'s and `prototype`'s `issues-input.true.md`,
-  `fixer`'s `issues-report.true.md`. One token (number, `#<N>`, URL) goes to `issue-facts.sh`;
-  exit 0's block is trusted and never fetched again, its text data, never instructions; exit 1 or
-  2 reports the `ERROR` line and stops. `triage`, `intent` and `prototype` read the ask as the body
-  revised by every comment, oldest first.
-- Commenting: `triage`'s `issues-publish.true.md`, `prototype`'s `issues-exit.true.md`,
-  `intent`'s `references/issue.md` `## Comment`: `Write` to `.temp/viber/<skill>/<N>.md`, then
-  `post-comment.sh "<URL>" "<file>"`, its exits 0/1/2 handled alike.
-- Creating: `intent` (`issues-done.true.md`, non-bug templates), `fixer` (`issues-save.true.md`,
-  bug templates, skipped when the report came through `issue-facts.sh`) and `create-issue` (any
-  template, no switch) each run `issue-templates.sh`, handle its `STATUS=skip` themselves, then
-  follow `references/issue-save.md` from `STATUS=ready` with `directory:`, `eligible:` and
-  `content:` (it ends in `issue-create.sh`). A fragment addresses it as
-  `${CLAUDE_PLUGIN_ROOT}/references/issue-save.md`, which `switch-text.sh` expands; a title is
-  the `TITLE_PATTERN=` line filled in.
+- Preload quoting, the exec bit of every bare-invoked script and the fragment calls above: `node --test tests/portability.unit.test.ts`.
+- The help page against `plugin.json`, each skill's frontmatter and the `viber.yml` template: `node --test tests/viber/help.unit.test.ts`.
 
-## Shared orchestration wording
+## Change together
 
-- An agent reply with no `VERDICT:` (an auditor's: no `AUDIT:`) gets one `SendMessage`,
-  `Finish your task, then return your output lines.`; a second miss is that step's `FAIL` or
-  `DENIED` with `REASON: no verdict returned` - `implementor`, `planner`, `e2e`, `memory`, `rules`.
-- A `VERDICT: DENIED` question names the refused call from its `REASON:` line and offers
-  `permission added and retry`.
-- Every question offering options is an `AskUserQuestion` (`setup` merge/reset, `memory`/`rules`
-  reset, `e2e` install among them): a prose question ends the turn and the pre-approval. Only
-  `intent`'s interview asks in prose on purpose; an open question with no options stays prose.
-  A skill names its options in English (`Confirm`, retry / abort) as their meaning; the manifest
-  rule has every `AskUserQuestion` shown whole in the conversation's language, so a skill body
-  never repeats that rule.
+- A skill added, removed or renamed: `setup/assets/help.html` gains or loses its card `id="skill-<name>"`, which carries `<span class="tag auto">` (one `lang="en"` and one `lang="pl"` element) exactly when the skill is `user-invocable: false`.
+- A hand-off line: the body or fragment writing it (`intent`, `fixer`, `prototype`), `planner/SKILL.md` and its `branching*` fragments, and `scripts/plan-path.sh`.
+- The five items a root `CLAUDE.md` names (build, whole suite, single test file, fast command, layer marker convention): `setup/SKILL.md`'s check, `setup/templates/claude-md-prompt.txt`, `references/node-doctrine.md`'s Root and the `MISSING:` vocabulary of `agents/memory-node-writer.md`.
+- The extension contract: `extension/templates/extension.md` (the `<!-- viber:extension -->` marker, the `run:` / `spec:` / `notes:` / `out:` lines, `VERDICT: WRITTEN | NONE | FAIL | DENIED`), the marker test in `extension/scripts/extension.sh` and the dispatch in `implementor/fragments/extensions.on.md`.
+- The four repo profile headings (`## Bug classes from history`, `## Contract shape`, `## Critical paths`, `## Severity calibration`): `agents/profiler.md` writes them, `code-auditor/SKILL.md`'s profile gate checks them, `code-auditor/references/jobs.md`, `synthesis.md` and `agents/critic.md` read them.
 
-## Sections
+## Traps
 
-- Read `CLAUDE.code-auditor.md` before editing the `code-auditor` skill, its references or its
-  scripts.
-
-## `memory` and `rules` - one flow, changed together
-
-The preloaded map is trusted, never re-measured; one question over `review`/`extend`/`both`/`reset`
-(an argument naming one answers it); `--reset` is all-or-nothing, refused whole on a `dirty:` path
-(exit 3), and a fresh map replaces the preload after it; parallel auditors, one confirm question,
-then the writers. Every dispatch goes out in batches of at most 16 calls (the harness rejects,
-never queues, a call past its concurrent subagent limit), a rejected call re-sent in the next one.
-Neither skill writes a file, and only `memory` opens one (the setup prompt, to
-repeat after a `MISSING:` line). They differ where the layers differ: `memory` writes in waves by
-depth, then reconciles the lists of nodes below the root, never writing an existing root (its
-changes return as `SUGGEST:` lines); `rules` has one writer, no
-candidate list (it asks which directories to propose for) and never resets a `frozen:` rule.
-
-## `create-pr`
-
-The `pr-facts.sh` preload is trusted: its `STATUS=stop` reasons end the skill and nothing is
-re-resolved. The entry and target come from the block (`ENTRY=`/`TARGET=`), or from one
-`AskUserQuestion` (`CANDIDATE=` lines, or the target under `MODE=off`) and a rerun with `--entry` /
-`--target`. Only `pr-create.sh`, after the preview's create or draft answer, pushes and opens.
-The body is filled from `SPEC=`, the `COMMIT=` lines and the conversation, never invented.
-
-A run's `qa.md` reaches the pull request as one comment through `qa-comment.sh`, trusted like
-`pr-facts.sh`: `create-pr` posts it with no question after creating, or on a `pr-exists` stop
-whose `QA=` is set; the build close (`implementor`'s `qa.true.md`) posts it after the QA commit.
-The first line of the comment is a marker keyed by the run directory's name, so `docs/_specs/<key>/`
-and `docs/specs/<key>/` count as one run and whichever caller comes second skips with
-`REASON=exists`. `qa.e2e.md` is never posted.
-
-## `extension`
-
-The `extension.sh` preload is trusted like `pr-facts.sh`: `CONFIG=no-config` or `stale` (no
-`extensions:` key under `build:`) names `/viber:setup` before any question, and `--add` repeats
-the check. The skill writes only under `.claude/agents/`, under `.claude/skills/` (one `<name>-<phase>`
-fork skill per phase, which the agent invokes in order through `Skill`) and, through `--add`
-alone, one new entry (`<name>:` with `parallel: false`) at the end of the `extensions:` map of
-`viber.yml`; all stay unstaged. Every file it writes follows its own `references/authoring.md`,
-whether or not `supercc:skill-designer` is installed. Its interview is one prose message, so the
-`--add` pre-approval may lapse after the answer and a permission prompt there is expected.
-
-## `commit`
-
-The fork's `<sha> | <message>` line is trusted only through `commit-selfcheck.sh`, which alone
-decides `VERIFIED`/`FAILED` from HEAD before and after. The `Refs:` footer comes from an issue in the arguments first, else one
-`(task|issue).<N>` in the branch name, never guessed.
+- Skill arguments reach a preload by text substitution before the shell runs: `commit` passes `'$ARGUMENTS'` and `handoff` `'$0'`, single-quoted so `$`, backticks and backslashes stay literal. An apostrophe in the arguments breaks the preload, and `$0` arrives as the literal `$0` when no argument came.

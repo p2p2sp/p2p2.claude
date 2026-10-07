@@ -1,24 +1,29 @@
-# tests/superui/ - suites for pro-designer's two bundled scripts
+# tests/superui - regression suite for superui's pro-designer scripts
 
-## What each file drives
+Owns the tests of the two bundled scripts under `superui/skills/pro-designer/scripts/`: the WCAG contrast checker `check_contrast.ts` and the Node preflight `check_node.sh`. It does not own the scripts themselves, nor the shared helpers in `tests/harness/`.
 
-- `check_contrast.unit.test.ts` and `import-safety.unit.test.ts` import `check_contrast.ts` in-process and
-  call `main(argv)` directly, never through `runScript`. This holds only while `main` RETURNS its
-  exit code and the `import.meta.url` guard alone assigns `process.exitCode`: a `main` that calls
-  `process.exit` kills the test process, and `import-safety.unit.test.ts` reads a non-zero
-  `process.exitCode` after import as the CLI having fired.
-- The contrast cases assert exit codes only (2 for bad input, 1 for a genuine AA failure, 2 when a
-  failure is followed by a malformed pair). Nothing here asserts the printed lines or the
-  unreadable/unparsable `--json` file path (exit 1), so a change to either passes green.
-- `check_node.test.ts` runs `check_node.sh` as `#!/bin/sh` through `forEachShell("posix", ...)`
-  with a stubbed `node` printing a version. Its version arrays (`NODE_OK_VERSIONS`,
-  `NODE_OK_STRIP_VERSIONS`, `NODE_MISSING_VERSIONS`) sit on both sides of the script's 23.6 and
-  22.6 cutovers: moving a cutover means moving the arrays with it.
-- "No node on PATH" is staged by `pathWithoutNode()`, the real PATH minus every directory holding
-  a `node` binary, not by `coreUtilsPath()`.
+## Relationships
 
-## Reach
+- `check_contrast.unit.test.ts` and `import-safety.unit.test.ts` import `parseColor`, `main` and `contrastRatio` straight from `check_contrast.ts`: unit tier, no process spawned.
+- `check_node.test.ts` spawns `check_node.sh` and also viber's copy, `viber/skills/code-auditor/scripts/check_node.sh`: integration tier, CI only. It uses `runScript`, `withStub` and `forEachShell` from `tests/harness/`.
 
-- `check_node.test.ts` also runs `viber/skills/code-auditor/scripts/check_node.sh` and fails on
-  any stdout divergence between the two copies. An edit to viber's copy therefore reaches
-  `"tests/superui/*.test.ts"` as well as `tests/viber/check_node.test.ts`.
+## Contracts
+
+- `check_contrast.ts` exit codes: `0` every pair passes AA, `1` a genuine AA failure, `2` no arguments or bad input (an `rgb()` component above 255, a non-string or missing `fg`/`bg` in a `--json` record). An unreadable or unparsable `--json` file throws uncaught, so it also exits `1`. Bad input wins: a failing pair followed by a malformed one still returns `2`. The range check applies to `rgb()` only; `#rgb` and `#rrggbb` keep parsing.
+- `check_contrast.ts` is import-safe: its `main()` runs only when the file is the process entry (`process.argv[1]` resolves to the module), so importing it leaves `process.exitCode` unset. `import-safety.unit.test.ts` fails if that guard goes.
+- `check_node.sh` prints exactly one line and always exits `0`: `NODE_OK node` for Node >= 23.6, `NODE_OK node --experimental-strip-types` for 22.6 <= Node < 23.6, `NODE_MISSING` for an older, unparsable, failing or absent `node`.
+
+## Commands
+
+- Unit tier of this suite: `node --test "tests/superui/*.unit.test.ts"`.
+- The integration file, as CI runs it: `CI=true node --test tests/superui/check_node.test.ts`.
+
+## Change together
+
+- superui's and viber's `check_node.sh` share one contract and differ only in their header comment: `check_node.test.ts` runs both on the same version matrix and fails on any stdout divergence, so an edit to one lands in the other in the same change.
+- A new Node threshold in `check_node.sh` goes into the version arrays `NODE_OK_VERSIONS`, `NODE_OK_STRIP_VERSIONS` and `NODE_MISSING_VERSIONS` of `check_node.test.ts`.
+
+## Traps
+
+- `check_node.sh` is `#!/bin/sh`: every case runs it through `forEachShell("posix", ...)`, never directly, and a missing POSIX shell turns the case into a recorded skip, never a failure.
+- "No node on PATH" is built by stripping from the real `PATH` every directory holding a `node` (`node.exe`, `node.cmd`, `node.bat` on Windows), so it holds on a machine with Node installed; a stub `node` is the only way to fake a version.

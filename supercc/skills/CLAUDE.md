@@ -1,12 +1,26 @@
-# supercc skills
+# supercc/skills - the files of the skill-designer and model-prompting skills
 
-## model-prompting references
+Owns the two skill directories: `skill-designer` (authoring and audit doctrine in `SKILL.md`, three references, the `scripts/lint_skill.sh` linter) and `model-prompting` (workflow in `SKILL.md`, `references/cross-model.md` plus one profile per covered model). The plugin manifest, README and the cross-plugin name contract belong to `supercc/CLAUDE.md`.
 
-- Each profile's header paragraph (alias, ID, release date, context, knowledge cutoff, price, thinking, effort default) is restated in `cross-model.md` (`Context`, `Knowledge`, `Thinking`, `Effort` and price lines under Where the models pull apart and Choosing model and effort). Correcting one of those figures in a profile updates the matching `cross-model.md` line in the same edit, and moves the `Knowledge as of` date in `SKILL.md`.
-- Quoted snippets in the profiles are measured wording, some marked verbatim: an edit to a profile never paraphrases one, it only adds, drops or replaces whole clauses.
+## Relationships
 
-## Linter severity against the doctrine
+- `skill-designer` step 4 invokes `supercc:model-prompting` and carries its `model:`, `effort:` and mitigations into the write step; `references/architecture.md` (Fork) defers a fork's model and effort to that step. `model-prompting`'s description ends "Not the general authoring doctrine": doctrine stays in `skill-designer`, per-model wording in `model-prompting`.
+- `skill-designer` step 7 runs the linter as `bash "${CLAUDE_SKILL_DIR}/scripts/lint_skill.sh" <skill-dir-or-agent-file>`.
 
-- `lint_skill.sh` enforces some of the doctrine's hard caps more softly than `SKILL.md` states them: a reserved word in `name` is a WARN, a reference over 100 lines without a table of contents, or with one that does not match its `##` headings, is a WARN up to 300 lines and a FAIL only past that, and italics and an `I` or `you` in the description (the doctrine asks for the third person) are a WARN. Tightening or loosening one of these is a decision on both files, never a silent fix of one.
-- WARN-only thresholds with no doctrine counterpart: description over 800 chars, under 15 or over 120 words, no when-to-use cue; body over 400 lines; a `.sh` in `scripts/` without the exec bit.
-- The `scripts/` sweep skips `lint_skill.sh` by name, so linting `skill-designer` never flags the `jq`/`bc` pattern inside the linter's own regexes.
+## Contracts
+
+- Both skills obey their own doctrine and lint clean (`FAIL=0 WARN=0`) under `lint_skill.sh` on their directory: no tables, italics, emoji or em/en dashes, no hedges, at most five all-caps directives per file.
+- Every bundled file is named from its own `SKILL.md` body at the step that reads it, as `${CLAUDE_SKILL_DIR}/references/<file>.md`; the linter warns on a reference whose basename the `SKILL.md` does not contain.
+- `model-prompting` reads `cross-model.md` on every run and a profile only per target model. Profiles are named `<family>-<major>-<minor>.md`. The body opens with "Knowledge as of <date>" and refuses to extrapolate to an unlisted model.
+- Quoted snippets in the profiles are measured wording: `SKILL.md` step 5 and `skill-designer`'s Audit mode forbid rephrasing them, and a sentence a profile marks verbatim (the first sentence of the Fable 5.1 autonomy block) stays verbatim in the profile too.
+- `lint_skill.sh`: a directory target lints every `.md` under it plus its `scripts/` and `references/`; a file target lints that file alone unless it is named `SKILL.md`. Prints `FAIL`/`WARN` lines, then `FAIL=<n> WARN=<m>`; exit 1 on any FAIL, 2 on missing argument, else 0. It skips itself in the `scripts/` sweep. A reference over 100 lines needs a table of contents matching its `##` headings both ways: WARN up to 300 lines, FAIL past.
+
+## Change together
+
+- The platform caps and style rules in `skill-designer/SKILL.md` (name 64 chars and charset, description 1024 chars and no angle brackets, reserved words, body 500 lines, reference table of contents past 100 lines, no tables/italics/emoji, no `jq`/`bc`, emphasis budget, hedges, caller narrative, no CLAUDE.md reads) each have a check in `lint_skill.sh`: changing one changes the other.
+- `cross-model.md` names every covered model in its comparison bullets (knowledge, context, effort defaults, prices, model choice): adding or retiring a profile updates those bullets and the "Knowledge as of" date with it.
+
+## Traps
+
+- The doctrine lists reserved words (anthropic, claude) among hard platform caps, but the linter reports them as WARN only.
+- The repo-wide portability sweep does cover `lint_skill.sh` (shebang, no CRLF). It stays 100644 because every caller runs it through `bash`; calling it bare would require the 100755 exec bit.
