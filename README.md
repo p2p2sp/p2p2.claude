@@ -1,5 +1,9 @@
 # viber
 
+[![CI](https://github.com/p2p2sp/p2p2.claude/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/p2p2sp/p2p2.claude/actions/workflows/ci.yml)
+
+![viber building a plan with parallel task-coder agents in Claude Code](docs/viber-tasks.png)
+
 A development workflow for Claude Code that takes an idea to committed code: it interviews you,
 writes a reviewed plan, builds it task by task and remembers what it learned.
 
