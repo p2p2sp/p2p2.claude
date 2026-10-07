@@ -1,6 +1,6 @@
 # viber - the idea-to-commit workflow plugin
 
-viber owns the pipeline that runs across its skills, agents, hooks, scripts and references: the `.claude/viber.yml` config, the run directory and its archive, the plan gate, and the user docs (`README.md`, `BRANCHING.md`, `PRODUCT.md`, the help page). Each subdirectory's own contracts live in its node; this file carries only what spans them.
+viber owns the pipeline that runs across its skills, agents, hooks, scripts and references: the `.claude/viber.yml` config, the run directory and its archive, the plan gate, and the user docs (`README.md`, `docs/configuration.md`, `docs/files.md`, `BRANCHING.md`, `PRODUCT.md`, the help page). Each subdirectory's own contracts live in its node; this file carries only what spans them.
 
 ## Terms
 
@@ -15,7 +15,8 @@ viber owns the pipeline that runs across its skills, agents, hooks, scripts and 
 - Pipeline: `setup` once; `triage`, `create-issue` and `prototype` feed `intent` (or `fixer` for a bug); `intent` hands to `planner` (not user-invocable), which writes the plan in plan mode behind the plan gate; `implementor` (not user-invocable, entered from the approved plan's `source:` line) lands it with `scripts/plan-path.sh`, dispatches agents, commits each task with `scripts/commit-task.sh` and ends on the close, where the `closeout` agent writes `outcome.md` and calls `scripts/archive-run.sh`. `tdd` is a worker skill; `e2e`, `create-pr`, `memory`, `rules`, `extension`, `code-auditor`, `help`, `handoff` and `commit` stand alone.
 - Agents are dispatched only by viber skills, as `viber:<name>`; `hooks/scripts/plan-gate.sh` looks for dispatches of `viber:planner-review` and `viber:plain-plan-review` in the transcript, and `kill-guard.sh` acts only on an `agent_type` starting with `viber:`.
 - `PRODUCT.md` holds the product assumptions (the four test layers `unit`, `component`, `integration`, `e2e`; one final test run; e2e only on explicit request) for maintainers; no shipped file reads it.
-- `BRANCHING.md` is the full `branching:` schema, linked from `README.md` and from `skills/setup/templates/viber.yml`. `skills/setup/assets/help.html` is the bilingual (`en`/`pl`) usage guide `/viber:help` opens.
+- The root `README.md` of the repository is viber's landing page (pitch, loop, install); `README.md` here is the usage guide, and `docs/configuration.md` (every `.claude/viber.yml` key) and `docs/files.md` (every host write) hold the reference it links to.
+- `BRANCHING.md` is the full `branching:` schema, linked from `README.md`, `docs/configuration.md` and `skills/setup/templates/viber.yml`. `skills/setup/assets/help.html` is the bilingual (`en`/`pl`) usage guide `/viber:help` opens.
 - Child nodes: `agents/CLAUDE.md`, `hooks/CLAUDE.md`, `references/CLAUDE.md`, `scripts/CLAUDE.md`, `skills/CLAUDE.md`.
 
 ## Contracts
@@ -28,12 +29,12 @@ viber owns the pipeline that runs across its skills, agents, hooks, scripts and 
 
 ## Change together
 
-- A switch added, removed or renamed: `scripts/config.sh` (key grammar and its fixed stdout order), the key list of `scripts/switch-text.sh`, the switch list hard-coded in `skills/setup/scripts/bootstrap.sh`, `skills/setup/templates/viber.yml`, the `README.md` switch table, `help.html` in both languages, and `tests/viber/config.test.ts` / `switch-text.test.ts`.
+- A switch added, removed or renamed: `scripts/config.sh` (key grammar and its fixed stdout order), the key list of `scripts/switch-text.sh`, the switch list hard-coded in `skills/setup/scripts/bootstrap.sh`, `skills/setup/templates/viber.yml`, the `docs/configuration.md` switch table and its count sentence, `help.html` in both languages, and `tests/viber/config.test.ts` / `switch-text.test.ts`.
 - `directories.runs` is parsed with the same grammar (`[A-Za-z0-9._-]+`, not `.` or `..`, default `_specs`) in `scripts/config.sh`, `scripts/plan-path.sh`, and `scripts/archive-run.sh`.
 - The plan's task block (`<!-- TASK -->` ... `<!-- /TASK -->`, `### T<n> - <title>`, the `- <Field>:` lines): `skills/planner/templates/tasks.md`, `references/plan-rules.md`, `scripts/plan-index.sh` (validates and splits), and `scripts/commit-task.sh` (commit subject from the heading, staging from `Files:`).
 - `status.md`'s `done:`/`skipped:` lines: written by `commit-task.sh`, read by `plan-index.sh`.
 - The plan frontmatter `source:` line: `skills/planner/templates/spec-full.md`/`spec-lite.md`, `planner/SKILL.md`, `implementor/SKILL.md` step 1 and `hooks/scripts/plan-gate.sh` (it picks `planner-review` over `plain-plan-review`).
-- A user-facing behavior: `README.md` and `help.html` (`en` and `pl` spans) describe the same features.
+- A user-facing behavior: `README.md`, `docs/` and `help.html` (`en` and `pl` spans) describe the same features; a headline capability also reaches the root `README.md`.
 
 ## Traps
 

@@ -1,7 +1,7 @@
 # Contributing
 
-We build these plugins for our own work at P2P2, and only our team develops them. That is why we
-do not accept pull requests: a pull request from outside the team is closed without review.
+These plugins are opinionated and their maintainers set the direction, so pull requests are not
+accepted: a pull request is closed without review.
 
 Your feedback is welcome all the same:
 
@@ -9,7 +9,7 @@ Your feedback is welcome all the same:
   Name the plugin and its version, what you did, and what happened instead.
 - **Have an idea?** Open a feature request and describe the problem it solves.
 
-We read every issue. We cannot promise a fix or a date, and the plugins change often, so a
+Every issue is read. There is no promise of a fix or a date, and the plugins change often, so a
 release can change how they behave.
 
 Security issues go by email, never into a public issue: see [SECURITY.md](SECURITY.md).

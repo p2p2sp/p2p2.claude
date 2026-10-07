@@ -4,26 +4,19 @@ Writes and fixes Claude Code skills and agents, yours or a plugin's.
 
 ## Why supercc
 
-### It finds the failures that never error
-A skill that never triggers is invisible. One with three jobs drifts. A 900-line body stops being
-read halfway through. None of them throws an error, and supercc catches all three.
-
-### It gets your skill triggered
-The triggering description is written first, because a skill nobody invokes does nothing.
-
-### One skill, one job
-Each skill holds exactly one responsibility. One that does too much gets split.
-
-### Lean by design
-Rarely needed material moves to a reference file read only when needed. The model reads less, and
-your usage limits last longer.
-
-### Linted before you see it
-Every result passes a lint run against the platform's limits and the style rules before it comes
-back to you.
-
-### Tuned for each model
-It knows how Fable, Opus, Sonnet and Haiku read instructions and where each one slips.
+- **It finds the failures that never error.** A skill that never triggers is invisible. One with
+  three jobs drifts. A 900-line body stops being read halfway through. None of them throws an
+  error, and supercc catches all three.
+- **It gets your skill triggered.** The triggering description is written first, because a skill
+  nobody invokes does nothing.
+- **One skill, one job.** Each skill holds exactly one responsibility. One that does too much gets
+  split.
+- **Lean by design.** Rarely needed material moves to a reference file read only when needed. The
+  model reads less, and your usage limits last longer.
+- **Linted before you see it.** Every result passes a lint run against the platform's limits and
+  the style rules before it comes back to you.
+- **Tuned for each model.** It knows how Fable, Opus, Sonnet and Haiku read instructions and where
+  each one slips.
 
 ## Install
 

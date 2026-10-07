@@ -1,52 +1,109 @@
-# P2P2 Claude Code Plugins
+# viber
 
-Four Claude Code plugins we use every day at P2P2, in one marketplace. Each installs on its own
-and none depends on another. There is nothing to build and nothing to configure per language:
-each plugin picks up your project's conventions from your own `CLAUDE.md` and `.claude/rules/`,
-whatever stack you work in.
+A development workflow for Claude Code that takes an idea to committed code: it interviews you,
+writes a reviewed plan, builds it task by task and remembers what it learned.
 
-> Optimized for Claude Code
+Coding agents tend to jump straight into code and fill the gaps with guesses. viber writes no code
+until you approve a plan that a reviewer has already checked against your codebase.
+
+## How it works
+
+You describe what you want with `/viber:intent`. viber asks one question at a time, each with
+concrete options and a recommendation, and says so when an answer is weak. It turns your answers
+into a plan, and a reviewer checks that plan against your code before you see it. Approve it and
+walk away: viber builds the plan task by task, commits each task and finishes on your own test
+suite. Then it writes down what it learned, so the next run starts from there.
+
+| Step | You run | You get |
+| --- | --- | --- |
+| Understand | `/viber:intent`, or `/viber:fixer` for a bug | A confirmed summary of the change |
+| Plan | nothing, it follows the interview | A plan reviewed against your code, waiting for your yes |
+| Build | nothing, it starts on your yes | One commit per task, a final review, a green test run |
+| Remember | nothing, it closes the build | Updated `CLAUDE.md` files and `.claude/rules/` |
+
+![How viber works](viber/skills/setup/assets/viber-flow-en.svg)
 
 ## Install
 
 ```
 claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
-claude plugin install superui@p2p2 --scope user
-claude plugin install superbiz@p2p2 --scope user
-claude plugin install supercc@p2p2 --scope user
 claude plugin install viber@p2p2 --scope user
 ```
 
-Install only the ones you want. `--scope user` makes a plugin available in all your projects; drop
-it to install for the current repository only. From inside a running session,
-`/plugin marketplace add https://github.com/p2p2sp/p2p2.claude` followed by
-`/plugin install viber@p2p2` does the same thing.
+Then, in your project:
 
-## The plugins
+1. `/viber:setup` once: it writes the config, the ignore rules and the permissions.
+2. `/viber:intent` to start your first change.
 
-| Plugin | Use it for |
+`/viber:help` opens the full usage guide in your browser. `--scope user` makes the plugin available
+in all your projects; drop it to install for the current repository only.
+
+## Why viber
+
+- **It asks before it guesses.** One question at a time, with options and a recommendation. Add
+  `--prove` and every recommendation is checked against your code before you see it.
+- **Every step is checked.** The plan is reviewed before you approve it, each task before its
+  commit, and the whole build before it ends.
+- **It runs without you.** A failed task retries up to five times, one model tier up each time.
+  Where a build would stop to ask, an arbiter agent picks a way forward and records why.
+- **It saves tokens.** Each task gets the cheapest model that can do it, between a floor and a
+  ceiling you set, so your usage limits last longer.
+- **It learns your project.** Conventions go to `.claude/rules/`, area knowledge to that area's
+  `CLAUDE.md`. You explain less with every run.
+- **Nothing gets lost.** The plan and its progress are committed, so an interrupted build resumes
+  in a new session or on another machine.
+- **It fits your stack.** Build and test commands and conventions come from your own `CLAUDE.md`
+  and `.claude/rules/`, whatever language you work in.
+
+Beyond the core loop, viber triages issues, opens GitHub issues and pull requests, mocks up UI
+changes, writes Playwright tests, audits large codebases and hands a session over to the next one.
+The [viber guide](viber/README.md) lists every command.
+
+## Good to know
+
+- viber runs in Claude Code only.
+- It is opinionated: no code before an approved plan. A small change to existing code gets a
+  shorter path, a design in chat, and is still built only on your yes.
+- Issue and pull request steps work with GitHub, through the `gh` CLI.
+- It changes fast, and a release can change how it behaves. Run `/viber:setup` again after an
+  upgrade.
+
+## Also in this marketplace
+
+Each installs on its own, and none needs viber.
+
+| Plugin | What it does |
 | --- | --- |
-| [viber](viber/README.md) | From an idea to committed code: understand it, plan it, build it, remember it. |
-| [superui](superui/README.md) | Any interface you build, held to professional design standards. Fires by itself. |
-| [superbiz](superbiz/README.md) | Deciding whether a side-project idea is worth building. |
-| [supercc](supercc/README.md) | Writing and fixing your own Claude Code skills and agents. |
+| [superui](superui/README.md) | Holds every interface Claude builds to professional design standards, so it does not look AI-generated. Fires on its own. |
+| [supercc](supercc/README.md) | Writes, audits and tunes your own Claude Code skills and agents, for the model they run on. |
+| [superbiz](superbiz/README.md) | Checks whether a side-project idea is worth building, with sourced research and a Go / Pivot / No-Go report. |
+
+```
+claude plugin install superui@p2p2 --scope user
+claude plugin install supercc@p2p2 --scope user
+claude plugin install superbiz@p2p2 --scope user
+```
 
 ## Requirements
 
 | Plugin | Needs |
 | --- | --- |
-| superbiz | web access and Python 3 |
-| superui | Node.js 22.6 or newer, optional: only for the contrast check |
+| viber | the `gh` CLI for its GitHub steps; Node.js 22.6 or newer for `/viber:code-auditor`; optional: `node` for `/viber:setup`'s settings merge, Playwright for `/viber:e2e` |
+| superui | optional: Node.js 22.6 or newer, only for the contrast check |
 | supercc | nothing |
-| viber | the `gh` CLI for its GitHub steps, checked by `/viber:setup`; Node.js 22.6 or newer for `/viber:code-auditor`; optional: `node`, for `/viber:setup`'s settings merge, and Playwright, for `/viber:e2e` |
+| superbiz | web access and Python 3 |
 
 ## Contributing
 
-We build these plugins for our own work at P2P2, and only our team develops them, so we do not
-accept pull requests. Found a bug or have an idea?
-[Open an issue](https://github.com/p2p2sp/p2p2.claude/issues/new/choose): we read every one.
-More in [CONTRIBUTING.md](CONTRIBUTING.md).
+These plugins are opinionated and their maintainers set the direction, so pull requests are not
+accepted. Bug reports and ideas are welcome:
+[open an issue](https://github.com/p2p2sp/p2p2.claude/issues/new/choose). More in
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
 [MIT](LICENSE)
+
+---
+
+Built and maintained by [P2P2](https://github.com/p2p2sp).
