@@ -55,9 +55,9 @@ Secrets:
 git grep -n -E 'AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{36}|(api_?key|secret|passw(or)?d|token)[[:space:]]*[:=][[:space:]]*("|'"'"')[^"'"'"']{12,}' -- <scope> | head -30
 ```
 
-Diff scope only, lines removing a check:
+Diff scope only (run it only when the run file reads `Scope: diff`), lines removing a check in staged and unstaged edits; commits since the base are not covered:
 ```bash
-git diff -- <scope> | grep -E '^-.*(auth|permission|valid|saniti|escape|verify)' | head -30
+git diff HEAD -- <scope> | grep -E '^-.*(auth|permission|valid|saniti|escape|verify)' | head -30
 ```
 
 ## Excluded
