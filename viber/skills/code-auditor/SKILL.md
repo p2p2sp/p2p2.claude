@@ -52,7 +52,9 @@ No agent is dispatched before Map, and every stop below prints its one line and 
 Hunter budget: one hunter per lens angle on the diff scope, 8 for a directory, 16 for the repository. At most 16 agents run at once in every phase; beyond that, run successive batches.
 
 - Diff scope: no scout. One hunter per angle of the lens's `## Hunts`, hunt id `A-<angle slug>`, carrying `Angle: <angle slug>`.
-- Directory and repository: with no more units than the budget, hunt every unit. Only above the budget, dispatch `viber:scout`s, each with `Run file:`, `Lens file:` and up to 8 unit lines verbatim, and keep the budget's count of best-scored units, ties and unscored units in map order. One hunter per kept unit, hunt id `U<n>`, carrying `Unit: <unit line verbatim>`.
+- Directory and repository: with no more units than the budget, hunt every unit. Only above the budget, dispatch `viber:scout`s, passing `model` `sonnet` on the security lens (Haiku's cyber classifiers refuse with no fallback) and no `model` on the others, each with `Run file:`, `Lens file:` and up to 8 unit lines verbatim. One hunter per kept unit, hunt id `U<n>`, carrying `Unit: <unit line verbatim>`.
+- Scout retry: once every scout has returned, the units with no score line go once more to scouts, in batches of up to 8, with the same brief and `model`.
+- Kept units: the budget's count, highest score first, equal scores in map order, and units still unscored after the retry after every scored unit, in map order.
 
 Every `viber:hunter` brief: `Run file: <ws>/run.md`, `Lens file: <lens-file>`, `Schema: ${CLAUDE_SKILL_DIR}/references/synthesis.md`, `Hunt: <hunt id>`, its `Unit:` or `Angle:` line and `Reports: <ws>/reports/<hunt id>`. Only for a lens reading `Worktree: required`, add `Worktree script: ${CLAUDE_SKILL_DIR}/scripts/worktree.sh` and `Worktree: <ws>/worktrees/<hunt id>`, and on the diff scope `Overlay script: ${CLAUDE_SKILL_DIR}/scripts/diff-overlay.sh`. A `Worktree: none` lens reserves no worktree.
 
