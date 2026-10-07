@@ -2,9 +2,11 @@
 #
 # plan-hints.sh - viber / UserPromptSubmit hook: plan-writing hints for plain plan mode.
 #
-# Injects two plan-writing rules into the model's context on every prompt sent
-# in plain plan mode: end the plan with a subagent review of the finished
-# implementation, and have independent tasks run in parallel subagents. The
+# Injects plan-writing rules into the model's context on every prompt sent
+# in plain plan mode: three the plan carries for the implementing agent (a
+# TaskCreate task list, independent tasks in parallel subagents, a closing
+# subagent review of the finished implementation) and one for the plan's
+# author (a fresh plain-plan-review after every plan write). The
 # rules' text lives in hooks/content/plan-hints.md, injected verbatim, so a
 # wording change never touches this script. A plan
 # the viber chain drives needs neither - its implementor already runs

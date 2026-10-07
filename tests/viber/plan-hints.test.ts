@@ -3,11 +3,12 @@
  * UserPromptSubmit hook that hands plain plan mode its plan-writing rules.
  *
  * What it must do: on a prompt whose payload carries `"permission_mode":"plan"`,
- * print one UserPromptSubmit additionalContext naming both rules (a closing
- * subagent review task, parallel subagents for independent tasks) - unless a
+ * print one UserPromptSubmit additionalContext naming every rule (a TaskCreate
+ * task list, parallel subagents for independent tasks, a closing subagent review
+ * task, a plain-plan-review after every plan write) - unless a
  * planner, intent or fixer Skill tool_use, or a typed /viber:intent or
  * /viber:fixer command, sits in the current plan-mode episode, where the viber
- * chain already covers both. Any other mode, a payload
+ * chain already covers them. Any other mode, a payload
  * without the key, or empty stdin prints nothing. A missing transcript counts as
  * no chain skill, so the hint still fires. Every case asserts exit 0: a broken
  * hint must never block a prompt.
@@ -89,7 +90,7 @@ async function runPayload(payload: Record<string, unknown>): Promise<string> {
   return await run(JSON.stringify({ hook_event_name: "UserPromptSubmit", prompt: "go", ...payload }));
 }
 
-/** Parses the hint and asserts it carries both rules. */
+/** Parses the hint and asserts it carries every rule. */
 function assertHint(stdout: string): void {
   let json: { hookSpecificOutput?: { hookEventName?: string; additionalContext?: string } };
   try {
@@ -102,22 +103,25 @@ function assertHint(stdout: string): void {
   assert.equal(out.hookEventName, "UserPromptSubmit");
   const ctx = out.additionalContext ?? "";
   assert.match(ctx, /subagent reviews the finished implementation against the plan/);
-  assert.match(ctx, /independent tasks in parallel subagents/);}
+  assert.match(ctx, /independent tasks in parallel subagents/);
+  assert.match(ctx, /TaskCreate/);
+  assert.match(ctx, /plain-plan-review agent after every write to the plan file/);
+}
 
 // --- cases ------------------------------------------------------------
 
-test("plan mode with no planner in the transcript -> additionalContext carries both rules", async () => {
+test("plan mode with no planner in the transcript -> additionalContext carries every rule", async () => {
   await withTempDir("p2p2-plan-hints-", async (dir) => {
     const f = writeTranscript(dir, [permissionMode("plan")]);
     assertHint(await runPayload({ permission_mode: "plan", transcript_path: f }));
   });
 });
 
-test("the hint carries exactly the two rules, with no line telling the model to skip them under a viber skill (the hook itself stays silent there)", async () => {
+test("the hint carries exactly the four rules, with no line telling the model to skip them under a viber skill (the hook itself stays silent there)", async () => {
   await withTempDir("p2p2-plan-hints-", async (dir) => {
     const f = writeTranscript(dir, [permissionMode("plan")]);
     const ctx = JSON.parse(await runPayload({ permission_mode: "plan", transcript_path: f })).hookSpecificOutput.additionalContext as string;
-    assert.equal(ctx.split("\n").filter((l) => l.startsWith("- ")).length, 2, `expected two rule lines, got: ${ctx}`);
+    assert.equal(ctx.split("\n").filter((l) => l.startsWith("- ")).length, 4, `expected four rule lines, got: ${ctx}`);
     assert.doesNotMatch(ctx, /viber|skip/i);
   });
 });
@@ -169,7 +173,7 @@ test("empty stdin -> exit 0, nothing printed (fail-open)", async () => {
   assert.equal(await run(""), "");
 });
 
-test("a planner Skill tool_use in the current episode -> nothing printed (the viber planner covers both rules)", async () => {
+test("a planner Skill tool_use in the current episode -> nothing printed (the viber planner covers these rules)", async () => {
   await withTempDir("p2p2-plan-hints-", async (dir) => {
     const f = writeTranscript(dir, [permissionMode("plan"), skillUse()]);
     assert.equal(await runPayload({ permission_mode: "plan", transcript_path: f }), "");
@@ -178,7 +182,7 @@ test("a planner Skill tool_use in the current episode -> nothing printed (the vi
   });
 });
 
-test("an intent or fixer Skill tool_use in the current episode -> nothing printed (both hand off to the planner, which covers both rules)", async () => {
+test("an intent or fixer Skill tool_use in the current episode -> nothing printed (both hand off to the planner, which covers these rules)", async () => {
   await withTempDir("p2p2-plan-hints-", async (dir) => {
     for (const skill of ["viber:intent", "intent", "viber:fixer", "fixer"]) {
       const f = writeTranscript(dir, [permissionMode("plan"), skillUse(skill)]);
