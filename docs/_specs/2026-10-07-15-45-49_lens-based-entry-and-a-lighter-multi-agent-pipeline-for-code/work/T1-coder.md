@@ -1,0 +1,7 @@
+- Every bugs.md map-signal block ends `-- <scope>` (or `'<scope>/*.json'` as a git pathspec); later lenses should scope the same way so the mapper's `.` substitution covers every block.
+- Grep-style signals use `git grep`, not `grep -r .`: plain grep walks `.git/` and the test repo would show it.
+- `git log --name-only --format=` emits blank lines, so the counting pipelines filter them with `grep -v '^$'` before `uniq -c`.
+- The fix-history grep is `fix|bug|regress|revert` (hotfix falls under fix); `--grep` matches the whole message, not the subject alone.
+- lenses.unit.test.ts checks only the rules DoD.2 lists; slug format, one-line blocks and severity bands covering 1-10 are not enforced.
+- The map-signals test passes vacuously when no bash is found (forEachShell skips), same as profiler.test.ts.
+- A mutation check (`--since='24 months ago'`) turned the window case red, then was reverted.
