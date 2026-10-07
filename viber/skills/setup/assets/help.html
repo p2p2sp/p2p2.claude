@@ -2775,18 +2775,16 @@ z nich mówi, jak nim sterować.</p>
 
 <article class="card" id="skill-code-auditor">
   <h4><code>/viber:code-auditor</code></h4>
-  <p lang="en">Audits a large codebase by the formula <code>score = Impact x Opportunity</code>. Scripts sweep every
-  file and every pair of files sharing a contract, <a href="#agent-profiler"><code>profiler</code></a> calibrates the
-  run to the repository's own fix history, <a href="#agent-scout"><code>scout</code></a> and
-  <a href="#agent-edge-scout"><code>edge-scout</code></a> score them cheaply, and only what clears the gate goes to
-  <a href="#agent-detective"><code>detective</code></a>, whose every finding
-  <a href="#agent-critic"><code>critic</code></a> replays on a clean checkout. Needs Node.js 22.6 or newer.</p>
-  <p lang="pl">Audytuje duży kod według wzoru <code>score = Impact x Opportunity</code>. Skrypty przeglądają każdy
-  plik i każdą parę plików dzielących kontrakt, <a href="#agent-profiler"><code>profiler</code></a> kalibruje
-  przebieg według historii poprawek repozytorium, <a href="#agent-scout"><code>scout</code></a> i
-  <a href="#agent-edge-scout"><code>edge-scout</code></a> tanio je oceniają, a tylko to, co przejdzie bramkę,
-  trafia do <a href="#agent-detective"><code>detective</code></a>, którego każde znalezisko
-  <a href="#agent-critic"><code>critic</code></a> odtwarza na czystej kopii. Wymaga Node.js 22.6 lub nowszego.</p>
+  <p lang="en">Audits a codebase in depth. <a href="#agent-mapper"><code>mapper</code></a> maps the repository
+  and ranks the units worth a look, <a href="#agent-scout"><code>scout</code></a> scores them cheaply,
+  <a href="#agent-hunter"><code>hunter</code></a> investigates the best ones in depth, and
+  <a href="#agent-critic"><code>critic</code></a> tries to refute every finding without seeing the hunter's
+  reasoning. Needs Node.js 22.6 or newer.</p>
+  <p lang="pl">Dogłębnie audytuje kod. <a href="#agent-mapper"><code>mapper</code></a> mapuje repozytorium
+  i szereguje jednostki warte uwagi, <a href="#agent-scout"><code>scout</code></a> tanio je ocenia,
+  <a href="#agent-hunter"><code>hunter</code></a> dogłębnie bada najlepsze z nich, a
+  <a href="#agent-critic"><code>critic</code></a> próbuje obalić każde znalezisko bez wglądu w rozumowanie
+  huntera. Wymaga Node.js 22.6 lub nowszego.</p>
   <dl>
     <div>
       <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>
@@ -3024,24 +3022,24 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
 
 <h4><span lang="en">Code audit</span><span lang="pl">Audyt kodu</span></h4>
 <ul class="agents">
-  <li id="agent-profiler"><code>profiler</code> <span lang="en">profiles the audited repository once per
-  <a href="#skill-code-auditor"><code>/viber:code-auditor</code></a> run: its bug classes from fix history, its
-  critical paths and what each severity means there.</span><span lang="pl">raz na przebieg
-  <a href="#skill-code-auditor"><code>/viber:code-auditor</code></a> opisuje audytowane repozytorium: klasy błędów
-  z historii poprawek, krytyczne ścieżki i znaczenie każdego poziomu wagi.</span></li>
-  <li id="agent-scout"><code>scout</code> <span lang="en">cheaply scores files for impact and opportunity, so only
-  the few worth it reach a detective.</span><span lang="pl">tanio ocenia pliki pod kątem wpływu i szansy, żeby do
-  detektywa trafiło tylko tych kilka, które są tego warte.</span></li>
-  <li id="agent-edge-scout"><code>edge-scout</code> <span lang="en">cheaply checks whether two files sharing a
-  contract agree on it.</span><span lang="pl">tanio sprawdza, czy dwa pliki dzielące kontrakt są co do niego
-  zgodne.</span></li>
-  <li id="agent-detective"><code>detective</code> <span lang="en">investigates one place that cleared the gate in
-  depth and files a finding only after reproducing it on a clean checkout.</span><span lang="pl">dogłębnie bada
-  jedno miejsce, które przeszło bramkę, i zgłasza znalezisko dopiero po odtworzeniu go na czystej
-  kopii.</span></li>
-  <li id="agent-critic"><code>critic</code> <span lang="en">tries to refute one finding by replaying it on its own
-  clean checkout, never seeing the detective's reasoning.</span><span lang="pl">próbuje obalić jedno znalezisko,
-  odtwarzając je na własnej czystej kopii, bez wglądu w rozumowanie detektywa.</span></li>
+  <li id="agent-mapper"><code>mapper</code> <span lang="en">maps the audited repository once per
+  <a href="#skill-code-auditor"><code>/viber:code-auditor</code></a> run for the chosen lens: its conventions, its
+  fix history, what each severity means there and the units worth a look.</span><span lang="pl">raz na przebieg
+  <a href="#skill-code-auditor"><code>/viber:code-auditor</code></a> mapuje audytowane repozytorium pod kątem
+  wybranej soczewki: jego konwencje, historię poprawek, znaczenie każdego poziomu wagi i jednostki warte
+  uwagi.</span></li>
+  <li id="agent-scout"><code>scout</code> <span lang="en">cheaply scores the mapped units when there are more than a
+  run can investigate in depth, so only the best reach a hunter.</span><span lang="pl">tanio ocenia zmapowane
+  jednostki, gdy jest ich więcej, niż przebieg może dogłębnie zbadać, żeby do huntera trafiły tylko
+  najlepsze.</span></li>
+  <li id="agent-hunter"><code>hunter</code> <span lang="en">investigates one unit, or one angle of the lens across
+  the changed files, in depth and files at most three findings, each only after proving it the lens's
+  way.</span><span lang="pl">dogłębnie bada jedną jednostkę albo jeden kąt soczewki we wszystkich zmienionych
+  plikach i zgłasza najwyżej trzy znaleziska, każde dopiero po udowodnieniu go metodą soczewki.</span></li>
+  <li id="agent-critic"><code>critic</code> <span lang="en">tries to refute one finding by the lens's own method, on
+  its own clean checkout when the lens runs code, never seeing the hunter's reasoning.</span><span lang="pl">próbuje
+  obalić jedno znalezisko metodą soczewki, na własnej czystej kopii, gdy soczewka uruchamia kod, bez wglądu
+  w rozumowanie huntera.</span></li>
 </ul>
 </section>
 

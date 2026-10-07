@@ -1,6 +1,6 @@
 #!/bin/sh
 # viber - skills/code-auditor/scripts/worktree.sh
-# Clean-checkout verification worktree lifecycle for detective / critic runs.
+# Clean-checkout verification worktree lifecycle for hunter / critic runs.
 #
 # Self-verifying: `add` does not report READY until the path actually resolves
 # as a git worktree, and `remove` does not report REMOVED until the path is

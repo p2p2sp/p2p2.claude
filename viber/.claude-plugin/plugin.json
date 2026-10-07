@@ -45,10 +45,9 @@
     "./agents/closeout.md",
     "./agents/prototype-writer.md",
     "./agents/prover.md",
-    "./agents/profiler.md",
+    "./agents/mapper.md",
     "./agents/scout.md",
-    "./agents/edge-scout.md",
-    "./agents/detective.md",
+    "./agents/hunter.md",
     "./agents/critic.md"
   ]
 }
