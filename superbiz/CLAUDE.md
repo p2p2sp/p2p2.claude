@@ -1,6 +1,6 @@
 # superbiz - side-project idea validation plugin
 
-Owns the plugin's manifest (`.claude-plugin/plugin.json`), its human `README.md` and its one skill, `idea-validator`, which turns an idea into a sourced Go / Pivot / No-Go HTML report. The skill's files (body, references, council members, report script and template, evals) belong to `superbiz/skills/CLAUDE.md`.
+Owns the plugin's manifest (`.claude-plugin/plugin.json`), its human `README.md` and its one skill, `idea-validator`, which turns an idea into a sourced Go / Pivot / No-Go HTML report. The skill's files (body, references, council members, report script and template, evals) belong to `superbiz/skills/CLAUDE.md`, the script's tests to `tests/superbiz/CLAUDE.md`.
 
 ## Relationships
 
@@ -11,7 +11,7 @@ Owns the plugin's manifest (`.claude-plugin/plugin.json`), its human `README.md`
 
 - The only skill is user-only (`disable-model-invocation: true`): superbiz never triggers on its own, so its `description:` routes nothing and it has no manifest entry anywhere.
 - Host writes are exactly two, sharing one slug: working files under `.temp/superbiz/<slug>-<YYYY-MM-DD>/` and the deliverable `docs/business/<slug>/report.html`. Nothing else is created in the host repo.
-- Runtime needs are web access (`WebSearch`, `WebFetch`) and Python 3 with the standard library only: the README promises "No packages to install", so `build_report.py` imports nothing outside the stdlib.
+- Runtime needs are web access (`WebSearch`, `WebFetch`) and Node.js 18 or newer: the README promises "No packages to install", so `build_report.mjs` imports only `node:` built-ins and uses no API newer than Node 18. The Node minimum sits in `superbiz/README.md` and the root `README.md` requirements table.
 
 ## Change together
 

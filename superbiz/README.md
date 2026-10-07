@@ -23,7 +23,7 @@ claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
 claude plugin install superbiz@p2p2 --scope user
 ```
 
-Needs web access for the research and Python 3 to render the report. No packages to install.
+Needs web access for the research and Node.js 18 or newer to render the report. No packages to install.
 
 ## Quick start
 

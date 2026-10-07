@@ -1,6 +1,6 @@
 # report-data.json schema
 
-`scripts/build_report.py` injects this JSON into `templates/report-template.html`; the template's JavaScript renders every section from it. Field names are load-bearing. Strings are plain text unless noted; the renderer escapes HTML. Arrays may be empty but must exist. All user-facing text is in the report language.
+`scripts/build_report.mjs` injects this JSON into `templates/report-template.html`; the template's JavaScript renders every section from it. Field names are load-bearing. Strings are plain text unless noted; the renderer escapes HTML. Arrays may be empty but must exist. All user-facing text is in the report language.
 
 ## Contents
 
@@ -169,4 +169,4 @@ Top-level keys of report-data.json, in order:
 }
 ```
 
-The example label values are Polish only as an illustration; fill them in the report language every time. `scripts/build_report.py` falls back to English for any label key that is missing, so a partially filled `labels` object still renders.
+The example label values are Polish only as an illustration; fill them in the report language every time. `scripts/build_report.mjs` falls back to English for any label key that is missing, so a partially filled `labels` object still renders.

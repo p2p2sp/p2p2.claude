@@ -1,6 +1,6 @@
 # tests - dev-time regression suites for the plugin scripts
 
-Owns every automated check in the repository: the per-plugin suites, the `release.sh` suite and the repo-wide static sweeps. It sits outside every plugin and never ships; supercc and superbiz have no suite.
+Owns every automated check in the repository: the per-plugin suites, the `release.sh` suite and the repo-wide static sweeps. It sits outside every plugin and never ships; supercc has no suite.
 
 ## Terms
 
@@ -9,9 +9,10 @@ Owns every automated check in the repository: the per-plugin suites, the `releas
 
 ## Relationships
 
-- Child nodes: `tests/harness/CLAUDE.md` (shared helpers), `tests/superui/CLAUDE.md` (superui's suite), `tests/viber/CLAUDE.md` (viber's suite).
+- Child nodes: `tests/harness/CLAUDE.md` (shared helpers), `tests/superui/CLAUDE.md` (superui's suite), `tests/superbiz/CLAUDE.md` (superbiz's suite), `tests/viber/CLAUDE.md` (viber's suite).
 - Which suite a change reaches:
   - a viber or superui script, hook or `.ts` module -> its file under `tests/viber/` or `tests/superui/`;
+  - superbiz's `build_report.mjs` -> `tests/superbiz/`;
   - `.github/scripts/release.sh` -> `tests/github/release.test.ts`;
   - any tracked `*.sh` / `*.ts` outside `tests/` and `docs/`, and every `!` preload in a `SKILL.md` -> `tests/portability.unit.test.ts` (shebang, no CRLF, `100755` exec bit when invoked without an interpreter word, quoted glob arguments in preloads, no bash-only syntax in `#!/bin/sh`, no unguarded GNU-only tools);
   - any tracked file outside `docs/` -> `tests/orphan-tags.unit.test.ts` (a line that is only `</name>` with no `<name` opener in the same file);

@@ -62,7 +62,7 @@ The [viber guide](viber/README.md) lists every command.
 ## Good to know
 
 - viber runs in Claude Code only.
-- It is opinionated: no code before an approved plan. A small change to existing code gets a
+- A small change to existing code gets a
   shorter path, a design in chat, and is still built only on your yes.
 - Issue and pull request steps work with GitHub, through the `gh` CLI.
 - It changes fast, and a release can change how it behaves. Run `/viber:setup` again after an
@@ -91,7 +91,7 @@ claude plugin install superbiz@p2p2 --scope user
 | viber | the `gh` CLI for its GitHub steps; Node.js 22.6 or newer for `/viber:code-auditor`; optional: `node` for `/viber:setup`'s settings merge, Playwright for `/viber:e2e` |
 | superui | optional: Node.js 22.6 or newer, only for the contrast check |
 | supercc | nothing |
-| superbiz | web access and Python 3 |
+| superbiz | web access and Node.js 18 or newer |
 
 ## Contributing
 
