@@ -10,8 +10,8 @@ This area holds `pro-designer/`: `SKILL.md`, its fifteen on-demand references un
 ## Relationships
 
 - `SKILL.md` reaches every reference by `${CLAUDE_SKILL_DIR}/references/<file>.md`; nothing else loads them. A reference no line of `SKILL.md` names is unreachable.
-- The scripts are called only from `SKILL.md`'s Final QA. `scripts/check_node.sh` has a twin at `viber/skills/code-auditor/scripts/check_node.sh`.
-- Tested by `tests/superui/`: `check_contrast.unit.test.ts` (input validation, exit codes), `import-safety.unit.test.ts` (importing the script runs no CLI), `check_node.test.ts` (version matrix and parity with viber's copy, integration tier).
+- The scripts are called only from `SKILL.md`'s Final QA.
+- Tested by `tests/superui/`: `check_contrast.unit.test.ts` (input validation, exit codes), `import-safety.unit.test.ts` (importing the script runs no CLI), `check_node.test.ts` (version matrix, integration tier).
 
 ## Contracts
 
@@ -28,7 +28,6 @@ This area holds `pro-designer/`: `SKILL.md`, its fifteen on-demand references un
 
 ## Change together
 
-- `scripts/check_node.sh` and viber's copy stay identical except their header comments; `check_node.test.ts` fails on any output difference.
 - The usage text of `check_contrast.ts` sits twice in the file (header comment and the `DOC` string); its TYPE thresholds and exit codes are restated in `SKILL.md` Final QA.
 - A reference added, renamed or removed changes its line in `SKILL.md` Reference routing (and its Design pass step, if any).
 

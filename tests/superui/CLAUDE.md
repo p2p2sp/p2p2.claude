@@ -5,7 +5,7 @@ Owns the tests of the two bundled scripts under `superui/skills/pro-designer/scr
 ## Relationships
 
 - `check_contrast.unit.test.ts` and `import-safety.unit.test.ts` import `parseColor`, `main` and `contrastRatio` straight from `check_contrast.ts`: unit tier, no process spawned.
-- `check_node.test.ts` spawns `check_node.sh` and also viber's copy, `viber/skills/code-auditor/scripts/check_node.sh`: integration tier, CI only. It uses `runScript`, `withStub` and `forEachShell` from `tests/harness/`.
+- `check_node.test.ts` spawns `check_node.sh`: integration tier, CI only. It uses `runScript`, `withStub` and `forEachShell` from `tests/harness/`.
 
 ## Contracts
 
@@ -20,7 +20,6 @@ Owns the tests of the two bundled scripts under `superui/skills/pro-designer/scr
 
 ## Change together
 
-- superui's and viber's `check_node.sh` share one contract and differ only in their header comment: `check_node.test.ts` runs both on the same version matrix and fails on any stdout divergence, so an edit to one lands in the other in the same change.
 - A new Node threshold in `check_node.sh` goes into the version arrays `NODE_OK_VERSIONS`, `NODE_OK_STRIP_VERSIONS` and `NODE_MISSING_VERSIONS` of `check_node.test.ts`.
 
 ## Traps

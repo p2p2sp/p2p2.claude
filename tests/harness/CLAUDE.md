@@ -39,4 +39,5 @@ Owns the helper modules the suites build on: the concurrent `test()`, the subpro
 - A process spawn is the suite's dominant cost on Windows, which is why the git template is copied, its config written as a file and shell discovery memoised; a new helper avoids per-call spawns the same way.
 - A denied file left denied blocks removal of its temp dir on Windows: call `restoreRead` in the case's `finally`.
 - The `withGitRepo` template has no hooks: a case needing one writes it into its own copy.
+- `withGitRepo` keeps its global git config as `.gitconfig-global` in the repo directory itself: a case asserting on untracked files must exclude it through `.git/info/exclude`, or it is listed.
 - `png.ts`'s header names a `decodePng` that exists nowhere; `tests/harness.test.ts` decodes with `inflateSync` itself.

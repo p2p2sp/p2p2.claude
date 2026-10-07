@@ -4,7 +4,7 @@ One test file per viber script, hook script or `.ts` module, named after it, plu
 
 ## Relationships
 
-- SUTs: `viber/scripts/`, `viber/skills/*/scripts/`, `viber/hooks/scripts/`, `viber/hooks/write/report-name.ts`, and the one command in `viber/agents/profiler.md`.
+- SUTs: `viber/scripts/`, `viber/skills/*/scripts/`, `viber/hooks/scripts/`, `viber/hooks/write/report-name.ts`, and the lens files of `viber/skills/code-auditor/references/lenses/` (their shape by `lenses.unit.test.ts`, their map-signal commands by `lens-map-signals.test.ts`).
 - `help.unit.test.ts` imports `contrastRatio` and `parseColor` from `superui/skills/pro-designer/scripts/check_contrast.ts`: changing those exports breaks a viber test.
 - `viber/scripts/run-branch.sh` and `viber/hooks/register.tsx` have no test file.
 
@@ -13,7 +13,8 @@ One test file per viber script, hook script or `.ts` module, named after it, plu
 - The shell follows the SUT's shebang: a `#!/bin/sh` script runs through `forEachShell("posix", ...)`, a `#!/usr/bin/env bash` one through `forEachShell("bash", ...)` or a plain `runScript`.
 - Hook scripts run with `shell: "bash"`, the way `hooks.json` invokes them (`bash "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/<name>.sh"`): the test proves the content, never the exec bit.
 - Hook payloads and transcript fixtures are JS objects serialized with `JSON.stringify`, never hand-escaped: the scripts read raw text with grep/sed/awk and unescape it themselves, so a hand-escaped fixture proves the wrong thing.
-- `rank.ts` and `rank_edges.ts` carry no CLI guard and run `main()` on import: they are driven only as subprocesses through `runScript`, never imported. The report-name module exports pure functions, imported directly by its `*.unit.test.ts` file.
+- The report-name module exports pure functions, imported directly by its `*.unit.test.ts` file.
+- `code-auditor.unit.test.ts` holds `code-auditor/SKILL.md` to the six lens files it names, every `viber:<name>` it dispatches to a file listed in `plugin.json` `agents[]`, and every tracked file outside `docs/` and the `CLAUDE.md` nodes to naming no retired script, agent or reference: retiring one adds its token to `FORBIDDEN`.
 - `help.unit.test.ts` holds `viber/skills/setup/assets/help.html` to: a card per skill in `plugin.json`, the self-starting label on exactly the `user-invocable: false` skills, a line per agent, an entry per uncommented indent-0 or indent-2 key of the `viber.yml` template (plus `branching-issue-type-mappings`), every English piece paired with a Polish one, only `/viber:` commands a skill carries, no dash characters, no external load, 4.5:1 for every `--fg-*` on every `--bg-*` in both themes. Every rule is a pure function with a self-check.
 
 ## Change together
@@ -26,5 +27,6 @@ One test file per viber script, hook script or `.ts` module, named after it, plu
 
 ## Traps
 
-- `viber/agents/profiler.md` must hold exactly one fenced `bash` block, a `git -C ... log ... --since=` command: `profiler.test.ts` runs it verbatim after substituting `<target-root>`, `<scope or .>` and `<window>`. Git accepts a malformed `--since` with exit 0 and an empty log, so only running it proves the window is real.
+- `lens-map-signals.test.ts` lifts every fenced `bash` block under a lens's `## Map signals` verbatim, replaces `<scope>` (the only placeholder a block may hold) by `.` and runs it in a throwaway repository: exit 0, or exit 1 with empty stderr, passes. Git accepts a malformed `--since` with exit 0 and an empty log, so only its fix-history window case (a 5-day-old fix listed, a 400-day-old one and a non-fix commit left out) proves the window real. Without a bash on `PATH` the cases skip and pass vacuously.
+- The stale-reference sweep of `code-auditor.unit.test.ts` reads the git index and assembles its `FORBIDDEN` tokens from fragments so it passes over itself: an untracked file is not swept, and a token written whole in that test file would flag it.
 - `session-start.test.ts` and `plan-hints.test.ts` compare the injected context to `viber/hooks/content/manifest.md` and `plan-hints.md` with trailing newlines trimmed: editing the content needs no test change, editing how it is emitted does.

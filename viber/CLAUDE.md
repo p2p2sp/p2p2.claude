@@ -25,7 +25,7 @@ viber owns the pipeline that runs across its skills, agents, hooks, scripts and 
 - The column-0 `schema:` of `skills/setup/templates/viber.yml` is the layout the installed viber expects: `hooks/scripts/session-start.sh` compares the project's number to it, and `skills/setup/scripts/bootstrap.sh` raises the project's number to it, never lowers it.
 - Run directory, one writer per file: `plan.md` by `plan-path.sh --land` (never edited after), `spec.md` and `tasks/T<n>.md` by `plan-index.sh --split`, `status.md` and `rulings.md` (`--rule`) by `commit-task.sh` alone, `qa.md`/`qa.e2e.md` by `qa-writer`, `outcome.md` by `closeout`. `archive-run.sh` drops the scaffolding `plan.md`, `status.md`, `tasks/`, `work/` and moves everything else to the archive in one commit.
 - `implementor` opens no file: all it knows comes from its preloads and script stdout (`config.sh`, `run-clock.sh`, `plan-index.sh`, `plan-path.sh`), so a fact it needs is added to a script's output, never to a file for it to read.
-- Every agent ends on a `VERDICT:` line; a refused tool call ends it on `VERDICT: DENIED` plus `REASON: <tool>: <command or path>`, which the dispatching skill turns into a question. The five `code-auditor` sweep agents (`scout`, `edge-scout`, `profiler`, `detective`, `critic`) carry no `DENIED` line.
+- Every agent ends on a `VERDICT:` line; a refused tool call ends it on `VERDICT: DENIED` plus `REASON: <tool>: <command or path>`, which the dispatching skill turns into a question. The four `code-auditor` agents (`mapper`, `scout`, `hunter`, `critic`) carry no `DENIED` line.
 
 ## Change together
 
