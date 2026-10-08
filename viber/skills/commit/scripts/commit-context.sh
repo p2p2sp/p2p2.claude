@@ -20,7 +20,9 @@
 #            ('$ARGUMENTS'): Claude Code substitutes the text before the shell
 #            runs, so only single quotes keep $, backticks and backslashes
 #            literal - an apostrophe in the arguments breaks the preload.
-#   cwd    : the repository to commit in - every git call runs there.
+#   cwd    : any directory inside the repository to commit in; the script
+#            moves to its root, so every git call and every path it prints is
+#            root-relative (see commit-args.sh).
 #   env    : none.
 #   stdout : markdown sections, the "## Selector:" line first; in mode missing
 #            that line alone. The diff is capped at MAX_LINES with a notice
@@ -36,6 +38,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/commit-args.sh"
 mode_raw="${1:-}"
 MAX_LINES=400
 
+enter_repo_root
 resolve_commit_selector "$mode_raw"
 paths_label="${COMMIT_PATHS[*]:-}"
 

@@ -2,7 +2,7 @@
  * commit-args.test.ts - proves commit-args.sh's `resolve_commit_selector <raw>`
  * contract: it is a library meant to be SOURCED (not executed), so every case
  * here drives it through a tiny bash wrapper that sources it, calls
- * `resolve_commit_selector "$1"` and prints COMMIT_MODE / COMMIT_PATHS (joined
+ * `enter_repo_root` and `resolve_commit_selector "$1"` the way both callers do, and prints COMMIT_MODE / COMMIT_PATHS (joined
  * with "|") / COMMIT_ISSUE_REFS, one per line. commit-args.sh is `#!/usr/bin/env bash`
  * and uses bash-only constructs (BASH_REMATCH, [[ ]]), so every case runs
  * under `forEachShell("bash", ...)` - never a POSIX shell.
@@ -20,6 +20,7 @@ import path from "node:path";
 import { runScript, type RunResult } from "../harness/run.ts";
 import { withGitRepo, withTempDir } from "../harness/tmp.ts";
 import { forEachShell } from "../harness/shells.ts";
+import { slash } from "../harness/paths.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../viber/skills/commit/scripts/commit-args.sh");
 
@@ -27,6 +28,7 @@ function wrapperScript(libPath: string): string {
   return [
     "#!/usr/bin/env bash",
     `source "${libPath}"`,
+    "enter_repo_root",
     'resolve_commit_selector "$1"',
     "printf '%s\\n' \"$COMMIT_MODE\"",
     "IFS='|'; printf '%s\\n' \"${COMMIT_PATHS[*]}\"",
@@ -313,6 +315,41 @@ test("a glob token in a list is never expanded by the shell (only a literal exis
       fs.writeFileSync(path.join(dir, "a.txt"), "a\n");
       const sel = await resolve(bash, dir, "*.txt nothing");
       assert.deepEqual(sel, { mode: "all", path: "", issueRefs: "" });
+    });
+  });
+});
+
+// --- run from a subdirectory of the repository --------------------------------
+
+test("run from a subdirectory: a cwd-relative, a root-relative and an absolute path all resolve, the relative ones to the root-relative form", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      fs.mkdirSync(path.join(repo.dir, "pkg", "src"), { recursive: true });
+      fs.writeFileSync(path.join(repo.dir, "pkg", "src", "f.txt"), "f\n");
+      const abs = slash(path.join(fs.realpathSync.native(repo.dir), "pkg", "src", "f.txt"));
+      const drive = /^([A-Za-z]):\//.exec(abs);
+      const cases: Array<[raw: string, resolved: string]> = [
+        ["src/f.txt", "pkg/src/f.txt"],
+        ["./src/f.txt", "pkg/src/f.txt"],
+        ["pkg/src/f.txt", "pkg/src/f.txt"],
+        [abs, abs],
+        ...(drive ? [[`/${drive[1].toLowerCase()}${abs.slice(2)}`, `/${drive[1].toLowerCase()}${abs.slice(2)}`] as [string, string]] : []),
+        ["src/f.txt, pkg/src/f.txt", "pkg/src/f.txt|pkg/src/f.txt"],
+      ];
+      for (const [raw, resolved] of cases) {
+        const sel = await resolve(bash, path.join(repo.dir, "pkg"), raw);
+        assert.deepEqual(sel, { mode: "paths", path: resolved, issueRefs: "" }, raw);
+      }
+    });
+  });
+});
+
+test("run from a subdirectory: a path that exists under neither the cwd nor the root resolves to mode missing (the root fallback must not widen the commit)", async () => {
+  await assertBash(async (bash) => {
+    await withGitRepo(async (repo) => {
+      fs.mkdirSync(path.join(repo.dir, "pkg"), { recursive: true });
+      const sel = await resolve(bash, path.join(repo.dir, "pkg"), "src/nothing.txt");
+      assert.deepEqual(sel, { mode: "missing", path: "", issueRefs: "" });
     });
   });
 });

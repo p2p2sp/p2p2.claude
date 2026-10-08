@@ -22,9 +22,10 @@
 #                            already staged, removed with "git rm" or tracked
 #                            under an ignored directory is committed; an
 #                            untracked path an ignore rule covers is not.
-#   cwd    : the repository the commit lands in - every git call here runs in
-#            the caller's working directory, and a <path> selector resolves
-#            against it too.
+#   cwd    : any directory inside the repository the commit lands in; the
+#            script moves to its root, and a relative <path> resolves against
+#            the caller's directory first, then against the root (see
+#            commit-args.sh).
 #   env    : none.
 #   stdout : git's own commit line, or the single line "Nothing to commit."
 #            when the selected set holds no staged change.
@@ -46,6 +47,7 @@ if [[ -z "$message" ]]; then
   exit 1
 fi
 
+enter_repo_root
 resolve_commit_selector "$selector"
 
 if [[ "$COMMIT_MODE" == "missing" ]]; then
@@ -92,6 +94,8 @@ if [[ "$COMMIT_MODE" == "paths" ]]; then
   # index starts from HEAD and takes the known paths' entries from the real
   # index (a staged deletion is their absence there); every other staged path
   # stays staged. The same shape as commit_named in viber's commit-task.sh.
+  # --full-name: update-index reads every path as root-relative, whatever the
+  # cwd, so ls-files must print them that way too.
   idx="$(git rev-parse --absolute-git-dir)/index.viber-commit.$$"
   trap 'rm -f "$idx"' EXIT
   if git rev-parse -q --verify HEAD >/dev/null; then
@@ -100,7 +104,7 @@ if [[ "$COMMIT_MODE" == "paths" ]]; then
     GIT_INDEX_FILE="$idx" git read-tree --empty
   fi
   GIT_INDEX_FILE="$idx" git rm -r -q --cached --ignore-unmatch -- "${known[@]}" >/dev/null
-  git ls-files -s -z -- "${known[@]}" | GIT_INDEX_FILE="$idx" git update-index -z --index-info
+  git ls-files -s -z --full-name -- "${known[@]}" | GIT_INDEX_FILE="$idx" git update-index -z --index-info
   GIT_INDEX_FILE="$idx" git commit -m "$message"
 else
   git add -A

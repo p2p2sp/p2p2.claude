@@ -379,3 +379,26 @@ test("the substituted preload line with no arguments resolves mode all", async (
     });
   });
 });
+
+// --- run from a subdirectory of the repository --------------------------------
+
+test("run from a subdirectory: a cwd-relative or root-relative selector prints the root-relative path on the Selector line and narrows status and diff to that file", async () => {
+  await assertBash(async (bash) => {
+    for (const selector of ["src/f.txt", "pkg/src/f.txt"]) {
+      await withGitRepo(async (repo) => {
+        fs.mkdirSync(path.join(repo.dir, "pkg", "src"), { recursive: true });
+        fs.writeFileSync(path.join(repo.dir, "pkg", "src", "f.txt"), "f\n");
+        await commitFile(repo, "pkg/g.txt", "g\n");
+        fs.writeFileSync(path.join(repo.dir, "pkg", "src", "f.txt"), "f, changed\n");
+        fs.writeFileSync(path.join(repo.dir, "pkg", "g.txt"), "g, changed\n");
+
+        const result = await runScript(SUT, [selector], { shell: bash, cwd: path.join(repo.dir, "pkg"), env: repo.env });
+        assert.equal(result.status, 0, `${selector}: ${result.stderr}`);
+        assert.match(result.stdout, /^## Selector: paths - run commit\.sh with 2nd arg "pkg\/src\/f\.txt"$/m, selector);
+        assert.match(result.stdout, /^ M pkg\/src\/f\.txt$/m, selector);
+        assert.match(result.stdout, /^\+f, changed$/m, selector);
+        assert.doesNotMatch(result.stdout, /^ M pkg\/g\.txt$|g, changed/m, selector);
+      });
+    }
+  });
+});

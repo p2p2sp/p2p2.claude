@@ -2386,3 +2386,21 @@ test("a task whose Files list names a directory commits every changed file under
     assert.ok(gitProcesses(tally) < BATCH_PATHS.length, `${gitProcesses(tally)} git processes for ${BATCH_PATHS.length} files`);
   });
 });
+
+test("--e2e run from a subdirectory commits a cwd-relative path at its real path, never moved to the root, and another staged path stays staged", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "pkg/README.md", "pkg\n");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "pkg");
+    write(repo.dir, "pkg/tests/e2e/a.spec.ts", "spec\n");
+    write(repo.dir, "pkg/README.md", "pkg, staged\n");
+    await repo.git("add", "--", "pkg/README.md");
+
+    const result = await run(path.join(repo.dir, "pkg"), repo.env, ["--e2e", "tests/e2e/a.spec.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(await committedFiles(repo), ["pkg/tests/e2e/a.spec.ts"]);
+    assert.equal((await repo.git("ls-tree", "HEAD", "--", "tests")).stdout, "");
+    assert.deepEqual(await stagedFiles(repo), ["pkg/README.md"]);
+  });
+});

@@ -402,7 +402,8 @@ stage_named() {
 # exec bit staged with "git update-index --chmod=+x" was silently dropped from
 # the commit and left staged, and a mode change alone failed as "nothing to
 # commit". Here a temporary index starts from HEAD, takes each named path's
-# entry from the real index (a staged deletion is its absence there), and the
+# entry from the real index (a staged deletion is its absence there; printed
+# --full-name, since update-index reads every path as root-relative), and the
 # commit runs on it with no pathspec. The real index already holds those
 # entries, so afterwards it agrees with HEAD on them and keeps every other
 # staged path as it was.
@@ -422,7 +423,7 @@ commit_named() {
     GIT_INDEX_FILE="$idx" git_paths rm -r -q --cached --ignore-unmatch -- "$@" >/dev/null || rc=1
   fi
   if [[ $rc -eq 0 ]]; then
-    git_paths ls-files -s -z -- "$@" | GIT_INDEX_FILE="$idx" git update-index -z --index-info || rc=1
+    git_paths ls-files -s -z --full-name -- "$@" | GIT_INDEX_FILE="$idx" git update-index -z --index-info || rc=1
   fi
   if [[ $rc -eq 0 ]]; then
     GIT_INDEX_FILE="$idx" git commit "${opts[@]}" || rc=$?

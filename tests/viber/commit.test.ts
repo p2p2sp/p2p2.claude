@@ -18,6 +18,7 @@ import path from "node:path";
 import { runScript, type RunResult } from "../harness/run.ts";
 import { withGitRepo, type GitRepo } from "../harness/tmp.ts";
 import { forEachShell } from "../harness/shells.ts";
+import { slash } from "../harness/paths.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../viber/skills/commit/scripts/commit.sh");
 
@@ -387,5 +388,51 @@ test("mode paths: a staged deletion is committed and a path staged outside the s
       assert.equal((await repo.git("show", "--name-status", "--format=", "HEAD")).stdout.trim(), "D\tgone.txt");
       assert.equal((await repo.git("diff", "--cached", "--name-only")).stdout.trim(), "other.txt");
     });
+  });
+});
+
+// --- run from a subdirectory of the repository ------------------------------------
+
+const SUBDIR_FORMS = ["cwd-relative", "root-relative", "absolute", "msys"];
+
+/** "pkg/src/c" spelled in `form` by a caller whose cwd is "pkg" of `root`:
+ *  relative to that cwd, relative to the root, absolute with forward slashes,
+ *  or the MSYS "/c/..." form (undefined off Windows, where it does not exist). */
+function subdirSelector(root: string, form: string): string | undefined {
+  const abs = slash(path.join(fs.realpathSync.native(root), "pkg", "src", "c"));
+  const drive = /^([A-Za-z]):\//.exec(abs);
+  if (form === "cwd-relative") return "src/c";
+  if (form === "root-relative") return "pkg/src/c";
+  if (form === "absolute") return abs;
+  return drive ? `/${drive[1].toLowerCase()}${abs.slice(2)}` : undefined;
+}
+
+/** pkg/src/c/f.txt modified in the tree, pkg/src/d/g.txt modified and staged. */
+async function seedSubdir(repo: GitRepo) {
+  fs.mkdirSync(path.join(repo.dir, "pkg", "src", "c"), { recursive: true });
+  fs.mkdirSync(path.join(repo.dir, "pkg", "src", "d"), { recursive: true });
+  fs.writeFileSync(path.join(repo.dir, "pkg", "src", "c", "f.txt"), "f\n");
+  await commitFile(repo, "pkg/src/d/g.txt", "g\n");
+  fs.writeFileSync(path.join(repo.dir, "pkg", "src", "c", "f.txt"), "f, changed\n");
+  fs.writeFileSync(path.join(repo.dir, "pkg", "src", "d", "g.txt"), "g, staged\n");
+  await repo.git("add", "--", "pkg/src/d/g.txt");
+}
+
+test("run from a subdirectory: every path spelling commits exactly the selected file at its real path, other staged changes stay staged (a cwd-relative ls-files once moved the files to the root)", async () => {
+  await assertBash(async (bash) => {
+    for (const form of SUBDIR_FORMS) {
+      await withGitRepo(async (repo) => {
+        const selector = subdirSelector(repo.dir, form);
+        if (selector === undefined) return;
+        await seedSubdir(repo);
+
+        const result = await runScript(SUT, [`commit ${form}`, selector], { shell: bash, cwd: path.join(repo.dir, "pkg"), env: repo.env });
+        assert.equal(result.status, 0, `${form}: ${result.stderr}`);
+        assert.equal((await repo.git("show", "--name-status", "--format=", "HEAD")).stdout.trim(), "M\tpkg/src/c/f.txt", form);
+        assert.deepEqual((await repo.git("ls-tree", "-r", "--name-only", "HEAD", "--", "pkg")).stdout.trim().split("\n"), ["pkg/src/c/f.txt", "pkg/src/d/g.txt"], form);
+        assert.equal((await repo.git("ls-tree", "HEAD", "--", "src")).stdout, "", form);
+        assert.equal((await repo.git("diff", "--cached", "--name-only")).stdout.trim(), "pkg/src/d/g.txt", form);
+      });
+    }
   });
 });

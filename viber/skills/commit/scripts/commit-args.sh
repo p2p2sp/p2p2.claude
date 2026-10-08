@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # commit-args.sh - the shared argument normalisation of the commit skill.
-# Source it and call: resolve_commit_selector "<raw>"
+# Source it and call: enter_repo_root, then resolve_commit_selector "<raw>"
 #
 # It exists because commit-context.sh (which MEASURES the selected set) and
 # commit.sh (which STAGES it) each parsed the selector themselves and drifted:
@@ -37,9 +37,17 @@
 # A path containing a space works only as the sole selector: inside a list the
 # split cuts it apart.
 #
-# Paths are handed to git VERBATIM. On every platform git natively resolves
-# the POSIX (src/foo), Windows-drive (C:/foo, C:\foo) and MSYS (/c/foo) forms,
-# so no manual separator conversion is needed.
+# Every caller runs enter_repo_root first, so the selector resolves at the
+# repository root. A relative token is tried against the caller's former
+# working directory (git's own reading: the root plus --show-prefix) and then
+# against the root, and COMMIT_PATHS holds the root-relative form that matched.
+# Without it, a session started in a subdirectory would see a root-relative
+# path as missing, and a cwd-relative path git prints, fed back where git reads
+# a root-relative one, would move the selected files to the root.
+#
+# An absolute path is handed to git VERBATIM. On every platform git natively
+# resolves the Windows-drive (C:/foo, C:\foo) and MSYS (/c/foo) forms, so no
+# manual separator conversion is needed.
 #
 # Issue references are cut out of the arguments BEFORE the selector is
 # recognised, so "src/foo #42" still resolves to path=src/foo.
@@ -47,13 +55,26 @@
 # Contract:
 #   argv   : none - it is sourced, never run. resolve_commit_selector takes $1,
 #            the whole raw argument string of the skill; empty means mode all.
-#   cwd    : the repository the commit lands in - the existence checks run git
-#            and test paths relative to the caller's working directory.
+#   cwd    : any directory inside the repository the commit lands in;
+#            enter_repo_root records its prefix and moves the sourcing shell to
+#            the root, where every later check runs.
 #   env    : none read; sets the four COMMIT_* variables above plus the
-#            internal COMMIT_SELECTOR_RAW in the sourcing shell.
+#            internal COMMIT_SELECTOR_RAW, COMMIT_CWD_PREFIX and
+#            COMMIT_RESOLVED in the sourcing shell.
 #   stdout : nothing.
 #   exit   : resolve_commit_selector always returns 0; the mode carries the
-#            result.
+#            result. enter_repo_root returns 1 only when cd to the root fails;
+#            outside a repository it stays put and returns 0.
+enter_repo_root() {
+  local top
+  COMMIT_CWD_PREFIX="$(git rev-parse --show-prefix 2>/dev/null || true)"
+  top="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+  if [ -n "$top" ]; then
+    cd "$top" || return 1
+  fi
+  return 0
+}
+
 add_issue_ref() {
   local num="$1"
   case " $COMMIT_ISSUE_REFS " in
@@ -110,6 +131,27 @@ is_commit_path() {
   [ -n "$(git --literal-pathspecs ls-tree -r --name-only HEAD -- "$1" 2>/dev/null)" ]
 }
 
+# True when token $1 names a commit path; COMMIT_RESOLVED then holds it in the
+# form git reads at the root: an absolute path verbatim, a relative one joined
+# to the former cwd's prefix when that exists, else as given from the root.
+resolve_commit_path() {
+  local tok="$1"
+  COMMIT_RESOLVED=""
+  [ -n "$tok" ] || return 1
+  case "$tok" in
+    /*|\\*|[A-Za-z]:[/\\]*)
+      is_commit_path "$tok" || return 1
+      COMMIT_RESOLVED="$tok"; return 0 ;;
+  esac
+  tok="${tok#./}"
+  if [ -n "${COMMIT_CWD_PREFIX:-}" ] && is_commit_path "$COMMIT_CWD_PREFIX$tok"; then
+    COMMIT_RESOLVED="$COMMIT_CWD_PREFIX$tok"
+  elif is_commit_path "$tok"; then
+    COMMIT_RESOLVED="$tok"
+  fi
+  [ -n "$COMMIT_RESOLVED" ]
+}
+
 resolve_commit_selector() {
   local raw tok
   local -a toks=()
@@ -119,8 +161,8 @@ resolve_commit_selector() {
   COMMIT_MISSING=""
   # Path check BEFORE the keyword: otherwise a file named "all" could never be
   # committed alone (the keyword would silently widen the commit).
-  if is_commit_path "$raw"; then
-    COMMIT_MODE="paths"; COMMIT_PATHS=("$raw")
+  if resolve_commit_path "$raw"; then
+    COMMIT_MODE="paths"; COMMIT_PATHS=("$COMMIT_RESOLVED")
     return 0
   fi
   case "$raw" in
@@ -129,8 +171,8 @@ resolve_commit_selector() {
   # read -a, not an unquoted expansion: a token holding * or ? must not glob.
   IFS=$' \t\n,' read -r -d '' -a toks <<<"$raw" || true
   for tok in ${toks[@]+"${toks[@]}"}; do
-    if is_commit_path "$tok"; then
-      COMMIT_PATHS+=("$tok")
+    if resolve_commit_path "$tok"; then
+      COMMIT_PATHS+=("$COMMIT_RESOLVED")
     elif [[ "$tok" == */* || "$tok" == *\\* ]]; then
       COMMIT_MISSING="${COMMIT_MISSING:+$COMMIT_MISSING }$tok"
     fi
