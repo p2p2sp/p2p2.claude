@@ -17,8 +17,8 @@
 #      <worktree-path>  MUST be absolute (POSIX /... or Windows C:/...). A
 #                       relative path would resolve against the caller's cwd,
 #                       and parallel callers each own a distinct path.
-#                       MUST NOT be the target root - compared with separators
-#                       and a trailing separator normalised away.
+#                       MUST NOT be the target root or an ancestor of it -
+#                       compared on the physical, case-folded path.
 # OUT: exactly one line on stdout -
 #        WORKTREE_READY <worktree-path>     add succeeded and was verified
 #        WORKTREE_REMOVED <worktree-path>   remove succeeded and was verified
@@ -57,6 +57,24 @@ esac
 [ "$(norm_path "$wt")" != "$(norm_path "$root")" ] || fail "worktree path must not be the target root: $wt"
 
 git -C "$root" rev-parse --git-dir >/dev/null 2>&1 || fail "not a git repository: $root"
+
+# canon <dir> -> stdout: physical path (Windows form under Git Bash), no
+# trailing /, case-folded. Subshell: the cd never moves the script.
+canon() {
+  (CDPATH= cd -- "$1" 2>/dev/null && { pwd -W 2>/dev/null || pwd -P; }) | sed 's:/*$::' | tr '[:upper:]' '[:lower:]'
+}
+
+# Text guards miss other spellings (case, /./, an ancestor): compare physically.
+if [ -d "$wt" ]; then
+  wt_c=$(canon "$wt")
+  root_c=$(canon "$root")
+  # An empty wt_c is `/`, which holds every root: "/"* still matches.
+  if [ -n "$root_c" ]; then
+    case "$root_c/" in
+      "$wt_c"/*) fail "worktree path holds the target root: $wt" ;;
+    esac
+  fi
+fi
 
 # Everything that can stand between us and a fresh `worktree add` at $wt:
 # a registration git still holds, a directory git no longer knows about, or

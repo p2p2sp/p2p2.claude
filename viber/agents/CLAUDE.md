@@ -41,4 +41,4 @@ This directory owns one markdown file per agent registered in `viber/.claude-plu
 
 - The harness rejects a subagent's `Write` of any `.md` whose name starts with `report`, `summary`, `findings` or `analysis`; `hooks/register.tsx` writes such a file in its place for a viber agent inside the project root, yet every file an agent is told to write is named otherwise (`outcome.md`, `review-*.md`, `*-audit.md`, `final-review-<n>.md`).
 - A file an agent writes that something parses (`hunter`'s sidecar, `mapper`'s `map.md`) can end on a leaked `</content>` line: those two agents read the tail back and delete it, and a new parsed output needs the same guard.
-- `scout`, `mapper` and `hunter` return no `VERDICT:` line (JSON lines, `map written: <path>`, the paths written): a caller parsing them never looks for one.
+- `scout`, `mapper` and `hunter` return no `VERDICT:` line (JSON lines, `map written: <path>`, the paths written): a caller parsing them never looks for one, and for `hunter` reads the files in `reports/`, never its final message.

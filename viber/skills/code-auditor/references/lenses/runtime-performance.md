@@ -45,7 +45,7 @@ Oracle: a measured growth curve or a call count. Reasoning alone never counts.
 
 Verdicts:
 - VERIFIED: the curve or call count grows as claimed at the stated N, and the implied fix flattens it.
-- PARTIALLY VERIFIED: growth is real but the stated N or frequency is not shown realistic, or the effect is below the claimed band.
+- PARTIALLY VERIFIED: growth is real but the stated N or frequency is not shown realistic.
 - REFUTED: the curve is flat, N is bounded, or the path is unreachable.
 - INCONCLUSIVE: the result depends on the real data distribution, the query planner, network latency, production volume, contention that needs real hardware, a live service, or noise exceeds the effect.
 

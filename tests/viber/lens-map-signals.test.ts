@@ -12,6 +12,10 @@
  * empty log, so only running it shows a 5-day-old fix listed and a
  * 400-day-old fix and a non-fix commit left out.
  *
+ * It also runs blocks on a directory scope holding a space, on a non-ASCII
+ * file name (git quotes such a path unless core.quotePath is off), and the
+ * web-performance framework blocks on a scope below the app root.
+ *
  * One case per signals file carries the file name, so
  * `--test-name-pattern "bugs\.signals"` selects that lens alone.
  *
@@ -40,11 +44,11 @@ async function assertBash(fn: (shell: Shell) => void | Promise<void>) {
   }
 }
 
-/** Every ```bash block of a signals file, `<scope>` substituted by `.` the way
- *  the mapper substitutes the repository-wide scope. */
-function mapSignalCommands(file: string): string[] {
+/** Every ```bash block of a signals file, `<scope>` substituted by `scope` the
+ *  way the mapper substitutes it (`.` for the repository-wide scope). */
+function mapSignalCommands(file: string, scope = "."): string[] {
   const text = fs.readFileSync(path.join(LENSES, file), "utf-8");
-  return [...text.matchAll(/^```bash\r?\n([\s\S]*?)^```/gm)].map((m) => m[1].trim().replaceAll("<scope>", "."));
+  return [...text.matchAll(/^```bash\r?\n([\s\S]*?)^```/gm)].map((m) => m[1].trim().replaceAll("<scope>", scope));
 }
 
 /** Commits whatever is staged `daysAgo` days in the past (author == committer
@@ -131,6 +135,67 @@ test("the first map-signal command of bugs.signals.md, the fix history, lists a 
       assert.match(result.stdout, /src\/recent\.js/, `a fix inside the window must be listed:\n${fixHistory}\n${result.stdout}`);
       assert.doesNotMatch(result.stdout, /src\/ancient\.js/, "a fix older than 12 months is out of the window");
       assert.doesNotMatch(result.stdout, /src\/feature\.js/, "a non-fix subject is out of the fix history");
+    });
+  });
+});
+
+test("on the directory scope 'src/my app' the fix-history and error-swallowing commands of bugs.signals.md list src/my app/inside.js and never app/outside.js (an unquoted scope splits into two pathspecs)", async () => {
+  const commands = mapSignalCommands("bugs.signals.md", "src/my app");
+  const picked = [commands[0], commands[3]];
+  await withGitRepo(async (repo) => {
+    write(repo, "src/my app/inside.js", "try { run(); } catch (e) {}\n");
+    write(repo, "app/outside.js", "try { go(); } catch (e) {}\n");
+    await commitAt(repo, 5, "fix: crash in both");
+    await assertBash(async (shell) => {
+      for (const command of picked) {
+        const result = await runCommand(shell, repo, command);
+        assert.equal(result.status, 0, `${command}\nstderr=${result.stderr}`);
+        assert.match(result.stdout, /src\/my app\/inside\.js/, `the scope's own file must be listed:\n${command}\n${result.stdout}`);
+        assert.doesNotMatch(result.stdout, /outside\.js/, `a file outside the scope must not be listed:\n${command}\n${result.stdout}`);
+      }
+    });
+  });
+});
+
+test("a non-ASCII source file src/żródło.js is listed by the first command of tests.signals.md, ends a row of the churn-times-size command of design.signals.md and is counted by the error-swallowing command of bugs.signals.md (git quotes such a path unless core.quotePath is off)", async () => {
+  const noTest = mapSignalCommands("tests.signals.md")[0];
+  const churnSize = mapSignalCommands("design.signals.md")[1];
+  const swallowed = mapSignalCommands("bugs.signals.md")[3];
+  await withGitRepo(async (repo) => {
+    write(repo, "src/plain.js", "export const a = 1;\n");
+    write(repo, "src/żródło.js", "export const b = 1;\n");
+    await commitAt(repo, 10, "feat: two sources");
+    write(repo, "src/plain.js", "export const a = 2;\n");
+    write(repo, "src/żródło.js", "try { run(); } catch (e) {}\n");
+    await commitAt(repo, 5, "feat: change both");
+    await assertBash(async (shell) => {
+      const listed = await runCommand(shell, repo, noTest);
+      assert.equal(listed.status, 0, `stderr=${listed.stderr}`);
+      assert.match(listed.stdout, /^src\/żródło\.js$/m, `a source file with no test must be listed:\n${listed.stdout}`);
+      const rows = await runCommand(shell, repo, churnSize);
+      assert.equal(rows.status, 0, `stderr=${rows.stderr}`);
+      assert.match(rows.stdout, /^\d+ \d+ src\/żródło\.js$/m, `a churned file must hold a row:\n${rows.stdout}`);
+      const counted = await runCommand(shell, repo, swallowed);
+      assert.equal(counted.status, 0, `stderr=${counted.stderr}`);
+      assert.match(counted.stdout, /^src\/żródło\.js:1$/m, `a swallowed error must be counted:\n${counted.stdout}`);
+    });
+  });
+});
+
+test("on the directory scope src the first two commands of web-performance.signals.md find next.config.js and package.json at the repository root (a framework is configured at the app root, above the scope)", async () => {
+  const [configs, dependencies] = mapSignalCommands("web-performance.signals.md", "src");
+  await withGitRepo(async (repo) => {
+    write(repo, "package.json", '{ "dependencies": { "next": "14.0.0", "react": "18.2.0" } }\n');
+    write(repo, "next.config.js", "module.exports = {};\n");
+    write(repo, "src/components/Hero.tsx", 'import moment from "moment";\nexport default function Hero() { return <img src="/hero.png" />; }\n');
+    await commitAt(repo, 5, "feat: app");
+    await assertBash(async (shell) => {
+      const found = await runCommand(shell, repo, configs);
+      assert.equal(found.status, 0, `stderr=${found.stderr}`);
+      assert.match(found.stdout, /^next\.config\.js$/m, `the framework config must be found:\n${found.stdout}`);
+      const deps = await runCommand(shell, repo, dependencies);
+      assert.equal(deps.status, 0, `stderr=${deps.stderr}`);
+      assert.match(deps.stdout, /^package\.json$/m, `the framework dependency must be found:\n${deps.stdout}`);
     });
   });
 });

@@ -33,9 +33,11 @@
 #              BASE <full sha> | BASE HEAD | BASE none
 #              <root-relative path>   sorted bytewise, unique, raw (no quoting)
 #            Paths are those changed between the base and the working tree
-#            (added, modified, renamed to; deleted excluded), plus staged, plus
-#            untracked files not ignored. Paths under .temp/viber/code-auditor/
-#            are never printed. A path holding a newline is not supported.
+#            (added, modified, type-changed, renamed to; deleted excluded), plus
+#            staged, plus untracked files not ignored. In a repository with no
+#            commit the tracked files present on disk count. Paths under
+#            .temp/viber/code-auditor/ are never printed. A path holding a
+#            newline is not supported.
 #            With nothing changed only the base line is printed.
 #   exit   : 0 on success. 1 with the single stdout line `NOT_A_REPO <repo-root>`
 #            when <repo-root> is no git repository, or `BAD_BASE <base>` when
@@ -107,9 +109,9 @@ printf 'BASE %s\n' "$label"
 
 {
   if [ -n "$base_sha" ]; then
-    git -C "$root" diff --name-only --diff-filter=ACMR --relative -z "$base_sha" -- 2>/dev/null
+    git -C "$root" diff --name-only --diff-filter=ACMRT --relative -z "$base_sha" -- 2>/dev/null
   else
-    git -C "$root" diff --cached --name-only --diff-filter=ACMR --relative -z -- 2>/dev/null
+    git -C "$root" diff --name-only --diff-filter=ACMRT --relative -z "$(git -C "$root" hash-object -t tree /dev/null)" -- 2>/dev/null
   fi
   git -C "$root" ls-files --others --exclude-standard -z 2>/dev/null
 } | tr '\0' '\n' | sed -e '/^$/d' -e '\#^\.temp/viber/code-auditor/#d' | LC_ALL=C sort -u

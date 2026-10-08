@@ -181,6 +181,35 @@ test("the target root itself as the worktree path is rejected", async () => {
   });
 });
 
+function assertRepoIntact(repo: GitRepo) {
+  assert.ok(fs.existsSync(path.join(repo.dir, ".git")), "the target repo's .git must survive");
+  assert.equal(fs.readFileSync(path.join(repo.dir, "keep.txt"), "utf8"), "keep\n");
+}
+
+test("the parent directory of the target root as the worktree path is rejected (remove would rm -rf the repo with it)", async () => {
+  await assertPosix(async (shell) => {
+    await withSeededRepo(async (repo) => {
+      fs.writeFileSync(path.join(repo.dir, "keep.txt"), "keep\n");
+      const result = await run(shell, repo, ["remove", repo.dir, slash(path.dirname(repo.dir))]);
+      assertFailed(result);
+      assert.match(result.stdout, /holds the target root/);
+      assertRepoIntact(repo);
+    });
+  });
+});
+
+test("the target root spelled with a trailing /./ as the worktree path is rejected (the text guard does not see it as the root)", async () => {
+  await assertPosix(async (shell) => {
+    await withSeededRepo(async (repo) => {
+      fs.writeFileSync(path.join(repo.dir, "keep.txt"), "keep\n");
+      const result = await run(shell, repo, ["add", repo.dir, `${slash(repo.dir)}/./`]);
+      assertFailed(result);
+      assert.match(result.stdout, /holds the target root/);
+      assertRepoIntact(repo);
+    });
+  });
+});
+
 test("a target root that is not a git repository is rejected", async () => {
   await assertPosix(async (shell) => {
     await withSeededRepo(async (repo, wt) => {

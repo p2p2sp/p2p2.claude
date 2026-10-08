@@ -230,6 +230,39 @@ test("in a repository with no commit the base reads none and the staged and untr
   });
 });
 
+test("in a repository with no commit a staged file deleted from disk is not printed and one present on disk is (the index alone is no proof the file exists)", async () => {
+  await assertPosix(async (shell) => {
+    await withGitRepo(async (repo) => {
+      write(repo, ".git/info/exclude", ".gitconfig-global\n");
+      write(repo, "gone.txt", "1\n");
+      write(repo, "kept.txt", "1\n");
+      await git(repo, "add", "gone.txt", "kept.txt");
+      fs.rmSync(path.join(repo.dir, "gone.txt"));
+      assertOutput(await run(shell, repo), lines("BASE none", "kept.txt"));
+    });
+  });
+});
+
+test("a symlink turned into a regular file on the branch is printed (git reports it as type-changed, not modified)", async () => {
+  await assertPosix(async (shell) => {
+    await withGitRepo(async (repo) => {
+      await commitFiles(repo, { "seed.txt": "1\n" });
+      // staged through the index, so the case needs no native symlink support
+      write(repo, "link.txt", "seed.txt");
+      const target = await git(repo, "hash-object", "-w", "link.txt");
+      await git(repo, "update-index", "--add", "--cacheinfo", `120000,${target},link.txt`);
+      await git(repo, "commit", "-q", "-m", "link");
+      const mainSha = await git(repo, "rev-parse", "HEAD");
+      await git(repo, "checkout", "-q", "-b", "feature");
+      write(repo, "link.txt", "code\n");
+      const blob = await git(repo, "hash-object", "-w", "link.txt");
+      await git(repo, "update-index", "--cacheinfo", `100644,${blob},link.txt`);
+      await git(repo, "commit", "-q", "-m", "typechange");
+      assertOutput(await run(shell, repo), lines(`BASE ${mainSha}`, "link.txt"));
+    });
+  });
+});
+
 test("with nothing changed only the base line is printed", async () => {
   await assertPosix(async (shell) => {
     await withGitRepo(async (repo) => {

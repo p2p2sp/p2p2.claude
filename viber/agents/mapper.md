@@ -53,7 +53,7 @@ Already fixed: <n> commits
 
 - `## History` with no fix commit reads `Already fixed: 0 commits` and nothing else.
 - `## Units` holds at most 40 lines, numbered `U1` upward in rank order.
-- `## Units` holds instead the single line `none: <reason>` when the scope holds nothing the lens audits (no frontend for web performance, no test suite for tests).
+- `## Units` holds instead the single line `none: <reason>` when the scope holds nothing the lens audits (no frontend in the repository for web performance, no test suite for tests).
 
 Final message, one line: `map written: <output path>`.
 

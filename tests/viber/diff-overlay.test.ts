@@ -2,7 +2,9 @@
  * diff-overlay.test.ts - proves diff-overlay.sh's
  * `diff-overlay.sh <target-root> <worktree-path>` contract (C9): the working
  * tree's staged, unstaged and untracked changes land on a clean checkout of
- * HEAD made by worktree.sh, a deletion removes the file, ignored files and
+ * HEAD made by worktree.sh, a deletion removes the file (before any write, so a
+ * path that turned between file, directory and symlink, or changed only case,
+ * lands as the working tree has it, never written through a link), ignored files and
  * anything under .temp/viber/code-auditor/ stay out, one stdout line
  * (OVERLAY_APPLIED <n> / OVERLAY_FAILED <reason>), exit 0 only on APPLIED, and
  * the target's working tree and index are never touched.
@@ -24,6 +26,7 @@ import { runScript, type RunResult } from "../harness/run.ts";
 import { withGitRepo, withTempDir, type GitRepo } from "../harness/tmp.ts";
 import { forEachShell, type Shell } from "../harness/shells.ts";
 import { slash } from "../harness/paths.ts";
+import { canSymlinkDir } from "../harness/symlinks.ts";
 
 const SUT = path.resolve(import.meta.dirname, "../../viber/skills/code-auditor/scripts/diff-overlay.sh");
 const WORKTREE = path.resolve(import.meta.dirname, "../../viber/skills/code-auditor/scripts/worktree.sh");
@@ -39,11 +42,13 @@ async function assertPosix(fn: (shell: Shell) => void | Promise<void>) {
   }
 }
 
-/** A repo whose HEAD holds the seed files, with a clean worktree checked out by
- *  worktree.sh (the way the skill makes one) before any working-tree change. */
+/** A repo whose HEAD holds the seed files (plus whatever `seed` writes), with a
+ *  clean worktree checked out by worktree.sh (the way the skill makes one) before
+ *  any working-tree change. */
 async function withCheckout<T>(
   shell: Shell,
   fn: (repo: GitRepo, wt: string) => T | Promise<T>,
+  seed: (repo: GitRepo) => void | Promise<void> = () => {},
 ): Promise<T> {
   return await withGitRepo(async (repo) => {
     fs.writeFileSync(path.join(repo.dir, ".gitignore"), "*.log\n");
@@ -53,6 +58,7 @@ async function withCheckout<T>(
     fs.writeFileSync(path.join(repo.dir, "keep.txt"), "keep seed\n");
     fs.writeFileSync(path.join(repo.dir, "blob.bin"), BINARY_SEED);
     fs.writeFileSync(path.join(repo.dir, "with space.txt"), "space seed\n");
+    await seed(repo);
     const add = await repo.git("add", "-A");
     assert.equal(add.status, 0, `git add failed: ${add.stderr}`);
     const commit = await repo.git("commit", "-m", "seed");
@@ -185,3 +191,129 @@ test("the target repository's working tree and index are unchanged after an over
     });
   });
 });
+
+test("a directory replaced by a file of the same name lands as a regular file (a directory left at the path would nest the copy inside it)", async () => {
+  await assertPosix(async (shell) => {
+    await withCheckout(
+      shell,
+      async (repo, wt) => {
+        fs.rmSync(path.join(repo.dir, "config"), { recursive: true });
+        fs.writeFileSync(path.join(repo.dir, "config"), "NEW FILE\n");
+
+        const result = await overlay(shell, repo, wt);
+
+        assert.equal(result.status, 0, `stderr=${result.stderr}`);
+        assert.equal(result.stdout, "OVERLAY_APPLIED 2\n");
+        assert.ok(fs.lstatSync(path.join(wt, "config")).isFile(), "config must be a regular file");
+        assert.equal(fs.readFileSync(path.join(wt, "config"), "utf8"), "NEW FILE\n");
+      },
+      (repo) => {
+        fs.mkdirSync(path.join(repo.dir, "config"));
+        fs.writeFileSync(path.join(repo.dir, "config", "settings.json"), "old\n");
+      },
+    );
+  });
+});
+
+test("a file replaced by a directory of the same name lands with its new file (the old file must go before the directory is made)", async () => {
+  await assertPosix(async (shell) => {
+    await withCheckout(
+      shell,
+      async (repo, wt) => {
+        fs.rmSync(path.join(repo.dir, "util"));
+        fs.mkdirSync(path.join(repo.dir, "util"));
+        fs.writeFileSync(path.join(repo.dir, "util", "index.js"), "new\n");
+
+        const result = await overlay(shell, repo, wt);
+
+        assert.equal(result.status, 0, `stderr=${result.stderr}`);
+        assert.equal(result.stdout, "OVERLAY_APPLIED 2\n");
+        assert.equal(fs.readFileSync(path.join(wt, "util", "index.js"), "utf8"), "new\n");
+      },
+      (repo) => {
+        fs.writeFileSync(path.join(repo.dir, "util"), "old\n");
+      },
+    );
+  });
+});
+
+test("a submodule entry removed from the index is skipped and the overlay succeeds (the checkout holds a directory at the gitlink path, which rm -f cannot remove)", async () => {
+  await assertPosix(async (shell) => {
+    await withCheckout(
+      shell,
+      async (repo, wt) => {
+        const removed = await repo.git("rm", "-q", "--cached", "sub");
+        assert.equal(removed.status, 0, `git rm failed: ${removed.stderr}`);
+
+        const result = await overlay(shell, repo, wt);
+
+        assert.equal(result.status, 0, `stderr=${result.stderr}`);
+        assert.equal(result.stdout, "OVERLAY_APPLIED 0\n");
+      },
+      async (repo) => {
+        // The empty directory keeps the gitlink in the index through `git add -A`.
+        fs.mkdirSync(path.join(repo.dir, "sub"));
+        await repo.git("update-index", "--add", "--cacheinfo", "160000,1111111111111111111111111111111111111111,sub");
+      },
+    );
+  });
+});
+
+test("a case-only rename keeps the new spelling in the checkout (on a case-insensitive filesystem the old name still tests as present)", async () => {
+  await assertPosix(async (shell) => {
+    await withCheckout(
+      shell,
+      async (repo, wt) => {
+        // Through git: with core.ignorecase=true an on-disk rename is invisible to git.
+        const mv = await repo.git("mv", "README.md", "readme.md");
+        assert.equal(mv.status, 0, `git mv failed: ${mv.stderr}`);
+
+        const result = await overlay(shell, repo, wt);
+
+        assert.equal(result.status, 0, `stderr=${result.stderr}`);
+        assert.equal(result.stdout, "OVERLAY_APPLIED 2\n");
+        const names = fs.readdirSync(wt);
+        assert.ok(names.includes("readme.md"), `checkout lists ${names.join(", ")}`);
+        assert.ok(!names.includes("README.md"), `checkout lists ${names.join(", ")}`);
+        assert.equal(fs.readFileSync(path.join(wt, "readme.md"), "utf8"), "v1\n");
+      },
+      (repo) => {
+        fs.writeFileSync(path.join(repo.dir, "README.md"), "v1\n");
+      },
+    );
+  });
+});
+
+test(
+  "a symlink to a directory of the repo replaced by a real directory never writes through the link into the target",
+  { skip: canSymlinkDir() ? false : "this account cannot create a directory symlink" },
+  async () => {
+    await assertPosix(async (shell) => {
+      await withCheckout(
+        shell,
+        async (repo, wt) => {
+          fs.rmSync(path.join(repo.dir, "ext"));
+          fs.mkdirSync(path.join(repo.dir, "ext"));
+          fs.writeFileSync(path.join(repo.dir, "ext", "a.md"), "scratch\n");
+
+          const result = await overlay(shell, repo, wt);
+
+          assert.equal(result.status, 0, `stderr=${result.stderr}`);
+          assert.equal(result.stdout, "OVERLAY_APPLIED 2\n");
+          assert.equal(fs.readFileSync(path.join(repo.dir, "docs", "a.md"), "utf8"), "committed\n");
+          const status = (await repo.git("status", "--porcelain=v1", "-uall")).stdout;
+          assert.doesNotMatch(status, /^(M.|.M) /m, `target status:\n${status}`);
+          assert.ok(fs.lstatSync(path.join(wt, "ext")).isDirectory(), "ext must be a real directory");
+          assert.equal(fs.readFileSync(path.join(wt, "ext", "a.md"), "utf8"), "scratch\n");
+        },
+        async (repo) => {
+          const cfg = await repo.git("config", "core.symlinks", "true");
+          assert.equal(cfg.status, 0, `git config failed: ${cfg.stderr}`);
+          fs.mkdirSync(path.join(repo.dir, "docs"));
+          fs.writeFileSync(path.join(repo.dir, "docs", "a.md"), "committed\n");
+          fs.symlinkSync(path.join(repo.dir, "docs"), path.join(repo.dir, "ext"), "dir");
+        },
+      );
+    });
+  },
+);

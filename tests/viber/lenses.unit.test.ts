@@ -6,7 +6,8 @@
  * `### <angle>` entries under `## Hunts`, no ```bash block, a
  * `Worktree: required` or `Worktree: none` line under `## Verify`, and at most
  * 8000 bytes. Beside each lens `<lens>.md` sits its `<lens>.signals.md`, read
- * by the mapper alone, holding at least one ```bash block.
+ * by the mapper alone, holding at least one ```bash block and every `<scope>`
+ * single-quoted.
  *
  * Every rule lives in the pure functions `lensProblems` and `signalsProblems`,
  * proven to fire on a synthetic bad file before it is trusted on the real
@@ -84,9 +85,13 @@ function lensProblems(text: string): Problem[] {
   return problems;
 }
 
-/** A signals file is the mapper's command list: at least one ```bash block. */
+/** A signals file is the mapper's command list: at least one ```bash block,
+ *  and every `<scope>` single-quoted, so a directory holding a space stays one
+ *  pathspec. */
 function signalsProblems(text: string): string[] {
-  return parse(text).bashSections.length > 0 ? [] : ["no bash block"];
+  const problems = parse(text).bashSections.length > 0 ? [] : ["no bash block"];
+  if (/(^|[^'])<scope>/m.test(text)) problems.push("unquoted <scope>");
+  return problems;
 }
 
 function rulesBroken(text: string): Rule[] {
@@ -124,8 +129,12 @@ test("a signals file holding prose and no bash block is flagged (a rule that nev
   assert.deepEqual(signalsProblems("# Sample lens map signals\nRank units by hits.\n"), ["no bash block"]);
 });
 
+test("a signals file holding a bare -- <scope> is flagged (a directory holding a space splits into two pathspecs)", () => {
+  assert.deepEqual(signalsProblems("# Sample lens map signals\nHits:\n```bash\ngit log -- <scope>\n```\n"), ["unquoted <scope>"]);
+});
+
 test("a signals file holding a bash block passes", () => {
-  assert.deepEqual(signalsProblems("# Sample lens map signals\nHits:\n```bash\ngit log -- <scope>\n```\n"), []);
+  assert.deepEqual(signalsProblems("# Sample lens map signals\nHits:\n```bash\ngit log -- '<scope>'\n```\n"), []);
 });
 
 const ALL_FILES = fs.readdirSync(LENSES).filter((name) => name.endsWith(".md")).sort();
@@ -137,7 +146,7 @@ for (const file of LENS_FILES) {
   });
 
   const signals = file.replace(/\.md$/, SIGNALS_SUFFIX);
-  test(`the lens file ${file} has its signals file ${signals} holding at least one bash block`, () => {
+  test(`the lens file ${file} has its signals file ${signals} holding at least one bash block and every <scope> single-quoted`, () => {
     const target = path.join(LENSES, signals);
     assert.ok(fs.existsSync(target), `${signals} is missing`);
     assert.deepEqual(signalsProblems(fs.readFileSync(target, "utf-8")), []);

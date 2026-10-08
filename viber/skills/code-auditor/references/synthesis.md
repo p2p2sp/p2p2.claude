@@ -32,7 +32,7 @@ Base: <BASE value from diff-files.sh>
 <map.md verbatim>
 ```
 
-`Base:` and `## Changed files` are written on the diff scope only.
+A directory whose root-relative path is `diff` or `repo` is written `./diff` or `./repo`, so the bare keywords always mean the scope. `Base:` and `## Changed files` are written on the diff scope only.
 
 ## Hunter report schema
 
@@ -97,7 +97,7 @@ The bands come from the run file's `## Map` -> `## Severity calibration`: what a
 One file per run, at `.temp/viber/code-auditor/<run-id>/findings.md`, built in this shape:
 
 - the title line `# Findings - <run-id> (<lens>, <scope>)`;
-- directly under it the header line `<lens> · <scope> · U units mapped · H hunts · K confirmed findings · J units not investigated.`, where `U` counts the map's unit lines, `H` the hunts dispatched in the run, `K` the confirmed findings and `J` the mapped units no hunt took on;
+- directly under it the header line `<lens> · <scope> · U units mapped · H hunts · K confirmed findings · J units not investigated.`, where `U` counts the map's unit lines, `H` the hunts dispatched in the run, `K` the confirmed findings and `J` the mapped units no hunt took on, counting a `U<n>` hunt that left no report after its retry as none; on the diff scope the angle hunts take on every unit, so `J` is 0 and `- Units not investigated:` reads `none`;
 - then at most ten full entries, headed `## 1. <title>` through `## 10. <title>`, in descending severity order;
 - then the further-findings list, then the coverage notes.
 
@@ -133,6 +133,7 @@ SEVERITY · LOCATION · CLASS · <title> · <report path>
 ```
 - Units not investigated: <U<n>, U<n>, ... | none>
 - Hunts with no finding: <hunt id, hunt id, ... | none>
+- Hunts with no report: <hunt id, ... | none>
 ```
 
 ## Variant wave

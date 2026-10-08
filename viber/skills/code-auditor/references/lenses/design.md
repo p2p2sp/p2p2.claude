@@ -38,12 +38,12 @@ Nothing here is proven by running code. Refute the finding gate by gate from the
 3. Change scenario: one concrete, realistic change, ideally a past commit, needing edits in N places today and 1 in a fixed design.
 4. Pain evidence, at least one: the pair co-changed in 3 or more commits at a coupling of at least 30%; a commit fixed one copy and missed another; the unit is a top-decile hotspot; the change scenario touches 3 or more files; the finding quotes a project rule verbatim with the lines breaking it.
 5. Not deliberate: search `CLAUDE.md`, `.claude/rules`, ADRs and nearby comments for an intentional choice. An intentional one is REFUTED.
-6. Fix economics: the fix is concrete, touches fewer places than it saves and creates no wrong abstraction. A fix adding a per-caller flag or branch to shared code is REFUTED.
+6. Fix economics: a concrete fix exists that touches fewer places than it saves and creates no wrong abstraction; one possible only as a per-caller flag or branch in shared code is REFUTED.
 7. Dead-code reachability: search dynamic references too (strings, reflection, config, globs, plugin manifests) before accepting a dead-code claim.
 
 Verdicts:
 - VERIFIED: every gate passes.
-- PARTIALLY VERIFIED: gates 1 to 3 pass but the pain evidence is weak or the severity or fix is wrong; restate the corrected claim.
+- PARTIALLY VERIFIED: gates 1 to 3 pass but the pain evidence is weak; restate the corrected claim.
 - REFUTED: a gate fails.
 - INCONCLUSIVE: the history is too thin (a shallow clone, squash-only merges, about 20 commits or fewer touching the unit), dead-code reachability depends on runtime dispatch grep cannot settle, or whether the pattern is deliberate depends on intent written down nowhere.
 

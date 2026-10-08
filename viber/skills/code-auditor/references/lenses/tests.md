@@ -41,7 +41,7 @@ Mutation procedure:
 2. Reachability probe: replace the cited line with a throw or panic and run again. The test still passes: it never reaches the line, VERIFIED as a coverage gap. It fails: continue.
 3. One mutant per line, in this order: extreme mutation (empty body, or the type's default), relational operator flip or boundary move, `&&` and `||` swapped, statement or call deleted, arithmetic change last.
 4. Equivalence check before running: skip arid nodes and equivalent forms (`size() == 0` to `<= 0`, null-check rewrites, cache removal, float literals), and write one sentence on the observable behaviour the mutant changes. Not writable: the mutant is equivalent, REFUTED.
-5. Run only the affected test, with the single-test command of the run file's `## Conventions`, else `node --test FILE`, `npx jest FILE -t NAME`, `npx vitest run FILE`, `pytest FILE::NAME`, `go test -run NAME ./pkg` or `cargo test NAME`.
+5. Run only the affected test, with the single-test command of the run file's `## Conventions`, else `node --test FILE`, `npx jest FILE -t NAME`, `npx vitest run FILE`, `pytest FILE::NAME`, `go test -run NAME ./pkg` or `cargo test NAME`. A mutant that survived the cited test is run once on the whole fast tier; killed there gives REFUTED.
 
 Flake procedure:
 1. Run the test 20 times unchanged; any mixed result is VERIFIED.
@@ -50,7 +50,7 @@ Flake procedure:
 
 Verdicts:
 - VERIFIED: the mutant survives, the throw probe passes, or the flake reproduces.
-- PARTIALLY VERIFIED: the mutant survives the cited test but the full suite kills it (wrong layer or misattributed test).
+- PARTIALLY VERIFIED: the gap is real but narrower than claimed: the mutant survives the full suite on fewer lines or branches than cited.
 - REFUTED: the cited test kills the mutant, or another test the hunter missed does, or the mutant is equivalent.
 - INCONCLUSIVE: the test needs a database, external service, credentials, Docker or a GPU, or runs only in CI; the baseline fails in the worktree; the build exceeds the time budget; no mutant compiles; judging the mutant needs domain knowledge; a flake does not reproduce within 20 runs, which is not proof of absence.
 
