@@ -4,8 +4,9 @@
  * against a real throwaway work repo pushing to a real bare remote and a
  * stubbed `gh`: the branch is pushed with its upstream set (to
  * `branch.<branch>.remote`, else origin) before `gh pr create` runs with base,
- * head, title and `--body-file` (plus `--draft` on request), a success prints
- * PR_URL/PR_NUMBER/PUSHED, a failed push exits 1 before gh runs, a gh failure
+ * head, title and `--body-file` (plus `--draft` on request), the new pull
+ * request is assigned to `@me` (a refusal reads ASSIGNEE=dropped, still exit
+ * 0), a success prints PR_URL/PR_NUMBER/PUSHED/ASSIGNEE, a failed push exits 1 before gh runs, a gh failure
  * exits 1 naming the branch as pushed, and bad arguments, a detached HEAD or
  * a missing gh exit 2 with nothing pushed.
  *
@@ -41,10 +42,11 @@ async function assertPosix(fn: (shell: Shell) => void | Promise<void>) {
 const PR_URL = "https://github.com/acme/widgets/pull/17";
 
 /** A `gh` stub logging every call's argv one-arg-per-line (a "===" separator
- *  after each) into `$ARGV_FILE`, answering `pr create` from
- *  PR_STDOUT/PR_STDERR/PR_EXIT. */
+ *  after each) into `$ARGV_FILE`, answering `pr edit` with EDIT_EXIT and
+ *  `pr create` from PR_STDOUT/PR_STDERR/PR_EXIT. */
 const GH_STUB = `
 for a in "$@"; do printf '%s\\n' "$a" >> "$ARGV_FILE"; done; printf '===\\n' >> "$ARGV_FILE"
+if [ "$2" = edit ]; then exit "\${EDIT_EXIT:-0}"; fi
 if [ -n "\${PR_STDERR:-}" ]; then printf '%s' "$PR_STDERR" >&2; fi
 printf '%s' "\${PR_STDOUT:-}"
 exit "\${PR_EXIT:-0}"
@@ -108,7 +110,7 @@ async function remoteHeads(scene: Scene): Promise<string> {
 
 // --- success ----------------------------------------------------------------------
 
-test("a branch pushed to a bare remote gets its upstream set and gh pr create is called with base, head, title and the body file", async () => {
+test("a branch pushed to a bare remote gets its upstream set, gh pr create is called with base, head, title and the body file, then the new pull request is assigned to its author", async () => {
   await assertPosix(async (shell) => {
     await withScene(async (scene) => {
       const { result, calls } = await runPr(shell, scene, ["<body>", "Add x", "--base", "main"], { env: { PR_STDOUT: PR_URL + "\n" } });
@@ -116,7 +118,10 @@ test("a branch pushed to a bare remote gets its upstream set and gh pr create is
       assert.equal(await remoteHeads(scene), "refs/heads/feature/x");
       const upstream = await scene.work.git("rev-parse", "--abbrev-ref", "feature/x@{upstream}");
       assert.equal(upstream.stdout.trim(), "origin/feature/x");
-      assert.deepEqual(calls, [["pr", "create", "--base", "main", "--head", "feature/x", "--title", "Add x", "--body-file", scene.body]]);
+      assert.deepEqual(calls, [
+        ["pr", "create", "--base", "main", "--head", "feature/x", "--title", "Add x", "--body-file", scene.body],
+        ["pr", "edit", PR_URL, "--add-assignee", "@me"],
+      ]);
     });
   });
 });
@@ -126,20 +131,31 @@ test("--draft reaches gh pr create", async () => {
     await withScene(async (scene) => {
       const { result, calls } = await runPr(shell, scene, ["<body>", "Add x", "--base", "main", "--draft"], { env: { PR_STDOUT: PR_URL + "\n" } });
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      assert.equal(calls.length, 1);
+      assert.equal(calls.length, 2);
       assert.equal(calls[0].at(-1), "--draft");
     });
   });
 });
 
-test("the URL gh printed yields PR_URL and PR_NUMBER, and the pushed remote branch follows as PUSHED", async () => {
+test("the URL gh printed yields PR_URL and PR_NUMBER, the pushed remote branch follows as PUSHED and the assignment as ASSIGNEE", async () => {
   await assertPosix(async (shell) => {
     await withScene(async (scene) => {
       const { result } = await runPr(shell, scene, ["<body>", "Add x", "--base", "main"], {
         env: { PR_STDOUT: `Creating pull request for feature/x into main in acme/widgets\n\n${PR_URL}\n` },
       });
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      assert.equal(result.stdout, `PR_URL=${PR_URL}\nPR_NUMBER=17\nPUSHED=origin/feature/x\n`);
+      assert.equal(result.stdout, `PR_URL=${PR_URL}\nPR_NUMBER=17\nPUSHED=origin/feature/x\nASSIGNEE=@me\n`);
+    });
+  });
+});
+
+test("a refused assignment still exits 0 with ASSIGNEE=dropped (the pull request already exists and must not read as a failure)", async () => {
+  await assertPosix(async (shell) => {
+    await withScene(async (scene) => {
+      const { result } = await runPr(shell, scene, ["<body>", "Add x", "--base", "main"], { env: { PR_STDOUT: PR_URL + "\n", EDIT_EXIT: "1" } });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(result.stderr, "");
+      assert.equal(result.stdout, `PR_URL=${PR_URL}\nPR_NUMBER=17\nPUSHED=origin/feature/x\nASSIGNEE=dropped\n`);
     });
   });
 });
@@ -151,7 +167,7 @@ test("a branch whose branch.<name>.remote names another remote is pushed there a
       await scene.work.git("config", "branch.feature/x.remote", "upstream");
       const { result } = await runPr(shell, scene, ["<body>", "Add x", "--base", "main"], { env: { PR_STDOUT: PR_URL + "\n" } });
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      assert.equal(result.stdout, `PR_URL=${PR_URL}\nPR_NUMBER=17\nPUSHED=upstream/feature/x\n`);
+      assert.equal(result.stdout, `PR_URL=${PR_URL}\nPR_NUMBER=17\nPUSHED=upstream/feature/x\nASSIGNEE=@me\n`);
       assert.equal(await remoteHeads(scene), "refs/heads/feature/x");
     });
   });

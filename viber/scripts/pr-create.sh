@@ -20,10 +20,16 @@
 #   remote: `branch.<branch>.remote`, else `origin`. Push: `git push -u
 #          <remote> <branch>`. Create: `gh pr create --base <base> --head
 #          <branch> --title <title> --body-file <file>` plus `--draft`.
+#          Assign: `gh pr edit <url> --add-assignee @me`, the authenticated
+#          gh user being the pull request's author; a separate call so a
+#          refused assignment (no triage right on the repository) never turns
+#          a created pull request into a failure.
 #   stdout, exit 0:
 #            PR_URL=https://<host>/<owner>/<repo>/pull/<N>
 #            PR_NUMBER=<N>
 #            PUSHED=<remote>/<branch>
+#            ASSIGNEE=@me | dropped   dropped: the assignment failed, the
+#                                     pull request stands unassigned
 #   exit 1: one ERROR line on stderr, nothing on stdout - the push failed
 #           (nothing was created), or `gh pr create` failed or printed no pull
 #           request URL (the ERROR line names the branch as pushed).
@@ -88,7 +94,11 @@ if [ $st -ne 0 ] || [ -z "$url" ]; then
   exit 1
 fi
 
+assignee=@me
+gh pr edit "$url" --add-assignee @me >/dev/null 2>&1 || assignee=dropped
+
 echo "PR_URL=$url"
 echo "PR_NUMBER=${url##*/}"
 echo "PUSHED=$remote/$branch"
+echo "ASSIGNEE=$assignee"
 exit 0

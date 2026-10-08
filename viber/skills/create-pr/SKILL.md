@@ -67,7 +67,7 @@ Print the title, the target (`TARGET=`) and the body exactly as it will be writt
 
 `Write` the body to `<root>/.temp/viber/create-pr/body.md` (`<root>` the project root; `Read` the file first when it exists), then run `"${CLAUDE_PLUGIN_ROOT}/scripts/pr-create.sh" "<file>" "<title>" --base "<TARGET>"`, plus ` --draft` for the draft answer.
 
-- Exit 0 -> report `PR_URL=`, then, when `QA=` is set, run `"${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh" "<QA>" --pr "<PR_URL>"` with that `PR_URL=` and report the result as step 7 says. Never retry it.
+- Exit 0 -> report `PR_URL=`, plus one line that the pull request stays unassigned when `ASSIGNEE=dropped` (the script assigns its author itself), then, when `QA=` is set, run `"${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh" "<QA>" --pr "<PR_URL>"` with that `PR_URL=` and report the result as step 7 says. Never retry it.
 - Exit 1 -> report its `ERROR` line. Never retry.
 - Exit 2 -> report its `ERROR` line; nothing was pushed.
 
