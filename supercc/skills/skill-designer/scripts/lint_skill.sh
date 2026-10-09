@@ -80,7 +80,11 @@ if [ -n "$fm" ]; then
     desc_words="$(printf '%s' "$desc" | wc -w | tr -d ' ')"
     [ "$desc_words" -lt 15 ] && warn "$main: description has $desc_words words, add what it does and when to trigger"
     [ "$desc_words" -gt 120 ] && warn "$main: description has $desc_words words, metadata should stay around 100"
-    printf '%s' "$desc" | grep -Eiq '(use (this|it|when|whenever)|invoke|trigger|whenever)' \
+    # a skill hidden from the user is entered by its caller's own instruction,
+    # never matched from the user's phrasing, so it needs no when-to-use cue
+    user_inv="$(printf '%s\n' "$fm" | sed -n 's/^user-invocable:[[:space:]]*//p' | head -n 1 | tr -d "\"'\r ")"
+    [ "$user_inv" = "false" ] \
+      || printf '%s' "$desc" | grep -Eiq '(use (this|it|when|whenever)|invoke|trigger|whenever)' \
       || warn "$main: description has no explicit when-to-use cue"
     # first or second person; "I" stays case-sensitive so "i.e." and "I/O" pass
     if printf '%s' "$desc" | grep -Eq "(^|[^[:alnum:]_/])I('m)?([[:space:],.;:!?]|$)" \
@@ -215,7 +219,9 @@ if [ -n "$sweep_dir" ] && [ -d "$sweep_dir/references" ]; then
           fi ;;
       esac
     fi
-    grep -q "$(basename "$r")" "$main" || warn "$r: not referenced from $(basename "$main")"
+    # a fragment is preloaded into the body, so a pointer there counts as one in SKILL.md
+    grep -qs "$(basename "$r")" "$main" "$(dirname "$main")"/fragments/*.md \
+      || warn "$r: not referenced from $(basename "$main") or its fragments"
   done
 fi
 
