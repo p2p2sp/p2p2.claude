@@ -1,0 +1,4 @@
+- The "Growth only in a long-running process" sentence now closes `unbounded-growth` and scopes the cache, queue and listener items; the uncapped-body item reads as process-independent only by placement, so a hunter may still skip a one-shot CLI reading a body.
+- Hand-offs left in the intro: web-performance, bugs, design. The security lens hand-off is gone; ReDoS lives in `blocking-hot-path`, bodies/uploads/decompression in `unbounded-growth`.
+- `runtime-performance.signals.md` was not touched (not in Files); its blocks still reference the old angle themes (startup, schema) in prose, if any.
+- Verify steps renumbered 1-10 (counter hooks in 3, probes in 7, fan-out/retry/timeout step 8, SQLite index step 9).
