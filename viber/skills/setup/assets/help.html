@@ -867,6 +867,12 @@ oknie<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="current
     uprawnienia, reguła ignorowania.</span></dd>
   </div>
   <div>
+    <dt><a href="#skill-talk"><code data-copy>/viber:talk</code></a></dt>
+    <dd><span lang="en">Talks a topic through with you and checks the claims against trusted sources, ending on
+    conclusions.</span><span lang="pl">Omawia z tobą temat i sprawdza twierdzenia w zaufanych źródłach, kończąc
+    na wnioskach.</span></dd>
+  </div>
+  <div>
     <dt><a href="#skill-intent"><code data-copy>/viber:intent</code></a></dt>
     <dd><span lang="en">The planning interview that starts a planned change.</span><span lang="pl">Wywiad
     planistyczny, od którego zaczyna się planowana zmiana.</span></dd>
@@ -2133,6 +2139,53 @@ z nich mówi, jak nim sterować.</p>
   </dl>
 </article>
 
+<article class="card" id="skill-talk">
+  <h4><code>/viber:talk</code></h4>
+  <p lang="en">A conversation about one topic before you decide anything. Claude takes a position on every
+  thesis, yours and its own, says when it disagrees, rates ideas out of 10 and brings the counter-arguments
+  you have not raised. Every claim that carries weight (versions, numbers, limits, prices, licences, what a
+  tool or standard does) goes to the <a href="#agent-researcher"><code>researcher</code></a> agent, which
+  checks it against trusted sources on the web, the vendor's own documentation and the standard's own text
+  first, and comes back confirmed, refuted, disputed or unverified, with links. The talk ends on conclusions:
+  what was established, what stays open, where you still disagree and the options you have, each with its
+  trade-off.</p>
+  <p lang="pl">Rozmowa o jednym temacie, zanim cokolwiek zdecydujesz. Claude zajmuje stanowisko wobec każdej
+  tezy, twojej i własnej, mówi, kiedy się nie zgadza, ocenia pomysły w skali do 10 i przynosi kontrargumenty,
+  których w rozmowie jeszcze nie było. Każde istotne twierdzenie (wersje, liczby, limity, ceny, licencje, działanie
+  narzędzia lub standardu) trafia do agenta <a href="#agent-researcher"><code>researcher</code></a>, który
+  sprawdza je w zaufanych źródłach w sieci, najpierw w dokumentacji producenta i tekście samego standardu,
+  i wraca z oceną: potwierdzone, obalone, sporne albo niezweryfikowane, z linkami. Rozmowa kończy się
+  wnioskami: co ustalono, co zostaje otwarte, w czym nadal się różnicie i jakie masz opcje, każda z jej
+  kosztem.</p>
+  <dl>
+    <div>
+      <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>
+      <dd><span lang="en">Only by typing the command. It never starts another skill and never writes code, a plan
+      or an issue: what to do with the conclusions is your call, and its last line suggests keeping them with
+      <a href="#skill-handoff"><code>/viber:handoff</code></a>.</span><span lang="pl">Tylko przez wpisanie polecenia.
+      Nigdy nie uruchamia innego skilla i nigdy nie pisze kodu, planu ani issue: co zrobisz z wnioskami, decydujesz
+      ty, a ostatnia linia podpowiada, że możesz je zachować przez
+      <a href="#skill-handoff"><code>/viber:handoff</code></a>.</span></dd>
+    </div>
+    <div>
+      <dt><span lang="en">Arguments</span><span lang="pl">Argumenty</span></dt>
+      <dd><span lang="en">The topic or an opening thesis:
+      <code>/viber:talk is SQLite enough for a multi-user app?</code>. With none, it asks what to talk
+      about.</span><span lang="pl">Temat albo teza na początek:
+      <code>/viber:talk czy SQLite wystarczy dla aplikacji wielu użytkowników?</code>. Bez argumentu pyta, o czym
+      rozmawiać.</span></dd>
+    </div>
+    <div>
+      <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
+      <dd><span lang="en">None.</span><span lang="pl">Brak.</span></dd>
+    </div>
+    <div>
+      <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
+      <dd><span lang="en">Nothing.</span><span lang="pl">Nic.</span></dd>
+    </div>
+  </dl>
+</article>
+
 <article class="card" id="skill-triage">
   <h4><code>/viber:triage</code></h4>
   <p lang="en">Checks one reported issue against the current code: whether it can be done, how, what it
@@ -2931,6 +2984,11 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   runs with <code>--prove</code>.</span><span lang="pl">sprawdza każde twierdzenie przygotowanego pytania
   wywiadu w kodzie, a fakty spoza niego w sieci, gdy <a href="#skill-intent"><code>/viber:intent</code></a>
   działa z <code>--prove</code>.</span></li>
+  <li id="agent-researcher"><code>researcher</code> <span lang="en">checks the claims of a
+  <a href="#skill-talk"><code>/viber:talk</code></a> conversation against trusted sources on the web, and against
+  the code for claims about it, and returns a verdict per claim with its sources.</span><span lang="pl">sprawdza
+  twierdzenia z rozmowy <a href="#skill-talk"><code>/viber:talk</code></a> w zaufanych źródłach w sieci, a te
+  o kodzie w kodzie, i zwraca ocenę każdego z nich razem ze źródłami.</span></li>
 </ul>
 
 <h4><span lang="en">Planning</span><span lang="pl">Planowanie</span></h4>

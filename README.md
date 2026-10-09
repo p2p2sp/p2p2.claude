@@ -59,8 +59,9 @@ in all your projects; drop it to install for the current repository only.
 - **It fits your stack.** Build and test commands and conventions come from your own `CLAUDE.md`
   and `.claude/rules/`, whatever language you work in.
 
-Beyond the core loop, viber triages issues, opens GitHub issues and pull requests, mocks up UI
-changes, writes Playwright tests, audits large codebases and hands a session over to the next one.
+Beyond the core loop, viber talks a topic through with you against trusted sources, triages issues,
+opens GitHub issues and pull requests, mocks up UI changes, writes Playwright tests, audits large
+codebases and hands a session over to the next one.
 The [viber guide](viber/README.md) lists every command.
 
 ## Good to know

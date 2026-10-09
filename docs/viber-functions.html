@@ -96,8 +96,8 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
     <div class="stats">
       <div class="stat"><b id="s-funcs">0</b><span>functions</span></div>
       <div class="stat"><b id="s-areas">0</b><span>areas</span></div>
-      <div class="stat"><b>18</b><span>skills</span></div>
-      <div class="stat"><b>22</b><span>agents</span></div>
+      <div class="stat"><b>19</b><span>skills</span></div>
+      <div class="stat"><b>23</b><span>agents</span></div>
       <div class="stat"><b>4</b><span>hooks</span></div>
     </div>
   </header>
@@ -166,6 +166,32 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
     </section>
 
     <div class="part" data-part="Input">Input: from report to understanding</div>
+
+    <section id="talk" data-title="Research conversation">
+      <h2>Research conversation <span class="count"></span></h2>
+      <p><code>/viber:talk</code>: talks one topic through with you before you decide anything.</p>
+      <ul class="f">
+        <li>Takes a topic or an opening thesis; with none, asks what to talk about.</li>
+        <li>A free exchange of views, not an interview: no numbered decisions, no option lists.</li>
+        <li>Takes a position on every thesis, yours and its own, with its reason.</li>
+        <li>Says plainly when you are wrong and rates ideas out of 10.</li>
+        <li>Brings counter-arguments, alternatives, costs and failure cases you have not raised.</li>
+        <li>Keeps its opinions labelled apart from facts.</li>
+        <li>Reads the code before claiming what the project does.</li>
+        <li>Every claim that carries weight goes to the <code>researcher</code> agent: versions, numbers, limits, prices, licences, what a tool or standard does.</li>
+        <li>Sources ranked: the vendor's own documentation and the standard's own text first, independent research next, named-author publications last.</li>
+        <li>Forum answers, content farms, AI summaries and marketing never carry a verdict alone.</li>
+        <li>Each claim comes back confirmed, refuted, disputed or unverified, with dated links.</li>
+        <li>A source older than the version a claim concerns counts only as history.</li>
+        <li>Several claims checked in parallel; fetched pages stay out of the conversation.</li>
+        <li>A refuted claim that held up a position changes the position, said out loud.</li>
+        <li>Asks whether to wrap up when new rounds only repeat.</li>
+        <li>Ends on conclusions: what was established, what stays open, where you disagree, your options with their trade-offs.</li>
+        <li>Gives its own pick only when you ask for it.</li>
+        <li>Suggests keeping the conclusions with <code>/viber:handoff</code>, without running it.</li>
+        <li>Never writes code, a plan, an issue or a file, and never starts another skill.</li>
+      </ul>
+    </section>
 
     <section id="triage" data-title="Issue triage">
       <h2>Issue triage <span class="count"></span></h2>

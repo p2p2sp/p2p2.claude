@@ -36,6 +36,7 @@ A typical run is `/viber:setup` once, then `/viber:intent`. Each step names the 
 
 | Command | What it does |
 | --- | --- |
+| `/viber:talk` | Talks a topic through with you, checks the claims against trusted sources and ends on conclusions, never on code. |
 | `/viber:intent` | Interviews you about an idea, one question at a time, and hands the result to the planner. |
 | `/viber:fixer` | Traces a bug to its root cause, proves it with a failing test and hands it to the planner. |
 | `/viber:triage` | Checks a reported issue against your code: can it be done, how, what it affects, how big. |
@@ -69,6 +70,10 @@ A typical run is `/viber:setup` once, then `/viber:intent`. Each step names the 
 
 ### Command details
 
+- **`/viber:talk`**: takes a topic or an opening thesis. Claude takes positions and argues them, and
+  the `researcher` agent checks every claim that carries weight, the vendor's documentation and the
+  standard's own text first, each coming back confirmed, refuted, disputed or unverified with links.
+  The conclusions are yours to act on; `/viber:handoff` keeps them for a later session.
 - **`/viber:intent`**: add `--prove` to have every question's recommendation and alternatives
   checked against the code, and the web where needed, before you see it. If you ask for a plan
   without an interview, viber suggests the interview first, and you decide.

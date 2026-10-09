@@ -8,7 +8,7 @@ git -c core.quotePath=false log --no-merges -i -E --grep='secur|cve|vuln|xss|inj
 
 Risky paths:
 ```bash
-git -c core.quotePath=false ls-files -- '<scope>' | grep -iE 'auth|login|session|token|crypto|admin|upload|webhook|payment|route|controller|handler|middleware' | head -50
+git -c core.quotePath=false ls-files -- '<scope>' | grep -iE 'auth|login|session|token|otp|mfa|passw|reset|crypto|admin|upload|webhook|payment|checkout|route|controller|handler|middleware' | head -50
 ```
 
 Entry points:
