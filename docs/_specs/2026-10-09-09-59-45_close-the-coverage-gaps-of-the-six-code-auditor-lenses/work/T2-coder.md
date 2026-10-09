@@ -1,0 +1,5 @@
+- security.md sits at 7995 of 8000 bytes: the next addition needs an equal cut elsewhere in the file.
+- The `llm-and-agents` angle is the sixth, the cap of lenses.unit.test.ts; the freed slot came from merging secrets-and-crypto into the supply-chain angle.
+- The review's "secret removed in the diff but still in history counts" Verify line and the XSS Vue/Svelte, server-side prototype pollution extensions are not applied: Delivers does not list them.
+- The LLM signal sits last in security.signals.md as a new block; no contract fixes a position for security blocks.
+- Hand-offs from other lenses to the security lens (for example runtime-performance's "exploitable regex") belong to their own lens tasks.
