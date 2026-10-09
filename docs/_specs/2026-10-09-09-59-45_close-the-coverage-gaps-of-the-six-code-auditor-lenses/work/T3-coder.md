@@ -1,4 +1,0 @@
-- The lens-intro hand-off names "memory growth and missing timeouts" for the runtime performance lens; T1's glossary decides which angle of that lens covers each (README ownership table is a later task).
-- The env-var cross-check (signals block 4) runs one `git grep -l` per distinct name over the whole repository, so it is slower on large repositories; the report's version was kept unchanged.
-- The hazard-idiom block excludes `*test*` paths, so production files like `latest.ts` are dropped from it (same trait as T1's runtime-performance excludes).
-- Verify step 2 now carries the outside-oracle sentence and the reproduction discipline in one step; step 3 carries the deferred-promise ordering.

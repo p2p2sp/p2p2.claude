@@ -1,5 +1,0 @@
-- The unquoted-`<scope>` rule needs `'` right before `<scope>`, so web-performance's `':(icase)<scope>/*.jpg'` pathspecs from the report would fail it: the largest-binaries block now lists every file under the scope, filters extensions with `grep -i` and runs `du -k` in a `while read` loop.
-- tests.signals.md no-test block: the old `git grep -q -- '*test*'` lookup also matched `src/latest.ts` itself, since it names its own basename. It now runs `git grep -l` over the whole repository and keeps only hits whose path has a test shape (the `t=` regex at the start of the block).
-- The runtime-performance loop filter `[-:][0-9]+[-:].*(io)` comes from the report. It can still match a path that holds `-<digits>-` before an I/O token. That is rare, and I left it as is.
-- runtime-performance's `':!*test*' ':!*spec*'` excludes still drop production paths like `latest.ts`. These pathspecs come from the report and I did not change them.
-- The merged perf-history block now covers only the last 12 months: the old subjects block had no window.
