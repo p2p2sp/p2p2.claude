@@ -252,6 +252,10 @@ instead. Release branches, their version numbers and back-merging a hotfix into 
   body ends with `Closes #<n>` per issue when the target is the default branch, `Refs #<n>` otherwise.
 - You answer create, create as draft or cancel. Only on create does it push the branch to its
   remote and open the pull request.
+- A build that finishes on its run branch, with no roadmap part left, asks whether to open the
+  pull request now and runs `/viber:create-pr` on your yes. A build ended on abort, or whose
+  archive commit failed, only suggests the command; a build with a next roadmap part neither asks
+  nor suggests.
 - A run's `qa.md` reaches the pull request as a comment, posted once per run by `/viber:create-pr`
   and by the build close when the branch has an open pull request; one that already holds the
   comment gets no second. `qa.e2e.md` is never posted.

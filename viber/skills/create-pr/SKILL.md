@@ -1,9 +1,8 @@
 ---
 name: create-pr
-description: Opens a pull request for the current branch per the project's branching - title from github.pr-title, body from the work entry's pull request template, after a preview.
+description: Opens a pull request for the current branch. Only on the user's request.
 allowed-tools: Read, Edit(./.temp/viber/create-pr/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pr-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pr-create.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh:*)
 user-invocable: true
-disable-model-invocation: true
 model: sonnet
 ---
 

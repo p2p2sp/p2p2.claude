@@ -1,7 +1,7 @@
 ---
 name: implementor
 description: Builds an approved plan task by task. Requires an existing plan; without one, suggest the viber:intent interview.
-allowed-tools: Agent, SendMessage, AskUserQuestion, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh:*)
+allowed-tools: Agent, SendMessage, AskUserQuestion, Skill, TaskCreate, TaskUpdate, Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/config.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-clock.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh:*)
 model: sonnet
 effort: medium
 user-invocable: false
@@ -55,7 +55,7 @@ A `VERDICT: DENIED` question names the refused call from its `REASON:` line and 
 
 Exit 6 - the run branch could not be set -> report the stderr reason and stop: nothing landed, and the build does not proceed to step 2. Any other non-zero exit this step does not name by number (2, 4, 5) -> the same: report the stderr reason and stop.
 
-The `target:` line following `branch:` carries to the final summary: one line naming the `branch:` value and the `target:` value as the pull request target and suggesting `/viber:create-pr`. No such line when there is no `target:` line, or it equals the branch.
+A `target:` line following `branch:` and differing from the branch makes the run a pull request branch: carry both values to step 7.
 
 - `state: draft` -> report the path and that `/viber:intent` pointed at that draft continues it, then stop without a question.
 - `state: new` with any `open:` line -> `AskUserQuestion` naming both: build the plan just landed, or resume that run instead.
@@ -251,3 +251,8 @@ After the summary and outside its 7 lines, list every `FIXED:` line the final re
 After those, also outside its 7 lines, list the rulings: each index `ruling:` line, then each ruling this session recorded that is not already one, every one with its ruling, `why:` and `cost if wrong:`.
 
 With a `next: part` index line and a build not ended on `abort`, the last line, after the summary and outside its 7, is `/viber:intent <archive path>/roadmap.md` in the archived form, `/viber:intent <dir>/roadmap.md` in the screen form.
+
+On a pull request branch (step 1) with no `next: part` index line:
+
+- The build ended on `abort`, or `closeout` returned `BLOCKED` -> the final summary carries one line naming the `branch:` value and the `target:` value as the pull request target and suggesting `/viber:create-pr`.
+- Otherwise, once everything above is printed -> `AskUserQuestion` naming both values: open the pull request now, or not now. Now -> invoke the `viber:create-pr` skill (Skill tool). Not now -> end.

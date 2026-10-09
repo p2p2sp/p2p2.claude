@@ -86,6 +86,7 @@ A typical run is `/viber:setup` once, then `/viber:intent`. Each step names the 
   it take that from the conversation.
 - **`/viber:create-pr`**: opens a pull request or a draft, titles it per `github.pr-title`, pushes only on your yes,
   assigns it to you as its author, and posts the run's `qa.md` on it as a QA comment, once per run.
+  A build finished on its run branch, with no roadmap part left, offers to run it.
 - **`/viber:code-auditor`**: `/viber:code-auditor [<lens>] [diff | diff:<sha> | <directory> | repo]`.
   Six lenses: `bugs`, `security`, `web-performance`, `runtime-performance`, `tests` and `design`;
   `performance` or `quality` picks a group and asks only which of its two lenses. Three scopes: the
