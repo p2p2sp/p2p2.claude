@@ -1,0 +1,4 @@
+- tests.md is 7711 bytes of the 8000 cap: any later addition must cut first.
+- The hollow-assertion break-the-assertion probe and the reachability probe share Mutation step 2 (one step, two probes) to keep the numbering the mapper and critics already read.
+- The single-test fallback list was cut to "the framework's own single-test filter" (report's optional cut), since the run file's `## Conventions` carries the command.
+- The Excluded test-style bullet reads "Test style, structure, naming, DAMP or DRY and readability with no missed regression."
