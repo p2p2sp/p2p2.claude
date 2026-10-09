@@ -70,7 +70,9 @@ A typical run is `/viber:setup` once, then `/viber:intent`. Each step names the 
 
 ### Command details
 
-- **`/viber:talk`**: takes a topic or an opening thesis. Claude takes positions and argues them, and
+- **`/viber:talk`**: takes a topic or an opening thesis. Claude keeps in mind whether you want the
+  current solution improved or another way, and when you look for another way it ranges over
+  approaches that differ in kind instead of tweaking what exists. It takes positions and argues them, and
   the `researcher` agent checks every claim that carries weight, the vendor's documentation and the
   standard's own text first, each coming back confirmed, refuted, disputed or unverified with links.
   The conclusions are yours to act on; `/viber:handoff` keeps them for a later session.
