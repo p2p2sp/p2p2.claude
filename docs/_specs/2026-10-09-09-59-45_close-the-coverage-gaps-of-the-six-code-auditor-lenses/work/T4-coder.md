@@ -1,0 +1,6 @@
+- design.signals.md block order: co-change [0], churn x size [1], copy-paste [2], literals [3], fan-in [4], fan-out [5], dead export [6]; C1 pins only [1].
+- The dead-export block tests "one file only" with `git grep -lw -e "$n" | sed -n 2p` (empty means at most one file) instead of the report's `wc -l` number compare; `-e` is needed because `--` would turn the name into a pathspec.
+- The fan-in and fan-out patterns hold one literal TAB (Go import block lines); an editor that expands tabs silently drops that alternative.
+- The hotspot block now carries the same bump/release `--invert-grep` filter as the co-change block, and `read -r`.
+- The dead-export block finds nothing in viber/ (no JS exports there); checked on tests/ instead (about 1 s).
+- Design Severity 1-2 now reads "PARTIALLY VERIFIED only"; the cap sentence replaces the old 9-10 line.
