@@ -256,9 +256,9 @@ instead. Release branches, their version numbers and back-merging a hotfix into 
   pull request now and runs `/viber:create-pr` on your yes. A build ended on abort, or whose
   archive commit failed, only suggests the command; a build with a next roadmap part neither asks
   nor suggests.
-- A run's `qa.md` reaches the pull request as a comment, posted once per run by `/viber:create-pr`
-  and by the build close when the branch has an open pull request; one that already holds the
-  comment gets no second. `qa.e2e.md` is never posted.
+- A run's `qa.md` is posted as a comment on the run's issue, or on the branch's pull request when
+  the run has no issue, once per run, by the build close and by `/viber:create-pr`; a target that
+  already holds the comment gets no second. `qa.e2e.md` is never posted.
 
 ### Template convention
 

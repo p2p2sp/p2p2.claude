@@ -574,7 +574,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
         <li>QA: written on sonnet; <code>qa.md</code> with scenarios to perform by hand.</li>
         <li>QA: every scenario opens with a checkbox the tester ticks once it is performed.</li>
         <li>QA: <code>qa.e2e.md</code> for automation through <code>/viber:e2e</code>.</li>
-        <li><code>qa.md</code> posted as a comment on the branch's open pull request, once per run.</li>
+        <li><code>qa.md</code> posted as a comment on the run's issue, or on the branch's open pull request when the run has none, once per run.</li>
         <li>Project extensions run in order, optionally in parallel.</li>
         <li>Every extension committed separately.</li>
         <li>Records drift: what was delivered beyond the specification.</li>
@@ -631,8 +631,8 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
         <li>Choice: create, create as draft, cancel.</li>
         <li>Pushes the branch only on your yes.</li>
         <li>Assigns the pull request to its author.</li>
-        <li>Adds the run's <code>qa.md</code> as a comment, once per run.</li>
-        <li>On an existing pull request, adds only the QA comment.</li>
+        <li>Adds the run's <code>qa.md</code> as a comment on the run's issue, or on the pull request when the run has none, once per run.</li>
+        <li>On an existing pull request, posts only the QA comment.</li>
         <li>Never writes under <code>.github/</code>.</li>
       </ul>
     </section>

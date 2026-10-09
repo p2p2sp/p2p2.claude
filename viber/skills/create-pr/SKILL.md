@@ -60,7 +60,7 @@ End the body with one line per `ISSUE=` value, after a blank line: `Closes #<n>`
 
 ## 5. Preview
 
-Print the title, the target (`TARGET=`) and the body exactly as it will be written, plus, when `QA=` is set, one line saying the build's QA document (`QA=`) will be posted as a comment on the new pull request, then one `AskUserQuestion`: create, create as draft or cancel. A correction typed as the answer -> apply it and preview again. Cancel -> stop, nothing created.
+Print the title, the target (`TARGET=`) and the body exactly as it will be written, plus, when `QA=` is set, one line saying the build's QA document (`QA=`) will be posted as a comment on the run's issue, or on the new pull request when the run has none, then one `AskUserQuestion`: create, create as draft or cancel. A correction typed as the answer -> apply it and preview again. Cancel -> stop, nothing created.
 
 ## 6. Create
 
@@ -72,7 +72,7 @@ Print the title, the target (`TARGET=`) and the body exactly as it will be writt
 
 ## 7. QA comment of an existing pull request
 
-Only on a `pr-exists` stop with `QA=` set, asked no question: run `"${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh" "<QA>" --pr "<PR_URL>"`, the stop's `PR_URL=`. Never retry. Either call's result:
+Only on a `pr-exists` stop with `QA=` set, asked no question: run `"${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh" "<QA>" --pr "<PR_URL>"`, the stop's `PR_URL=`. Never retry. Either call posts on the run's issue when it has one, the pull request otherwise. Either call's result:
 
 - Exit 0, `STATUS=posted` -> report `COMMENT_URL=`.
 - Exit 0, `STATUS=skip` -> report its `REASON=` in one line.

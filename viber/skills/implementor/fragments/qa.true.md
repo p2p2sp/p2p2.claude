@@ -2,7 +2,7 @@
 
 QA paths, the `FILES:` of `VERDICT: WRITTEN` or `VERDICT: KEPT`, commit through `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --qa "<plan>" "<file>" ["<file>"...]`. No `FILES:` line, or only `VERDICT: NONE` -> no call.
 
-A `qa.md` among the QA paths, once its `--qa` commit exited 0, is posted to the branch's pull request through `"${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh" "<the qa.md path>"`, with no `--pr` and no question, one call, never retried. Its stdout and exit carry to the final summary:
+A `qa.md` among the QA paths, once its `--qa` commit exited 0, is posted to the run's issue (the branch's pull request when the run has none) through `"${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh" "<the qa.md path>"`, with no `--pr` and no question, one call, never retried. Its stdout and exit carry to the final summary:
 
 - `STATUS=posted` -> its `COMMENT_URL=` value.
 - `STATUS=skip` with `REASON=no-gh` or `REASON=no-repo` -> one line naming that reason.

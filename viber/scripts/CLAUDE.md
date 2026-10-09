@@ -19,7 +19,7 @@ This directory holds the scripts more than one viber skill or agent calls: the c
 - Exit codes of the run scripts are part of their contract, each documented in the header: `plan-path.sh` 2 argv, 3 no plan, 4 bad `--into` target, 5 copy failed, 6 run branch; `plan-index.sh` 2 unusable plan or argv, 3 no task blocks, 4 broken task contract; `commit-task.sh` 2 bad arguments, 3 no such task, 4 no change (or a bad `--landed`), 5 staging or commit failed with `status.md` restored; `archive-run.sh` 2 argv outside `docs/<runs>/`, 3 destination exists, 4 run unfinished, 5 a git step failed.
 - `archive-run.sh` takes the run directory exactly as `plan-path.sh` printed its `path:` line minus `/plan.md`, and refuses (never corrects) any path outside `docs/<runs>/`, an absolute one or one with a `..` segment.
 - `commit-task.sh` exports `GIT_LITERAL_PATHSPECS=1`: every path it stages is one exact path, never a pattern (bracketed App Router segments). It refuses any `.temp/` path, and derives the `work/` trail paths it stages from the task id or round, never from the caller.
-- `qa-comment.sh` posts at most once per run: the body's first line `<!-- viber:qa <path> -->` marks the run key (the qa file's parent directory name), and a comment already carrying the same key, from the run directory or its archive, yields `STATUS=skip`, `REASON=exists`. It writes the body to `.temp/viber/qa-comment/<run key>.md` and leaves it there.
+- `qa-comment.sh` posts on the run's issue, the frontmatter `issue:` of the `spec.md` beside the qa file, and on the `--pr` or branch pull request only when the run has none. It posts at most once per run: the body's first line `<!-- viber:qa <path> -->` marks the run key (the qa file's parent directory name), and a comment already carrying the same key, from the run directory or its archive, yields `STATUS=skip`, `REASON=exists`. It writes the body to `.temp/viber/qa-comment/<run key>.md` and leaves it there.
 - The `--branching` report of `config.sh` is read by `run-branch.sh` and `pr-facts.sh` only; every other reader takes the default block.
 
 ## Commands
@@ -28,7 +28,7 @@ This directory holds the scripts more than one viber skill or agent calls: the c
 
 ## Change together
 
-- The issue reference grammar (`<N>`, `#<N>`, or `https://<host>/<owner>/<repo>/issues/<N>` with any `#...` fragment or `?...` query dropped) is parsed the same way in `issue-facts.sh` and `post-comment.sh`; `qa-comment.sh` applies it to `--pr` pull request URLs.
+- The issue reference grammar (`<N>`, `#<N>`, or `https://<host>/<owner>/<repo>/issues/<N>` with any `#...` fragment or `?...` query dropped) is parsed the same way in `issue-facts.sh` and `post-comment.sh`; `qa-comment.sh` applies it to the run's `issue:` and to `--pr` pull request URLs.
 - A `config.sh --branching` line added or renamed: its readers in `run-branch.sh` and `pr-facts.sh`.
 
 ## Traps

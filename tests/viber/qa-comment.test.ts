@@ -3,15 +3,18 @@
  * `qa-comment.sh <qa file path> [--pr <pull request URL>]` contract against a
  * throwaway git repo and a stubbed `gh`: the posted body (marker line, header
  * line, empty line, the file verbatim) and the STATUS=posted / COMMENT_URL=
- * block, the target taken from --pr or from the open pull request of the
- * current branch, every STATUS=skip reason (no-gh, no-repo, no-pr, exists),
+ * block, the target taken from the `issue:` of the spec.md beside the qa
+ * file whenever it names one (--pr then ignored), else from --pr, else from
+ * the open pull request of the current branch, every STATUS=skip reason
+ * (no-gh, no-repo, no-pr, exists),
  * exit 1 with one ERROR line and an empty stdout when gh fails reading the
  * comments or posting, or prints no comment URL, a relative path resolved
  * from the repository root, and exit 2 on bad arguments or a missing file.
  *
  * qa-comment.sh is `#!/bin/sh`, so every case runs through
  * forEachShell("posix", ...) via opts.shell, never executed directly. `gh` is
- * always a withStub (`pr list`, `pr view` and `pr comment` answered from env),
+ * always a withStub (`pr list`, `pr|issue view` and `pr|issue comment`
+ * answered from env),
  * or absent - this test never shells out to the real gh.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
@@ -44,20 +47,22 @@ const QA_REL = `docs/_specs/${KEY}/qa.md`;
 const QA_TEXT = "# Thing\n\n## What changed\nA person can now post.\n\n| # | Step | Expected result |\n| --- | --- | --- |\n";
 const PR_URL = "https://github.com/acme/widgets/pull/7";
 const COMMENT_URL = `${PR_URL}#issuecomment-99`;
+const ISSUE_URL = "https://github.com/acme/widgets/issues/12";
+const ISSUE_COMMENT_URL = `${ISSUE_URL}#issuecomment-55`;
 
 /** A `gh` stub logging its argv one-arg-per-line (a "===" separator after
- *  each call) into `$ARGV_FILE`. `pr list` prints PR_LIST; `pr view` prints
- *  COMMENTS or fails on VIEW_FAIL; `pr comment` copies its --body-file into
- *  `$BODY_LOG`, then fails on POST_FAIL or prints POST_OUT (default: a
- *  comment URL). */
+ *  each call) into `$ARGV_FILE`. `pr list` prints PR_LIST; `pr|issue view`
+ *  prints COMMENTS or fails on VIEW_FAIL; `pr|issue comment` copies its
+ *  --body-file into `$BODY_LOG`, then fails on POST_FAIL or prints POST_OUT
+ *  (default: a pull request comment URL). */
 const GH_STUB = `
 for a in "$@"; do printf '%s\\n' "$a" >> "$ARGV_FILE"; done; printf '===\\n' >> "$ARGV_FILE"
 case "$1 $2" in
   "pr list") printf '%s' "\${PR_LIST:-}" ;;
-  "pr view")
+  "pr view"|"issue view")
     if [ -n "\${VIEW_FAIL:-}" ]; then echo "HTTP 401: Bad credentials" >&2; exit 1; fi
     printf '%s' "\${COMMENTS:-}" ;;
-  "pr comment")
+  "pr comment"|"issue comment")
     prev=""
     for a in "$@"; do
       if [ "$prev" = "--body-file" ]; then cat "$a" > "$BODY_LOG"; fi
@@ -115,8 +120,17 @@ async function runInRepo(shell: Shell, args: string[], opts: RunOpts = {}): Prom
 }
 
 function posts(calls: string[][]): string[][] {
-  return calls.filter((c) => c[0] === "pr" && c[1] === "comment");
+  return calls.filter((c) => c[1] === "comment");
 }
+
+/** A setup writing the run's spec.md beside the qa file with `text` as its content. */
+function specWith(text: string): (repo: GitRepo) => Promise<void> {
+  return async (repo) => {
+    fs.writeFileSync(path.join(repo.dir, path.dirname(QA_REL), "spec.md"), text);
+  };
+}
+
+const SPEC_WITH_ISSUE = `---\r\nissue: ${ISSUE_URL}\r\n---\r\n\r\n# Thing\n`;
 
 const EXPECTED_BODY = `<!-- viber:qa ${QA_REL} -->\nQA document: \`${QA_REL}\`\n\n${QA_TEXT}`;
 
@@ -141,6 +155,75 @@ test("a relative qa file path resolves from the repository root when the script 
 });
 
 // --- target -----------------------------------------------------------------------
+
+test("a run whose spec.md names an issue posts on that issue, never asking for a pull request, and stdout carries the issue comment URL", async () => {
+  await assertPosix(async (shell) => {
+    const { result, calls, body } = await runInRepo(shell, [QA_REL], {
+      env: { PR_LIST: `${PR_URL}\n`, POST_OUT: ISSUE_COMMENT_URL },
+      setup: specWith(SPEC_WITH_ISSUE),
+    });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, `STATUS=posted\nCOMMENT_URL=${ISSUE_COMMENT_URL}\n`);
+    assert.equal(body, EXPECTED_BODY);
+    assert.deepEqual(posts(calls).map((c) => c.slice(0, 3)), [["issue", "comment", ISSUE_URL]]);
+    assert.ok(!calls.some((c) => c[0] === "pr"), "no pull request call when the run has an issue");
+  });
+});
+
+test("a run with an issue ignores --pr and posts on the issue (create-pr and the build close reach the same target)", async () => {
+  await assertPosix(async (shell) => {
+    const { result, calls } = await runInRepo(shell, [QA_REL, "--pr", PR_URL], {
+      env: { POST_OUT: ISSUE_COMMENT_URL },
+      setup: specWith(SPEC_WITH_ISSUE),
+    });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, `STATUS=posted\nCOMMENT_URL=${ISSUE_COMMENT_URL}\n`);
+    assert.deepEqual(posts(calls).map((c) => c.slice(0, 3)), [["issue", "comment", ISSUE_URL]]);
+  });
+});
+
+test("an issue: written as #<N> targets issue <N>, and a URL fragment is dropped", async () => {
+  await assertPosix(async (shell) => {
+    for (const [value, expected] of [["#12", "12"], [`${ISSUE_URL}#top`, ISSUE_URL]]) {
+      const { result, calls } = await runInRepo(shell, [QA_REL], {
+        env: { POST_OUT: ISSUE_COMMENT_URL },
+        setup: specWith(`---\nissue: ${value}\n---\n`),
+      });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.equal(posts(calls)[0]?.[2], expected);
+    }
+  });
+});
+
+test("a spec.md with no issue: in its frontmatter falls back to the pull request (an issue: in the body is not the run's issue)", async () => {
+  await assertPosix(async (shell) => {
+    const { result, calls } = await runInRepo(shell, [QA_REL, "--pr", PR_URL], {
+      setup: specWith(`# Thing\n\nissue: ${ISSUE_URL}\n`),
+    });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, `STATUS=posted\nCOMMENT_URL=${COMMENT_URL}\n`);
+    assert.deepEqual(posts(calls).map((c) => c.slice(0, 3)), [["pr", "comment", PR_URL]]);
+  });
+});
+
+test("an issue comment holding a marker of the same run key: STATUS=skip REASON=exists and no post", async () => {
+  await assertPosix(async (shell) => {
+    const { result, calls } = await runInRepo(shell, [QA_REL], {
+      env: { COMMENTS: `<!-- viber:qa ${QA_REL} -->\nQA document\n` },
+      setup: specWith(SPEC_WITH_ISSUE),
+    });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "STATUS=skip\nREASON=exists\n");
+    assert.equal(posts(calls).length, 0);
+  });
+});
+
+test("posting on an issue but gh printing a pull request comment URL: exit 1, one ERROR line, empty stdout (the URL must name the target)", async () => {
+  await assertPosix(async (shell) => {
+    const { result } = await runInRepo(shell, [QA_REL], { setup: specWith(SPEC_WITH_ISSUE) });
+    assertOneError(result);
+  });
+});
 
 test("without --pr, the open pull request whose head is the current branch is the target", async () => {
   await assertPosix(async (shell) => {
