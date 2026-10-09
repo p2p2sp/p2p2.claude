@@ -1,0 +1,4 @@
+- The hand-off phrase "never removed on unmount" in the web-performance intro needs the bugs lens `leaked-resource` angle to say "or on unmount" (gap 11); no `unmount` text exists in bugs.md yet, and that file is outside T5's Files.
+- The Excluded bullet "Server data-access latency" was cut as a duplicate of the intro; the below-the-fold bullet was merged with the lazy-imports bullet and scoped to LCP and CLS claims, per the report's exclusions review.
+- Verify step 5's command contains `'#'` sed delimiters inside inline code; the lens file stays free of fenced bash blocks.
+- The file is 7643 bytes of the 8000 cap, so little room is left for later additions.
