@@ -28,9 +28,9 @@
 #                                   the one marked "(this plan)": that entry, its
 #                                   1-based position, the entry count, the name
 #                                   without its marker (e.g. next: part 3 of 4 - X)
-#   tasks: id | state | tdd | excl | deps | feeds | files | title
-#   T1 | done | none     | -   | -  | C1:1 | .claude/settings.json | Tighten the settings schema
-#   T2 | todo | required | yes | T1 | -    | src/a.ts,src/b.ts     | Add the retry loop
+#   tasks: id | state | tdd | excl | hard | deps | feeds | files | title
+#   T1 | done | none     | -   | -   | -  | C1:1 | .claude/settings.json | Tighten the settings schema
+#   T2 | todo | required | yes | yes | T1 | -    | src/a.ts,src/b.ts     | Add the retry loop
 #   verify: T1 | node --test tests/settings.test.ts
 #   verify: T2 | grep -n "retry" src/a.ts
 #   dirty: T2 | src/a.ts            only for a task not done whose own files are
@@ -87,6 +87,11 @@
 # so the orchestrator dispatches it alone. The plan declares the constraint and
 # this script only carries it: nothing here decides whether two tasks may run
 # together.
+#
+# "hard" is "yes" for a task carrying a "Hard: <reason>" line - the third
+# optional field, the plan's mark for a task whose design it cannot settle in
+# advance, which the orchestrator alone turns into a model tier. A "Hard:" line
+# with no reason is refused; the reason itself stays in the task file.
 #
 # "Files:" is a comma-separated list of exact repo-relative file paths - no
 # patterns, no directories, no annotations - so the same list drives the commit
@@ -446,7 +451,7 @@ incon && !intask && cid != "" && trim($0) != "" { cfresh = 0 }
   intask = 1; n++
   id[n] = ""; ttl[n] = ""; tdd[n] = ""; deps[n] = ""; files[n] = ""
   covers[n] = ""; uses[n] = ""; deliv[n] = ""; verif[n] = ""; dod[n] = ""
-  excl[n] = ""; repro[n] = ""
+  excl[n] = ""; repro[n] = ""; hard[n] = ""; hashard[n] = 0
   # the cut --split makes is the FIRST "## Tasks" heading, so a block opening
   # before it has ever been seen would ride into spec.md instead of decomposing
   # into its own task file, while the index above still lists it as a task
@@ -467,6 +472,7 @@ intask {
   if ($0 ~ /^-[[:space:]]*TDD:/)          { tdd[n]    = val($0); next }
   if ($0 ~ /^-[[:space:]]*Exclusive:/)    { excl[n]   = val($0); next }
   if ($0 ~ /^-[[:space:]]*Repro:/)        { repro[n]  = val($0); next }
+  if ($0 ~ /^-[[:space:]]*Hard:/)         { hard[n]   = val($0); hashard[n] = 1; next }
   if ($0 ~ /^-[[:space:]]*Covers:/)       { covers[n] = val($0); next }
   if ($0 ~ /^-[[:space:]]*Uses:/)         { uses[n]   = val($0); next }
   if ($0 ~ /^-[[:space:]]*Depends-on:/)   { deps[n]   = val($0); next }
@@ -505,6 +511,7 @@ END {
     # states only - a third spelling would start the same drift the mandatory
     # "Uses: none" was written to close.
     if (excl[i] != "" && excl[i] != "true") fail("task " id[i] ": Exclusive must be \"true\" or the line left out, got: \"" excl[i] "\"")
+    if (hashard[i] && hard[i] == "") fail("task " id[i] ": Hard needs its reason, or the line left out")
     if (files[i] == "") fail("task " id[i] ": missing Files")
     if (deliv[i] == "") fail("task " id[i] ": missing Delivers")
     if (verif[i] == "") fail("task " id[i] ": missing Verification")
@@ -726,7 +733,7 @@ END {
     sub(/[[:space:]]*\((built|this plan)\)$/, "", rnext)
     printf "next: part %d of %d - %s\n", rthis + 1, nrent, trim(rnext)
   }
-  printf "tasks: id | state | tdd | excl | deps | feeds | files | title\n"
+  printf "tasks: id | state | tdd | excl | hard | deps | feeds | files | title\n"
   for (i = 1; i <= n; i++) {
     f = ""
     for (k = 1; k <= nf[i]; k++) f = (f == "" ? fpath[i, k] : f "," fpath[i, k])
@@ -735,7 +742,8 @@ END {
     if (fd == "") fd = "-"
     state = (id[i] in isdone ? "done" : (id[i] in isskipped ? "skipped" : "todo"))
     x = (excl[i] == "true" ? "yes" : "-")
-    printf "%s | %s | %s | %s | %s | %s | %s | %s\n", id[i], state, tdd[i], x, dnorm[i], fd, f, ttl[i]
+    hd = (hashard[i] ? "yes" : "-")
+    printf "%s | %s | %s | %s | %s | %s | %s | %s | %s\n", id[i], state, tdd[i], x, hd, dnorm[i], fd, f, ttl[i]
   }
   for (i = 1; i <= n; i++) printf "verify: %s | %s\n", id[i], verifycmd(verif[i])
 

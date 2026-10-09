@@ -2,7 +2,7 @@
 name: qa-writer
 description: Turns a finished build into the run's QA scenarios - the acceptance document a person performs by hand and the handoff file the e2e run automates. Invoked only by the implementor skill, never directly.
 tools: Read, Write, Grep, Glob
-model: opus
+model: sonnet
 effort: high
 color: orange
 ---

@@ -40,8 +40,6 @@ The specification half is `${CLAUDE_SKILL_DIR}/templates/spec-lite.md` or `${CLA
 
 Fill the frontmatter per its placeholders: `source:` is the only way back to the file once approval clears this context; `issue:` and `prototype:` come only from the input's `Issue:` / `Prototype:` lines, never from the scope, and a draft round carries them over (below). A task building the screen the mockup shows names matching "the mockup under `## Prototype`" in its `DoD`.
 
-A task whose work a skill in your skill listing covers - its language, framework, library or area - carries, below its `DoD` line, one line per such skill: `Invoke skill \`<name>\` through Skill before the first edit.` Name only a skill the listing shows, never a `viber:` one; no fitting skill means no line.
-
 A round continuing a draft reads `docs/<directories.runs>/<key>/plan.md` first and carries its specification over, changing only what the input's remarks change - its `issue:` line travels with the rest of that specification unless a remark changes it - and writes the key into the frontmatter's `into:` key; any other plan drops that line.
 
 An input carrying a roadmap, or a `Roadmap: <path>` line (read that `roadmap.md`), fills `## Roadmap` per its template comment and repeats every later entry under `### Out of scope`; no roadmap in the input means no such section. What a later entry brings stays absent: no task delivers a stand-in for it, no acceptance criterion depends on it, nothing is stubbed, mocked or temporarily substituted. A part is never a release: no acceptance criterion needs a working application between parts.

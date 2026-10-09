@@ -1,6 +1,6 @@
 # viber/references - shared rule and format references read at runtime
 
-The eight markdown files viber skills and agents read by path while they work: the plan rules, the test rules, the admission gates for decision records and `.claude/rules/`, the node doctrine, the QA document formats and the issue save steps. No script parses them: each is prose a model holds itself to, so its wording is its contract. Skill-private references live under `skills/<skill>/references/`, never here.
+The nine markdown files viber skills and agents read by path while they work: the plan rules, the test rules, the TDD cycle, the admission gates for decision records and `.claude/rules/`, the node doctrine, the QA document formats and the issue save steps. No script parses them: each is prose a model holds itself to, so its wording is its contract. Skill-private references live under `skills/<skill>/references/`, never here.
 
 ## Relationships
 
@@ -9,6 +9,7 @@ The eight markdown files viber skills and agents read by path while they work: t
   - `plan-rules.md`: `planner` (every round, a draft included) and `planner-review`.
   - `integration-tests.md`: `planner` and `planner-review` when the plan carries an integration test; `task-coder` and `task-reviewer` on a task writing or running one or building the shared harness.
   - `test-strategy.md`: `task-coder` before its first test, `task-reviewer` when the work touched tests or a fixture, `fixer` before writing its reproduction test.
+  - `tdd.md`: `task-coder` on a `TDD: required` task, before its first line of production code.
   - `qa-format.md`: `qa-writer` (writes `qa.md` and `qa.e2e.md`) and `e2e-writer` (reads one entry, writes its `## Automation` line).
   - `adr-admission.md`: `adr-screener`, dispatched through `skills/planner/references/adr-tasks.md` when `planning.adr` is on.
   - `rule-admission.md`: `rules-writer` and `rules-auditor`.

@@ -2,7 +2,7 @@ Skip this step, completing its `Final review` entry, when the index's `closed:` 
 
 Cut every task of the index, in index order, skipped ones included, into groups of at most 8 consecutive tasks, one group per slice.
 
-Dispatch one `viber:final-reviewer` (Agent tool, `model` opus clamped into the tiers range) per slice, all in one message, each carrying:
+Dispatch one `viber:final-reviewer` (Agent tool, `model` sonnet clamped into the tiers range) per slice, all in one message, each carrying:
 
 ```
 run: <dir>
@@ -26,7 +26,7 @@ refs: ${CLAUDE_PLUGIN_ROOT}/references
 
 - Fix coder `VERDICT: DENIED` -> `AskUserQuestion`: retry / accept / abort; `accept` commits the fix, its refused call named in the final summary.
 - The fix is every `FILES:` path this step's fix coder returned. None -> no recheck and no commit.
-- Otherwise dispatch one `viber:final-reviewer` (Agent tool, `model` opus clamped into the tiers range) to recheck the fix, carrying:
+- Otherwise dispatch one `viber:final-reviewer` (Agent tool, `model` sonnet clamped into the tiers range) to recheck the fix, carrying:
 
 ```
 run: <dir>

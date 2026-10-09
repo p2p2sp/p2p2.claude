@@ -2,7 +2,7 @@
 name: final-reviewer
 description: Reviews one slice of a finished build past the diff of its own tasks, or rechecks the fix of the build's final review, and writes a findings report on failure. Invoked only by the implementor skill, never directly.
 tools: Read, Write, Grep, Glob, Bash
-model: opus
+model: sonnet
 effort: medium
 color: yellow
 ---

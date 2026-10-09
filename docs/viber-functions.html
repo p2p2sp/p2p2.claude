@@ -96,7 +96,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
     <div class="stats">
       <div class="stat"><b id="s-funcs">0</b><span>functions</span></div>
       <div class="stat"><b id="s-areas">0</b><span>areas</span></div>
-      <div class="stat"><b>19</b><span>skills</span></div>
+      <div class="stat"><b>18</b><span>skills</span></div>
       <div class="stat"><b>23</b><span>agents</span></div>
       <div class="stat"><b>4</b><span>hooks</span></div>
     </div>
@@ -378,7 +378,8 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
         <li><code>TDD: required</code> by default.</li>
         <li>A task's verification is a concrete command, not the whole suite.</li>
         <li>An <code>Exclusive</code> task for shared resources (a port, a database).</li>
-        <li>An <code>Invoke skill</code> line when a skill in the session covers the task's area.</li>
+        <li>Every design choice settled in the task, so a sonnet coder makes none of its own.</li>
+        <li>A <code>Hard</code> line only on a task whose design cannot be settled in advance.</li>
         <li>Designs a shared test harness when the project has none.</li>
         <li>An integration test lives in the adapter's task, never on its own.</li>
         <li>End-to-end tests only on explicit request.</li>
@@ -444,9 +445,9 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
         <li>Validates, splits and commits the plan.</li>
         <li>Every coder gets only its own task file.</li>
         <li>Reads no file and writes no code itself: it only delegates.</li>
-        <li>Model choice: haiku for simple tasks, sonnet for ordinary ones, opus for load-bearing ones.</li>
+        <li>Model choice: haiku for simple tasks, sonnet for ordinary ones, opus only for tasks the plan marks <code>Hard</code>.</li>
         <li>Every model clamped into the <code>tiers</code> range.</li>
-        <li>Review waived only for sonnet tasks verified by the build or tests.</li>
+        <li>Review waived only for sonnet tasks verified by the build or tests; a task whose contract three or more tasks use is reviewed on opus.</li>
         <li>Dispatches every task whose dependencies are done, in parallel.</li>
         <li>Never waits for a whole batch: unblocks the next tasks at once.</li>
         <li><code>Exclusive</code> tasks run alone, with nothing in the background.</li>
@@ -488,7 +489,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
 
     <section id="coding" data-title="Task coding and review">
       <h2>Task coding and review <span class="count"></span></h2>
-      <p>The <code>task-coder</code> and <code>task-reviewer</code> agents and the <code>tdd</code> skill.</p>
+      <p>The <code>task-coder</code> and <code>task-reviewer</code> agents and the TDD cycle the coder reads from <code>references/tdd.md</code>.</p>
       <ul class="f">
         <li>The coder delivers exactly what the task says, nothing more.</li>
         <li>Files outside the map only when they block the DoD, and reported.</li>
@@ -498,7 +499,6 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
         <li>Git read-only; removal through <code>git rm</code>.</li>
         <li>Never commits, never branches.</li>
         <li>Matches the style of the surrounding code.</li>
-        <li>Invokes the area skill the task names.</li>
         <li>Notes of up to 8 lines: conventions, traps, doubts.</li>
         <li>Returns options to unblock a task it cannot complete.</li>
         <li>TDD: first a test that fails on an assertion.</li>
@@ -548,7 +548,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
       <p><code>build.final-review</code>: what neither task review nor the tests can see.</p>
       <ul class="f">
         <li>After every task is committed, before the final test run.</li>
-        <li>Slices of at most 8 tasks, reviewed in parallel.</li>
+        <li>Slices of at most 8 tasks, reviewed in parallel on sonnet.</li>
         <li>Searches the whole repository for consumers of changed symbols.</li>
         <li>Finds broken or stale consumers.</li>
         <li>Finds references to removed things.</li>
@@ -571,7 +571,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
         <li>Root changes only as suggestions.</li>
         <li>Rules: confirmed conventions written into <code>.claude/rules/</code>.</li>
         <li>Memory and rules in one chore commit.</li>
-        <li>QA: <code>qa.md</code> with scenarios to perform by hand.</li>
+        <li>QA: written on sonnet; <code>qa.md</code> with scenarios to perform by hand.</li>
         <li>QA: every scenario opens with a checkbox the tester ticks once it is performed.</li>
         <li>QA: <code>qa.e2e.md</code> for automation through <code>/viber:e2e</code>.</li>
         <li><code>qa.md</code> posted as a comment on the branch's open pull request, once per run.</li>

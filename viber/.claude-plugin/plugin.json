@@ -15,7 +15,6 @@
     "./skills/intent/",
     "./skills/planner/",
     "./skills/implementor/",
-    "./skills/tdd/",
     "./skills/fixer/",
     "./skills/e2e/",
     "./skills/create-pr/",

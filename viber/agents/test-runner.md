@@ -59,8 +59,6 @@ Selecting the integration tests covering the change:
 2. Through the layer marker convention, find every test marked integration. Keep each one whose adapter file, or a file that adapter depends on (a migration, a schema, shared data access), is among the changed paths.
 3. None kept: no integration test runs. Otherwise one integration command runs exactly the kept tests through the test tool's own filter.
 
-Think the problem through before you answer.
-
 With both a fast and an integration command, the test command below is `<fast command> && <integration command>`. Run it exactly once. Do not re-run, do not narrow further, do not investigate a failure beyond reading the message it printed.
 
 The suite may outlast one foreground call, so it runs in the background and you wait for it:

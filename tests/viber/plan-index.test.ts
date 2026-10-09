@@ -69,6 +69,8 @@ interface TaskFields {
   exclusive?: string;
   /** Omitted entirely unless set - only a fixing task carries the fixer's RED test. */
   repro?: string;
+  /** Omitted entirely unless set - the plan marks only a task whose design it cannot settle. */
+  hard?: string;
   covers?: string;
   /** `null` omits the line entirely - the shape a plan written before `Uses:` has. */
   uses?: string | null;
@@ -219,6 +221,7 @@ function planBody(
       `- TDD: ${t.tdd ?? "required"}`,
       ...(t.exclusive === undefined ? [] : [`- Exclusive: ${t.exclusive}`]),
       ...(t.repro === undefined ? [] : [`- Repro: ${t.repro}`]),
+      ...(t.hard === undefined ? [] : [`- Hard: ${t.hard}`]),
       `- Covers: ${t.covers ?? "#1"}`,
       ...(t.uses === null ? [] : [`- Uses: ${t.uses ?? "C1"}`]),
       `- Depends-on: ${t.deps ?? "none"}`,
@@ -294,9 +297,9 @@ test("the index carries one row per task: id, state, TDD marker, exclusivity, no
         `plan: ${PLAN_REL}`,
         "title: Add login",
         "progress: 0/2",
-        "tasks: id | state | tdd | excl | deps | feeds | files | title",
-        "T1 | todo | required | - | - | - | src/login.ts | Add the login handler",
-        "T2 | todo | required | - | T1 | - | src/reject.ts | Reject a bad password",
+        "tasks: id | state | tdd | excl | hard | deps | feeds | files | title",
+        "T1 | todo | required | - | - | - | - | src/login.ts | Add the login handler",
+        "T2 | todo | required | - | - | T1 | - | src/reject.ts | Reject a bad password",
         "verify: T1 | npm test",
         "verify: T2 | npm test",
         "",
@@ -347,14 +350,31 @@ test("Exclusive: true reaches the orchestrator as excl yes, and an absent line a
         `plan: ${PLAN_REL}`,
         "title: Add login",
         "progress: 0/2",
-        "tasks: id | state | tdd | excl | deps | feeds | files | title",
-        "T1 | todo | required | - | - | - | src/login.ts | Add the login handler",
-        "T2 | todo | required | yes | T1 | - | test/login.api.ts | Prove the endpoint against a real server",
+        "tasks: id | state | tdd | excl | hard | deps | feeds | files | title",
+        "T1 | todo | required | - | - | - | - | src/login.ts | Add the login handler",
+        "T2 | todo | required | yes | - | T1 | - | test/login.api.ts | Prove the endpoint against a real server",
         "verify: T1 | npm test",
         "verify: T2 | npm test",
         "",
       ].join("\n"),
     );
+  });
+});
+
+test("a Hard line reaches the orchestrator as hard yes, and an absent line as '-' (the plan marks the task, the orchestrator picks the model)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seed(
+      dir,
+      planBody([
+        { id: "T1", title: "Add the login handler", files: "src/login.ts", hard: "lockout races between concurrent attempts" },
+        { id: "T2", title: "Reject a bad password", covers: "#2", deps: "T1", files: "src/reject.ts" },
+      ]),
+    );
+
+    const result = await run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /^T1 \| todo \| required \| - \| yes \| - \| - \| src\/login\.ts \| Add the login handler$/m);
+    assert.match(result.stdout, /^T2 \| todo \| required \| - \| - \| T1 \| - \| src\/reject\.ts \| Reject a bad password$/m);
   });
 });
 
@@ -457,9 +477,9 @@ test("a status file with no decision line prints the index exactly as before - t
         "title: Add login",
         "progress: 1/2",
         "closed: memory",
-        "tasks: id | state | tdd | excl | deps | feeds | files | title",
-        "T1 | done | required | - | - | - | src/login.ts | Add the login handler",
-        "T2 | todo | required | - | T1 | - | src/reject.ts | Reject a bad password",
+        "tasks: id | state | tdd | excl | hard | deps | feeds | files | title",
+        "T1 | done | required | - | - | - | - | src/login.ts | Add the login handler",
+        "T2 | todo | required | - | - | T1 | - | src/reject.ts | Reject a bad password",
         "verify: T1 | npm test",
         "verify: T2 | npm test",
         "",
@@ -557,9 +577,9 @@ test("a run with no rulings.md prints the index exactly as before - no ruling li
         "title: Add login",
         "progress: 0/2",
         "closed: memory",
-        "tasks: id | state | tdd | excl | deps | feeds | files | title",
-        "T1 | todo | required | - | - | - | src/login.ts | Add the login handler",
-        "T2 | todo | required | - | T1 | - | src/reject.ts | Reject a bad password",
+        "tasks: id | state | tdd | excl | hard | deps | feeds | files | title",
+        "T1 | todo | required | - | - | - | - | src/login.ts | Add the login handler",
+        "T2 | todo | required | - | - | T1 | - | src/reject.ts | Reject a bad password",
         "verify: T1 | npm test",
         "verify: T2 | npm test",
         "",
@@ -824,6 +844,11 @@ test("a broken task contract exits 4 and names the task", async () => {
       /task T1: Exclusive must be "true" or the line left out, got: "false"/,
     ],
     [
+      "a Hard line with no reason - the reason is what justifies the stronger model",
+      [{ id: "T1", hard: "" }],
+      /task T1: Hard needs its reason, or the line left out/,
+    ],
+    [
       "an Exclusive line spelled none - the mandatory fields' convention, borrowed where it does not hold",
       [{ id: "T1", exclusive: "none" }],
       /task T1: Exclusive must be "true" or the line left out, got: "none"/,
@@ -1016,7 +1041,7 @@ test("a Files entry whose brackets wrap whole segments is an exact path and reac
 
     const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.match(result.stdout, /^T1 \| todo \| required \| - \| - \| - \| (.+) \| do the thing$/m);
+    assert.match(result.stdout, /^T1 \| todo \| required \| - \| - \| - \| - \| (.+) \| do the thing$/m);
     assert.ok(result.stdout.includes(`| ${files} |`), `stdout: ${result.stdout}`);
   });
 });
@@ -1183,8 +1208,8 @@ test("feeds names a contract block one task writes with the count of other tasks
 
     const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.match(result.stdout, /^T1 \| todo \| required \| - \| - \| C1:2 \| src\/login\.ts \| do the thing$/m);
-    assert.match(result.stdout, /^T2 \| todo \| required \| - \| T1 \| - \| src\/reject\.ts \| do the thing$/m);
+    assert.match(result.stdout, /^T1 \| todo \| required \| - \| - \| - \| C1:2 \| src\/login\.ts \| do the thing$/m);
+    assert.match(result.stdout, /^T2 \| todo \| required \| - \| - \| T1 \| - \| src\/reject\.ts \| do the thing$/m);
   });
 });
 
@@ -1320,7 +1345,7 @@ test("--split writes the specification and one file per task, and still prints t
 
     const result = await run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.match(result.stdout, /^T2 \| todo \| required \| - \| T1 \| - \| src\/reject\.ts \| Reject a bad password$/m);
+    assert.match(result.stdout, /^T2 \| todo \| required \| - \| - \| T1 \| - \| src\/reject\.ts \| Reject a bad password$/m);
 
     assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
 

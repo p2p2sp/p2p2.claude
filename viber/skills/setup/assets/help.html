@@ -946,12 +946,12 @@ oknie<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="current
     <dd><span lang="en">Opens this page.</span><span lang="pl">Otwiera tę stronę.</span></dd>
   </div>
 </dl>
-<p class="note" lang="en">Three <a href="#term-skill">skills</a> have no command. <a href="#skill-planner">planner</a> starts when an
+<p class="note" lang="en">Two <a href="#term-skill">skills</a> have no command. <a href="#skill-planner">planner</a> starts when an
 interview or a diagnosis hands off, <a href="#skill-implementor">implementor</a> when you ask Claude to build
-an approved plan, and <a href="#skill-tdd">tdd</a> runs inside a build.</p>
-<p class="note" lang="pl">Trzy <a href="#term-skill">skille</a> nie mają polecenia. <a href="#skill-planner">planner</a> startuje, gdy
+an approved plan.</p>
+<p class="note" lang="pl">Dwa <a href="#term-skill">skille</a> nie mają polecenia. <a href="#skill-planner">planner</a> startuje, gdy
 wywiad albo diagnoza przekaże mu pracę, <a href="#skill-implementor">implementor</a>, gdy poprosisz Claude
-o zbudowanie zatwierdzonego planu, a <a href="#skill-tdd">tdd</a> działa wewnątrz buildu.</p>
+o zbudowanie zatwierdzonego planu.</p>
 </section>
 
 <section data-search id="guides">
@@ -1624,17 +1624,22 @@ już nie przechodzi; gdy coś nie przechodzi, arbiter orzeka kontynuację, a orz
 do naprawy idą tylko błędy spowodowane przez build.</p>
 
 <h3 class="sub" id="hw-models"><span lang="en">The model range</span><span lang="pl">Zakres modeli</span><a class="self" href="#hw-models">#</a></h3>
-<p lang="en">The build gives every task a tier from its shape: haiku for mechanical work such as config, a
-rename or docs, sonnet for ordinary feature work, opus for a task the rest leans on, for example one whose
-contract three or more other tasks use.</p>
-<p lang="pl">Build dobiera każdemu zadaniu poziom modelu według jego charakteru: haiku do prac mechanicznych,
-takich jak konfiguracja, zmiana nazwy czy dokumentacja, sonnet do zwykłej pracy nad funkcją, opus do zadania,
-na którym opiera się reszta, na przykład takiego, którego kontraktu używają co najmniej trzy inne zadania.</p>
-<p lang="en">A reviewer runs on the task's tier, with haiku raised to sonnet. A retry after a failed attempt goes
+<p lang="en">The plan settles every design choice of a task, so most tasks run on sonnet. The build gives every
+task a tier: haiku for mechanical work such as config, a rename or docs, opus only for a task the plan marks
+hard because it cannot settle its design in advance (concurrency, security, an algorithm spanning modules, a
+migration of live data), sonnet for everything else.</p>
+<p lang="pl">Plan rozstrzyga każdy wybór projektowy zadania, więc większość zadań działa na sonnet. Build dobiera
+każdemu zadaniu poziom modelu: haiku do prac mechanicznych, takich jak konfiguracja, zmiana nazwy czy
+dokumentacja, opus tylko do zadania, które plan oznacza jako trudne, bo nie da się z góry rozstrzygnąć jego
+projektu (współbieżność, bezpieczeństwo, algorytm obejmujący kilka modułów, migracja danych w użyciu), sonnet
+do całej reszty.</p>
+<p lang="en">A reviewer runs on the task's tier, with haiku raised to sonnet, and on opus for a task whose
+contract three or more other tasks use. A retry after a failed attempt goes
 one tier up. <a href="#key-tiers"><code>tiers</code></a> keeps all of it between <code>min</code> and
 <code>max</code>, haiku and opus by default, and fable runs only when <code>max</code> names it. Planning runs on
 your session's own model.</p>
-<p lang="pl">Recenzent działa na poziomie zadania, przy czym haiku zostaje podniesione do sonnet. Ponowienie po
+<p lang="pl">Recenzent działa na poziomie zadania, przy czym haiku zostaje podniesione do sonnet, a zadanie,
+którego kontraktu używają co najmniej trzy inne zadania, recenzuje opus. Ponowienie po
 nieudanej próbie idzie poziom wyżej. Klucz <a href="#key-tiers"><code>tiers</code></a> trzyma to wszystko
 w przedziale od <code>min</code> do <code>max</code>, domyślnie od haiku do opus, a fable działa tylko wtedy, gdy
 wskazuje go <code>max</code>. Planowanie działa na modelu twojej sesji.</p>
@@ -2504,36 +2509,6 @@ z nich mówi, jak nim sterować.</p>
   </dl>
 </article>
 
-<article class="card" id="skill-tdd">
-  <h4><code>tdd</code> <span class="tag auto"><span lang="en">starts on its own</span><span lang="pl">startuje sam</span></span></h4>
-  <p lang="en">The red, green, refactor cycle: a test first that fails on an assertion, then the least code that
-  makes it pass, then a cleanup on green only.</p>
-  <p lang="pl">Cykl red, green, refactor: najpierw test, który najpierw nie przechodzi na asercji, potem najmniej kodu,
-  przy którym przechodzi, a porządki tylko wtedy, gdy wszystko jest zielone.</p>
-  <dl>
-    <div>
-      <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>
-      <dd><span lang="en"><a href="#agent-task-coder"><code>task-coder</code></a> loads it for every plan task
-      marked <code>TDD: required</code>, never anyone else. The planner marks the tasks: ask for a change while
-      you review the plan.</span><span lang="pl">Ładuje go <a href="#agent-task-coder"><code>task-coder</code></a>
-      dla każdego zadania planu oznaczonego <code>TDD: required</code> i nikt inny. Zadania oznacza planista:
-      poproś o zmianę, gdy przeglądasz plan.</span></dd>
-    </div>
-    <div>
-      <dt><span lang="en">Arguments</span><span lang="pl">Argumenty</span></dt>
-      <dd><span lang="en">None.</span><span lang="pl">Brak.</span></dd>
-    </div>
-    <div>
-      <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
-      <dd><span lang="en">None.</span><span lang="pl">Brak.</span></dd>
-    </div>
-    <div>
-      <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
-      <dd><span lang="en">Only the task's own tests and code.</span><span lang="pl">Tylko testy i kod
-      danego zadania.</span></dd>
-    </div>
-  </dl>
-</article>
 
 <article class="card" id="skill-fixer">
   <h4><code>/viber:fixer</code></h4>

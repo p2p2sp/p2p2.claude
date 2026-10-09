@@ -66,7 +66,7 @@ A `target:` line following `branch:` and differing from the branch makes the run
 
 ## 2. Validate and decompose
 
-Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan>" --split`. It validates, decomposes and commits the plan, and returns the index: title, progress counter, one line per task (id, state, TDD, `excl`, `deps`, `feeds`, `files`, title), then one `verify:` line per task naming its Verification command. `feeds` names the contract blocks that task writes and other tasks consume, each as `<id>:<count of consuming tasks>`, `-` when none. That index is your whole view of the plan; a coder gets its one task file, never the specification.
+Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan>" --split`. It validates, decomposes and commits the plan, and returns the index: title, progress counter, one line per task (id, state, TDD, `excl`, `hard`, `deps`, `feeds`, `files`, title), then one `verify:` line per task naming its Verification command. `feeds` names the contract blocks that task writes and other tasks consume, each as `<id>:<count of consuming tasks>`, `-` when none. That index is your whole view of the plan; a coder gets its one task file, never the specification.
 
 Non-zero exit -> report the error and stop; repairing the plan belongs to the planner.
 
@@ -89,12 +89,12 @@ Take both decisions from the index's own fields, never a field it does not carry
 
 Tier:
 
+- `hard` reads `yes` -> `opus`.
 - Mechanical and bounded: config, scaffolding, a rename, docs, `TDD: none` over one or two files -> `haiku`.
-- Ordinary feature work, `TDD: required`, contained within its own files -> `sonnet`.
-- Load-bearing: a `feeds` entry counting 3 or more, many files, or several tasks naming it in their `deps` -> `opus`. A block fewer tasks consume raises nothing on its own.
+- Every other task -> `sonnet`.
 - A floor the host's instructions declare for a kind of task (a minimum tier, a mandatory review) raises both decisions to it.
 
-Review: the reviewer is waived only on a `sonnet` task whose `verify:` line runs the project's build or its tests, never on `haiku` or `opus`. A `verify:` line running `grep`, `test -f` or any other content check is reviewed whatever its tier. Its review tier is the task's tier, raised to `sonnet` from `haiku`.
+Review: the reviewer is waived only on a `sonnet` task whose `verify:` line runs the project's build or its tests, never on `haiku` or `opus`, nor on a load-bearing task: a `feeds` entry counting 3 or more. A `verify:` line running `grep`, `test -f` or any other content check is reviewed whatever its tier. Its review tier is the task's tier, raised to `sonnet` from `haiku`, and to `opus` on a load-bearing task.
 
 Then clamp both tiers into the config block's `tiers.min` to `tiers.max` range (`haiku` < `sonnet` < `opus` < `fable`). The review waiver is decided before the clamp.
 
@@ -154,7 +154,7 @@ Arbiter dispatch: `viber:arbiter` (Agent tool) carrying `case:`, `options:` (the
 - A `RULING` naming no listed option -> take the first option, the mismatch named in the final summary.
 - Record it: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --rule "<plan>" "<subject>" "<ruling>" "<why>" "<cost>"`, `<subject>` being the task's id, else the case name (`baseline`, `tests`, `final-review`, `commit`), the `RULING`, `WHY` and `COST` each one line with every double quote, dollar sign, backtick or backslash rewritten into words. Exit non-zero -> name it in the final summary, rule nothing further, retry nothing, and carry the ruling out.
 - A `--skip` or `--decide` call exiting non-zero after a ruling -> name it in the final summary, ask nothing, and carry on.
-- `VERDICT: DENIED` -> `AskUserQuestion` naming the refused call from its `REASON:` line: retry / accept / abort.
+- `VERDICT: DENIED` -> `AskUserQuestion`: retry / accept / abort.
 
 Commit outside a task: every `commit-task.sh` commit but a task's own commit and `--extension` - the fix-number repair form, `--repair`, `--chore`, `--qa`, `--review` and `--outside`. Exiting non-zero -> run the same call once more, asking nothing. A second refusal -> the arbiter with `case: commit`, `options: leave uncommitted`, `reason:` the error; record its ruling with subject `commit`, leave those paths uncommitted and name them in the final summary.
 
