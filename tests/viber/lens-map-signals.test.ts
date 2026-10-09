@@ -199,3 +199,64 @@ test("on the directory scope src the first two commands of web-performance.signa
     });
   });
 });
+
+test("the I/O-near-a-loop command of runtime-performance.signals.md lists src/loader.js, whose loop awaits a fetch, and leaves out src/executor.js, whose loop does no I/O (a filter run over the whole row matches exec in the path)", async () => {
+  const loopIo = mapSignalCommands("runtime-performance.signals.md")[2];
+  await withGitRepo(async (repo) => {
+    write(repo, "src/executor.js", "export function sum(xs) {\n  let total = 0;\n  for (const x of xs) {\n    total += x;\n  }\n  return total;\n}\n");
+    write(repo, "src/loader.js", "export async function load(urls) {\n  for (const url of urls) {\n    await fetch(url);\n  }\n}\n");
+    await commitAt(repo, 5, "feat: loops");
+    await assertBash(async (shell) => {
+      const result = await runCommand(shell, repo, loopIo);
+      assert.equal(result.status, 0, `stderr=${result.stderr}`);
+      assert.match(result.stdout, /^src\/loader\.js-3-.*await fetch/m, `a loop awaiting a fetch must be listed:\n${result.stdout}`);
+      assert.doesNotMatch(result.stdout, /executor/, `a loop with no I/O must be left out:\n${result.stdout}`);
+    });
+  });
+});
+
+test("the no-test command of tests.signals.md lists src/latest.ts, src/inspector.ts and src/żródło.js, none of them tested (a substring test|spec filter drops latest and inspector)", async () => {
+  const noTest = mapSignalCommands("tests.signals.md")[0];
+  await withGitRepo(async (repo) => {
+    write(repo, "src/latest.ts", "export const latest = 1;\n");
+    write(repo, "src/inspector.ts", "export const inspector = 1;\n");
+    write(repo, "src/żródło.js", "export const zrodlo = 1;\n");
+    await commitAt(repo, 5, "feat: three sources");
+    await assertBash(async (shell) => {
+      const result = await runCommand(shell, repo, noTest);
+      assert.equal(result.status, 0, `stderr=${result.stderr}`);
+      assert.match(result.stdout, /^src\/latest\.ts$/m, `an untested src/latest.ts must be listed:\n${result.stdout}`);
+      assert.match(result.stdout, /^src\/inspector\.ts$/m, `an untested src/inspector.ts must be listed:\n${result.stdout}`);
+      assert.match(result.stdout, /^src\/żródło\.js$/m, `an untested src/żródło.js must be listed:\n${result.stdout}`);
+    });
+  });
+});
+
+test("the flake command of tests.signals.md lists a setTimeout( line of tests/retry.js and leaves out a setTimeout( line of src/app.js whose comment holds the word test (a test file is decided by its path, never by the line content)", async () => {
+  const flake = mapSignalCommands("tests.signals.md")[7];
+  await withGitRepo(async (repo) => {
+    write(repo, "tests/retry.js", "await new Promise((resolve) => setTimeout(resolve, 50));\n");
+    write(repo, "src/app.js", "setTimeout(run, 100); // test the retry\n");
+    await commitAt(repo, 5, "feat: retry");
+    await assertBash(async (shell) => {
+      const result = await runCommand(shell, repo, flake);
+      assert.equal(result.status, 0, `stderr=${result.stderr}`);
+      assert.match(result.stdout, /^tests\/retry\.js:1:.*setTimeout\(/m, `a sleep inside a test file must be listed:\n${result.stdout}`);
+      assert.doesNotMatch(result.stdout, /src\/app\.js/, `a production line must be left out:\n${result.stdout}`);
+    });
+  });
+});
+
+test("the template command of web-performance.signals.md lists views/index.html.erb in a repository with no package.json (a server-rendered site is browser-delivered without a JS framework)", async () => {
+  const templates = mapSignalCommands("web-performance.signals.md")[2];
+  await withGitRepo(async (repo) => {
+    write(repo, "app/controllers/home_controller.rb", "class HomeController < ApplicationController\nend\n");
+    write(repo, "views/index.html.erb", "<img src=\"/hero.png\">\n");
+    await commitAt(repo, 5, "feat: rails page");
+    await assertBash(async (shell) => {
+      const result = await runCommand(shell, repo, templates);
+      assert.equal(result.status, 0, `stderr=${result.stderr}`);
+      assert.match(result.stdout, /^views\/index\.html\.erb$/m, `a server template must be listed:\n${result.stdout}`);
+    });
+  });
+});
