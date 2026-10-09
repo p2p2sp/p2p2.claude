@@ -205,12 +205,61 @@ test("the I/O-near-a-loop command of runtime-performance.signals.md lists src/lo
   await withGitRepo(async (repo) => {
     write(repo, "src/executor.js", "export function sum(xs) {\n  let total = 0;\n  for (const x of xs) {\n    total += x;\n  }\n  return total;\n}\n");
     write(repo, "src/loader.js", "export async function load(urls) {\n  for (const url of urls) {\n    await fetch(url);\n  }\n}\n");
+    write(repo, "src/latest.js", "export async function latest(urls) {\n  for (const url of urls) {\n    await fetch(url);\n  }\n}\n");
+    write(repo, "tests/loader.test.js", "export async function t(urls) {\n  for (const url of urls) {\n    await fetch(url);\n  }\n}\n");
     await commitAt(repo, 5, "feat: loops");
     await assertBash(async (shell) => {
       const result = await runCommand(shell, repo, loopIo);
       assert.equal(result.status, 0, `stderr=${result.stderr}`);
       assert.match(result.stdout, /^src\/loader\.js-3-.*await fetch/m, `a loop awaiting a fetch must be listed:\n${result.stdout}`);
+      assert.match(result.stdout, /^src\/latest\.js-3-.*await fetch/m, `a production file whose name holds test as a substring must be listed:\n${result.stdout}`);
       assert.doesNotMatch(result.stdout, /executor/, `a loop with no I/O must be left out:\n${result.stdout}`);
+      assert.doesNotMatch(result.stdout, /tests\/loader\.test\.js/, `a test file must be left out:\n${result.stdout}`);
+    });
+  });
+});
+
+async function listsLatestNotTests(file: string, index: number, source: string): Promise<void> {
+  const command = mapSignalCommands(file)[index];
+  await withGitRepo(async (repo) => {
+    write(repo, "src/latest.js", source);
+    write(repo, "src/inspector.js", source);
+    write(repo, "tests/latest.test.js", source);
+    await commitAt(repo, 5, "feat: sources");
+    await assertBash(async (shell) => {
+      const result = await runCommand(shell, repo, command);
+      assert.equal(result.status, 0, `stderr=${result.stderr}`);
+      assert.match(result.stdout, /src\/latest\.js/, `src/latest.js must be listed:\n${result.stdout}`);
+      assert.match(result.stdout, /src\/inspector\.js/, `src/inspector.js must be listed:\n${result.stdout}`);
+      assert.doesNotMatch(result.stdout, /tests\/latest\.test\.js/, `a test file must be left out:\n${result.stdout}`);
+    });
+  });
+}
+
+test("the per-call setup block of runtime-performance.signals.md lists src/latest.js and src/inspector.js and leaves out tests/latest.test.js (a substring test filter drops production files)", async () => {
+  await listsLatestNotTests("runtime-performance.signals.md", 5, "export function f() {\n  const c = new PrismaClient();\n  return c;\n}\n");
+});
+
+test("the unbounded-fetch block of runtime-performance.signals.md lists src/latest.js and src/inspector.js and leaves out tests/latest.test.js (a substring test filter drops production files)", async () => {
+  await listsLatestNotTests("runtime-performance.signals.md", 6, "export function f(db) {\n  return db.user.findMany();\n}\n");
+});
+
+test("the hazard-idiom block of bugs.signals.md lists src/latest.js and src/inspector.js and leaves out tests/latest.test.js (a substring test filter drops production files)", async () => {
+  await listsLatestNotTests("bugs.signals.md", 5, "export function f(xs) {\n  return xs.sort();\n}\n");
+});
+
+test("the literals block of design.signals.md counts a literal in src/latest.js, src/inspector.js and src/contest.js as 3 copies and ignores tests/latest.test.js (a substring test filter drops production files)", async () => {
+  const command = mapSignalCommands("design.signals.md")[3];
+  await withGitRepo(async (repo) => {
+    write(repo, "src/latest.js", "export const a = 'some/long-literal-value';\n");
+    write(repo, "src/inspector.js", "export const a = 'some/long-literal-value';\n");
+    write(repo, "src/contest.js", "export const a = 'some/long-literal-value';\n");
+    write(repo, "tests/latest.test.js", "export const a = 'some/long-literal-value';\n");
+    await commitAt(repo, 5, "feat: literals");
+    await assertBash(async (shell) => {
+      const result = await runCommand(shell, repo, command);
+      assert.equal(result.status, 0, `stderr=${result.stderr}`);
+      assert.match(result.stdout, /^ *3 .*some\/long-literal-value/m, `the three production copies must count, the test file's copy must not:\n${result.stdout}`);
     });
   });
 });

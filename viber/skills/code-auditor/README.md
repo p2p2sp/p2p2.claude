@@ -11,7 +11,7 @@ Audits: correctness. Wrong results, lost failures, crashes and hangs, races and 
 Angles:
 - `wrong-result`: a concrete input that produces a wrong output (off-by-one, units, rounding, equality, time zones, shared state).
 - `silent-failure`: a failure that gets lost (empty or broad catch, hiding fallbacks, ignored exit codes and rejections, success reported after a partial failure).
-- `crash-hang`: null dereferences, unchecked casts, parsing that throws, endless loops and waits, resources not released on the error path.
+- `crash-hang`: null dereferences, unchecked casts, parsing that throws, endless loops and waits, resources, listeners, timers or subscriptions not released on the error path or on unmount.
 - `race-state`: check-then-act, lost updates, missing awaits, non-idempotent retries, half-done multi-step writes, stale caches.
 - `contract-mismatch`: a producer and a consumer that each look right alone but disagree on keys, formats, enums, units or persisted data.
 - `past-fix-variant`: the root cause of a recent fix, the paths the fix missed and the same mistake elsewhere.

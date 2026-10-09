@@ -13,7 +13,7 @@ git -c core.quotePath=false grep -c -E '(router|app|fastify|server)\.(get|post|p
 
 I/O near a loop (6-line window), the I/O filter reading the code after the line number, never the path:
 ```bash
-git -c core.quotePath=false grep -n -A6 -E '^[[:space:]]*(for|foreach|while)[[:space:](]|\.(forEach|map|each|flatMap)[[:space:](]' -- '<scope>/*.js' '<scope>/*.ts' '<scope>/*.tsx' '<scope>/*.mjs' '<scope>/*.py' '<scope>/*.rb' '<scope>/*.go' '<scope>/*.java' '<scope>/*.kt' '<scope>/*.cs' '<scope>/*.php' ':!*test*' ':!*spec*' | grep -E '[-:][0-9]+[-:].*(await |\.(query|execute|find[A-Za-z]*|save|create|insert|update)\(|fetch\(|requests\.|exec(Sync)?\(|spawn(Sync)?\(|readFile|SaveChanges|::find|->save\()' | head -40
+git -c core.quotePath=false grep -n -A6 -E '^[[:space:]]*(for|foreach|while)[[:space:](]|\.(forEach|map|each|flatMap)[[:space:](]' -- '<scope>/*.js' '<scope>/*.ts' '<scope>/*.tsx' '<scope>/*.mjs' '<scope>/*.py' '<scope>/*.rb' '<scope>/*.go' '<scope>/*.java' '<scope>/*.kt' '<scope>/*.cs' '<scope>/*.php' ':(exclude,glob)**/test/**' ':(exclude,glob)**/tests/**' ':(exclude,glob)**/__tests__/**' ':(exclude,glob)**/spec/**' ':(exclude,glob)**/specs/**' ':(exclude,glob)**/e2e/**' ':(exclude,glob)**/cypress/**' ':(exclude,glob)**/test_*' ':!*[._-]test.*' ':!*[._-]spec.*' ':!*[._-]cy.*' ':!*Test.*' ':!*Tests.*' ':!*Spec.*' | grep -E '[-:][0-9]+[-:].*(await |\.(query|execute|find[A-Za-z]*|save|create|insert|update)\(|fetch\(|requests\.|exec(Sync)?\(|spawn(Sync)?\(|readFile|SaveChanges|::find|->save\()' | head -40
 ```
 
 A process spawned inside a shell loop:
@@ -28,12 +28,12 @@ git -c core.quotePath=false grep -n -E 'readFileSync|execSync|spawnSync|pbkdf2Sy
 
 Per-call setup and fan-out, indented lines only so a module-level singleton stays out: a client, pool or regex built per call, `Promise.all` or `gather` over an input, retries:
 ```bash
-git -c core.quotePath=false grep -n -E '^[[:space:]]+.*(new (PrismaClient|HttpClient|Pool|Redis|MongoClient)\(|requests\.(get|post)\(|re\.compile\(|new RegExp\(|Pattern\.compile\(|Regex::new\(|ajv\.compile\(|Promise\.all\(|asyncio\.gather\(|http\.DefaultClient|retry|backoff)' -- '<scope>' ':!*test*' | head -40
+git -c core.quotePath=false grep -n -E '^[[:space:]]+.*(new (PrismaClient|HttpClient|Pool|Redis|MongoClient)\(|requests\.(get|post)\(|re\.compile\(|new RegExp\(|Pattern\.compile\(|Regex::new\(|ajv\.compile\(|Promise\.all\(|asyncio\.gather\(|http\.DefaultClient|retry|backoff)' -- '<scope>' ':(exclude,glob)**/test/**' ':(exclude,glob)**/tests/**' ':(exclude,glob)**/__tests__/**' ':(exclude,glob)**/spec/**' ':(exclude,glob)**/specs/**' ':(exclude,glob)**/e2e/**' ':(exclude,glob)**/cypress/**' ':(exclude,glob)**/test_*' ':!*[._-]test.*' ':!*[._-]spec.*' ':!*[._-]cy.*' ':!*Test.*' ':!*Tests.*' ':!*Spec.*' | head -40
 ```
 
 Unbounded fetch: a query with no limit, a whole table pulled into code, OFFSET paging:
 ```bash
-git -c core.quotePath=false grep -n -E 'findMany\(|\.all\(\)|findAll\(|ToList(Async)?\(|SELECT \*|OFFSET|\.offset\(|\.skip\(|Skip\(' -- '<scope>' ':!*test*' | head -40
+git -c core.quotePath=false grep -n -E 'findMany\(|\.all\(\)|findAll\(|ToList(Async)?\(|SELECT \*|OFFSET|\.offset\(|\.skip\(|Skip\(' -- '<scope>' ':(exclude,glob)**/test/**' ':(exclude,glob)**/tests/**' ':(exclude,glob)**/__tests__/**' ':(exclude,glob)**/spec/**' ':(exclude,glob)**/specs/**' ':(exclude,glob)**/e2e/**' ':(exclude,glob)**/cypress/**' ':(exclude,glob)**/test_*' ':!*[._-]test.*' ':!*[._-]spec.*' ':!*[._-]cy.*' ':!*Test.*' ':!*Tests.*' ':!*Spec.*' | head -40
 ```
 
 Growth without a bound:

@@ -18,7 +18,7 @@ git -c core.quotePath=false ls-files -- '<scope>' | grep -E '\.(c|cc|cpp|cs|go|h
 
 Repeated literals outside tests and import lines, a candidate for knowledge duplication (a literal found in 3 or more places); `git log -S` on a literal shows commits that touched only some copies:
 ```bash
-git -c core.quotePath=false grep -hE "[\"'][A-Za-z0-9_./:-]{12,}[\"']" -- '<scope>' ':(exclude)*test*' ':(exclude)*spec*' | grep -vE '^[[:space:]]*(import|from|#include|using)[[:space:]]|require\(' | grep -ohE "[\"'][A-Za-z0-9_./:-]{12,}[\"']" | sort | uniq -c | sort -rn | awk '$1>=3' | head -30
+git -c core.quotePath=false grep -hE "[\"'][A-Za-z0-9_./:-]{12,}[\"']" -- '<scope>' ':(exclude,glob)**/test/**' ':(exclude,glob)**/tests/**' ':(exclude,glob)**/__tests__/**' ':(exclude,glob)**/spec/**' ':(exclude,glob)**/specs/**' ':(exclude,glob)**/e2e/**' ':(exclude,glob)**/cypress/**' ':(exclude,glob)**/test_*' ':!*[._-]test.*' ':!*[._-]spec.*' ':!*[._-]cy.*' ':!*Test.*' ':!*Tests.*' ':!*Spec.*' | grep -vE '^[[:space:]]*(import|from|#include|using)[[:space:]]|require\(' | grep -ohE "[\"'][A-Za-z0-9_./:-]{12,}[\"']" | sort | uniq -c | sort -rn | awk '$1>=3' | head -30
 ```
 
 Import fan-in across JS, TS, Python, Java, Kotlin, C#, Rust and Go, project modules ranked by dependents (a relative specifier such as `./util` from different directories is a different module; resolve it before ranking):

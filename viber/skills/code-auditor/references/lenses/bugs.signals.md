@@ -28,5 +28,5 @@ git -c core.quotePath=false grep -h -o -E '(process\.env\.|process\.env\[.|geten
 
 Hazard idioms per file, tests and docs excluded (feeds crash-hang, race-state and wrong-result; density only, a hit is never a finding):
 ```bash
-git -c core.quotePath=false grep -I -c -E 'forEach\(async|\.map\(async|async void|\.unwrap\(\)|[A-Za-z0-9_)]!\.[A-Za-z_]|\.sort\(\)|datetime\.(utcnow|now)\(\)|new Date\(\)|time\.Now\(\)|DateTime\.Now|def [A-Za-z_]+\(.*= *(\[\]|\{\})|go func|parseFloat\(|toFixed\(' -- '<scope>' ':!*.md' ':!*test*' ':!*spec*' | sort -t: -k2 -nr | head -30
+git -c core.quotePath=false grep -I -c -E 'forEach\(async|\.map\(async|async void|\.unwrap\(\)|[A-Za-z0-9_)]!\.[A-Za-z_]|\.sort\(\)|datetime\.(utcnow|now)\(\)|new Date\(\)|time\.Now\(\)|DateTime\.Now|def [A-Za-z_]+\(.*= *(\[\]|\{\})|go func|parseFloat\(|toFixed\(' -- '<scope>' ':!*.md' ':(exclude,glob)**/test/**' ':(exclude,glob)**/tests/**' ':(exclude,glob)**/__tests__/**' ':(exclude,glob)**/spec/**' ':(exclude,glob)**/specs/**' ':(exclude,glob)**/e2e/**' ':(exclude,glob)**/cypress/**' ':(exclude,glob)**/test_*' ':!*[._-]test.*' ':!*[._-]spec.*' ':!*[._-]cy.*' ':!*Test.*' ':!*Tests.*' ':!*Spec.*' | sort -t: -k2 -nr | head -30
 ```
