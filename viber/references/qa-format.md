@@ -25,7 +25,9 @@ Human-only, `ui` scenarios only - manual API testing is out of scope. Written wh
 
 ## QA-01 <scenario title>
 - [ ] <the word "done" in the document's language>
+
 Covers: #<n> <criterion text>
+
 Preconditions: <one sentence - the state the tester starts from>
 
 | # | Step | Expected result |
@@ -36,7 +38,7 @@ Preconditions: <one sentence - the state the tester starts from>
 - <what this document deliberately does not cover, and why>
 ```
 
-Those sections, in that order; a scenario block is the unticked checkbox a tester ticks once the scenario is performed, `Covers:`, preconditions, step table, nothing between them. One row is one action and one outcome a tester can see: a step joining two actions with "and" is two rows, a result nobody can observe is not a row. A preparation value the project's own instructions do not give reads "settle with the team" in that same language, never a guess and never a placeholder.
+Those sections, in that order; a scenario block is the unticked checkbox a tester ticks once the scenario is performed, `Covers:`, preconditions, step table, nothing between them but the one blank line separating each, without which Markdown folds the lines into the checkbox's label. One row is one action and one outcome a tester can see: a step joining two actions with "and" is two rows, a result nobody can observe is not a row. A preparation value the project's own instructions do not give reads "settle with the team" in that same language, never a guess and never a placeholder.
 
 ## Handoff file `qa.e2e.md`
 
