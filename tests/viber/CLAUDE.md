@@ -4,7 +4,7 @@ One test file per viber script, hook script or `.ts` module, named after it, plu
 
 ## Relationships
 
-- SUTs: `viber/scripts/`, `viber/skills/*/scripts/`, `viber/hooks/scripts/`, `viber/hooks/write/report-name.ts`, and the lens files of `viber/skills/code-auditor/references/lenses/` (their shape by `lenses.unit.test.ts`, the map-signal commands of their `<lens>.signals.md` files by `lens-map-signals.test.ts`).
+- SUTs: `viber/scripts/`, `viber/skills/*/scripts/`, `viber/hooks/scripts/`, `viber/hooks/write/report-name.ts`, and the lens files of `viber/skills/code-auditor/references/lenses/` (their shape, and the signals rules of a single-quoted `<scope>` and no `\b`, by `lenses.unit.test.ts`, the map-signal commands of their `<lens>.signals.md` files by `lens-map-signals.test.ts`).
 - `help.unit.test.ts` imports `contrastRatio` and `parseColor` from `superui/skills/pro-designer/scripts/check_contrast.ts`: changing those exports breaks a viber test.
 - `viber/scripts/run-branch.sh` and `viber/hooks/register.tsx` have no test file.
 
