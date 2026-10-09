@@ -90,7 +90,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
 
 <div class="wrap">
   <header class="top">
-    <div class="eyebrow">p2p2 · viber plugin · version 0.80.7</div>
+    <div class="eyebrow">p2p2 · viber plugin · version 0.81.2</div>
     <h1>viber Functions</h1>
     <p class="lead">The complete list of functions of the viber plugin for Claude Code, from idea to commit, grouped by area and stage of work.</p>
     <div class="stats">
@@ -572,6 +572,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
         <li>Rules: confirmed conventions written into <code>.claude/rules/</code>.</li>
         <li>Memory and rules in one chore commit.</li>
         <li>QA: <code>qa.md</code> with scenarios to perform by hand.</li>
+        <li>QA: every scenario opens with a checkbox the tester ticks once it is performed.</li>
         <li>QA: <code>qa.e2e.md</code> for automation through <code>/viber:e2e</code>.</li>
         <li><code>qa.md</code> posted as a comment on the branch's open pull request, once per run.</li>
         <li>Project extensions run in order, optionally in parallel.</li>
@@ -618,6 +619,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
       <p><code>/viber:create-pr</code>.</p>
       <ul class="f">
         <li>A pull request for the current branch, after a preview.</li>
+        <li>Started by you, or by your yes when a build finishes on its run branch with no roadmap part left.</li>
         <li>Refuses with a reason: no <code>gh</code>, no repository, detached HEAD, dirty tree.</li>
         <li>Refuses: a base branch, an existing pull request, no commits.</li>
         <li>The target comes from the branch entry or from a question.</li>
@@ -702,12 +704,20 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
         <li>Coverage notes: units not investigated, hunts with no result.</li>
         <li>A variant wave: the same class of defect elsewhere.</li>
         <li>Never edits code.</li>
-        <li>Bugs: wrong results, silent failures, crash paths, concurrency, contract mismatches, variants of past fixes.</li>
-        <li>Security: injection, access control, untrusted data, secrets and cryptography, exposure and supply chain.</li>
+        <li>Every defect class has one owner lens; the others hand it over by name.</li>
+        <li>The code-auditor <code>README.md</code>: every lens, its angles, how it verifies and what it hands over, for people.</li>
+        <li>Bugs: wrong results, silent failures, crashes and hangs from any input, races and data integrity, contract mismatches, variants of past fixes.</li>
+        <li>Bugs: listeners, timers and subscriptions never released on the error path or on unmount.</li>
+        <li>Security: injection, access control, authentication, untrusted data into machinery, secrets, cryptography and supply chain.</li>
+        <li>Security: prompt injection into an LLM or agent holding tools, secrets or other users' data.</li>
         <li>Web performance: JS weight, LCP, layout stability, hydration, assets and delivery.</li>
-        <li>Runtime performance: complexity, I/O per item, unbounded growth, blocking, startup cost, missing indexes.</li>
+        <li>Web performance: server-rendered and plain HTML sites, with no JavaScript framework, included.</li>
+        <li>Runtime performance: complexity, I/O per item, unbounded growth, blocking hot paths, repeated setup, query shape.</li>
+        <li>Runtime performance: ReDoS, uncapped request bodies and uploads, missing timeouts, uncapped retries, unbounded fan-out.</li>
         <li>Tests: pseudo-tested code, hollow assertions, over-mocking, untested error paths, flaky tests, dead tests.</li>
-        <li>Design: knowledge duplication, change preventers, wrong abstractions, boundary coupling, dead code, rule drift.</li>
+        <li>Tests: a stray <code>.only</code> or skip silencing a critical suite reaches the top severity.</li>
+        <li>Design: knowledge duplication with a copy-paste detector, change preventers, wrong abstractions, boundary coupling, dead code and drift, rule drift.</li>
+        <li>Design: verification gates scoped to each angle.</li>
       </ul>
     </section>
 
