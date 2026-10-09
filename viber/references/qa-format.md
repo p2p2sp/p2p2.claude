@@ -24,6 +24,7 @@ Human-only, `ui` scenarios only - manual API testing is out of scope. Written wh
 - Data: <what must already exist before the first scenario>
 
 ## QA-01 <scenario title>
+- [ ] <the word "done" in the document's language>
 Covers: #<n> <criterion text>
 Preconditions: <one sentence - the state the tester starts from>
 
@@ -35,7 +36,7 @@ Preconditions: <one sentence - the state the tester starts from>
 - <what this document deliberately does not cover, and why>
 ```
 
-Those sections, in that order; a scenario block is `Covers:`, preconditions, step table, nothing between them. One row is one action and one outcome a tester can see: a step joining two actions with "and" is two rows, a result nobody can observe is not a row. A preparation value the project's own instructions do not give reads "settle with the team" in that same language, never a guess and never a placeholder.
+Those sections, in that order; a scenario block is the unticked checkbox a tester ticks once the scenario is performed, `Covers:`, preconditions, step table, nothing between them. One row is one action and one outcome a tester can see: a step joining two actions with "and" is two rows, a result nobody can observe is not a row. A preparation value the project's own instructions do not give reads "settle with the team" in that same language, never a guess and never a placeholder.
 
 ## Handoff file `qa.e2e.md`
 
@@ -90,5 +91,5 @@ Written by the e2e run alone, never when the handoff is created: one line per pr
 
 ## Never write these
 
-- In `qa.md`: an execution-status column or field, automation vocabulary (Playwright, locator, selector, `data-testid`, `.spec.ts`, a test directory, a CI job), a file path, a code identifier.
+- In `qa.md`: an execution-status column or field beyond each scenario's one unticked checkbox, automation vocabulary (Playwright, locator, selector, `data-testid`, `.spec.ts`, a test directory, a CI job), a file path, a code identifier.
 - An invented value in the handoff. A value the code does not establish is the literal `unknown`, which the e2e run resolves against the running application; an invented one is a test that proves nothing.

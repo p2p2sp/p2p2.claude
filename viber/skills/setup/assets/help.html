@@ -1660,12 +1660,14 @@ uruchamia te części zamknięcia, które włączają twoje przełączniki:</p>
   writes into the run directory, in a commit of their own, <code>qa.md</code>, the scenarios a person
   performs, when the UI changed, and <code>qa.e2e.md</code>, the handoff <code>/viber:e2e</code> reads, when
   the UI or the endpoints changed; a change with neither writes nothing. The build then posts <code>qa.md</code>
-  as a comment on the pull request of the run branch when it has one, once per run;</span><span lang="pl"><a href="#key-build-qa"><code>build.qa</code></a>:
+  as a comment on the pull request of the run branch when it has one, once per run, each scenario opening on a
+  checkbox the tester ticks there once it is performed;</span><span lang="pl"><a href="#key-build-qa"><code>build.qa</code></a>:
   <a href="#agent-qa-writer"><code>qa-writer</code></a> zapisuje w katalogu przebiegu, we własnym commicie,
   <code>qa.md</code>, scenariusze do wykonania przez człowieka, gdy zmienił się interfejs użytkownika, oraz
   <code>qa.e2e.md</code>, plik przekazania dla <code>/viber:e2e</code>, gdy zmienił się interfejs albo
   endpointy; zmiana bez żadnego z nich nie zapisuje nic. Potem build publikuje <code>qa.md</code> jako komentarz
-  do pull requesta gałęzi przebiegu, gdy go ma, raz na przebieg;</span></li>
+  do pull requesta gałęzi przebiegu, gdy go ma, raz na przebieg, a każdy scenariusz zaczyna się od checkboxa,
+  który tester zaznacza tam po jego wykonaniu;</span></li>
   <li><span lang="en"><a href="#key-build-extensions"><code>build.extensions</code></a>: each agent of your own
   <code>.claude/agents/</code> that the map has an entry for runs after the writers above and before the archive, and the
   files it writes land in a commit of their own. A failed extension is named in the summary and never stops the
