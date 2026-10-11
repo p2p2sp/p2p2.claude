@@ -57,8 +57,9 @@
 # validated as under --split. An id the plan does not hold, or --extra with
 # --split, exits 2.
 #
-# --split removes, before anything else is written, the coder and reviewer extras
-# files of every task not done; a done task keeps its files.
+# --split removes, once the plan is validated and decomposed and before the index
+# is printed, the coder and reviewer extras files of every task not done; a done
+# task keeps its files.
 #
 # "feeds" is the comma-separated "<id>:<count>" entries of the contract blocks
 # whose "File:" path is in this task's "Files" and which at least one OTHER
