@@ -10,7 +10,10 @@
 #   commit-task.sh <plan-file> <task-id> <fix-number> <file> [<file>...]
 #   commit-task.sh --skip <plan-file> <task-id>
 #   commit-task.sh --decide <plan-file> <task-id> <text>
+#   commit-task.sh --decide <plan-file> <task-id> --from <ruling-file>
+#   commit-task.sh --decide <plan-file> <task-id> --first-of <options-file>
 #   commit-task.sh --rule <plan-file> <subject> <ruling> <why> <cost>
+#   commit-task.sh --rule <plan-file> <subject> --from <ruling-file>
 #   commit-task.sh --repair <plan-file> <round> <file> [<file>...]
 #   commit-task.sh --chore <plan-file> <file> [<file>...]
 #   commit-task.sh --qa <plan-file> <file> [<file>...]
@@ -41,8 +44,9 @@
 # "<run-dir>/work/<task-id>-extra-review.md" (one path per line; blank lines
 # skipped, a carriage return and a leading "./" stripped), as if each were passed
 # on --with - same ownership rules, same warnings, a path named twice taken once -
-# and stages both files with the task's trail. --landed and a fix number ignore
-# them.
+# and stages both files with the task's trail, as it does a changed
+# "<run-dir>/work/<task-id>-options.md" (the coder's options file). --landed and
+# a fix number ignore them.
 #
 # --defer records code this task left without its own test because the criterion
 # that proves it belongs to a LATER task, one "<task-id>:<path>" entry per path.
@@ -154,16 +158,24 @@
 #
 # --decide records the build's ruling on one task that is neither done nor
 # skipped. <text> is one non-empty line, stored verbatim (a ":" in it included);
-# the same task id and text recorded twice leaves one line.
+# the same task id and text recorded twice leaves one line. --from reads the text
+# from an arbiter's ruling file instead: the first "RULING: " line, recorded as
+# the text "auto: <ruling>". --first-of reads an options file, the first
+# "DECIDE: " line split on " | ", and records its first option trimmed as
+# "auto: <option>". Both files have to sit under <run-dir>/work/ (no ".." segment)
+# and are kept; a trailing carriage return is cut from every line read.
 #
 # --rule records a ruling the build made on its own in the run's register,
 # <run-dir>/rulings.md, never in status.md. <subject> is a task id of the plan
 # or one of baseline, tests, final-review, commit; <ruling>, <why> and <cost>
-# are each one non-empty line. The file is created as "# Rulings" and a blank
+# are each one non-empty line, or, with --from, the first "RULING: ", "WHY: " and
+# "COST: " lines of an arbiter's ruling file under <run-dir>/work/, all three
+# required, other lines ignored. The file is created as "# Rulings" and a blank
 # line, then each call appends one line, an identical line never twice:
 #   - <subject>: <ruling> | why: <why> | cost if wrong: <cost>
 # It commits nothing: every form taking a plan stages rulings.md whenever it
-# exists and differs from HEAD, so the register rides in the next such commit.
+# exists and differs from HEAD, and with it every changed
+# <run-dir>/work/ruling-*.md, so the register rides in the next such commit.
 # A run that records no ruling has no rulings.md.
 #
 # An absent key is "none". The file is created here when the run has none yet
@@ -204,7 +216,10 @@
 #   2 - bad arguments / missing plan; for --extension also an invalid <name>; for --decide also an empty or multi-line
 #       <text>, or a task on the done or skipped list (status.md untouched);
 #       for --rule an empty or multi-line field, or a subject that is neither
-#       a task id of the plan nor a fixed subject (rulings.md untouched)
+#       a task id of the plan nor a fixed subject (rulings.md untouched);
+#       for --from and --first-of also a file that is absent, unreadable or
+#       outside <run-dir>/work/, or lacks a required line or holds it empty
+#       (rulings.md, status.md and the file untouched)
 #   3 - no task with that id in the plan (for --rule, a subject shaped like a
 #       task id, "T<n>...", that the plan does not hold)
 #   4 - the named files produced no change to the working tree (a task
@@ -221,7 +236,7 @@ shopt -s nullglob
 export GIT_LITERAL_PATHSPECS=1
 
 usage() {
-  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] [--defer <task-id>:<path> [...]] [--landed <sha>] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --decide <plan-file> <task-id> <text> | --rule <plan-file> <subject> <ruling> <why> <cost> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...] | --review <plan-file> <file> [<file>...] | --outside <plan-file> <file> [<file>...] | --extension <plan-file> <name> <file> [<file>...]" >&2
+  echo "error: usage: commit-task.sh <plan-file> <task-id> [--unreviewed] [--with <file> [<file>...]] [--defer <task-id>:<path> [...]] [--landed <sha>] | <plan-file> <task-id> <fix-number> <file> [<file>...] | --skip <plan-file> <task-id> | --decide <plan-file> <task-id> <text> | --decide <plan-file> <task-id> --from <ruling-file> | --decide <plan-file> <task-id> --first-of <options-file> | --rule <plan-file> <subject> <ruling> <why> <cost> | --rule <plan-file> <subject> --from <ruling-file> | --repair <plan-file> <round> <file> [<file>...] | --chore <plan-file> <file> [<file>...] | --qa <plan-file> <file> [<file>...] | --e2e <file> [<file>...] | --review <plan-file> <file> [<file>...] | --outside <plan-file> <file> [<file>...] | --extension <plan-file> <name> <file> [<file>...]" >&2
   exit 2
 }
 
@@ -454,14 +469,68 @@ rulings_of() {
   printf '%s\n' "${dir:+$dir/}rulings.md"
 }
 
-# Stages the register when it exists and differs from HEAD and prints its path,
-# so the caller adds it to the commit's pathspec; prints nothing otherwise.
+# Stages the register when it exists and differs from HEAD, and every changed
+# ruling file of the run's work directory, and prints each staged path, so the
+# caller adds them to the commit's pathspec; prints nothing otherwise.
 stage_rulings() {
-  local r
+  local r f
   r="$(rulings_of "$1")"
-  [[ -f "$r" && -n "$(git status --porcelain -- "$r" 2>/dev/null)" ]] || return 0
-  stage_path "$r" && printf '%s\n' "$r"
+  if [[ -f "$r" && -n "$(git status --porcelain --untracked-files=all -- "$r" 2>/dev/null)" ]]; then
+    if stage_path "$r"; then printf '%s\n' "$r"; fi
+  fi
+  while IFS= read -r f; do
+    [[ -n "$f" ]] || continue
+    [[ -n "$(git status --porcelain --untracked-files=all -- "$f" 2>/dev/null)" ]] || continue
+    if stage_path "$f"; then printf '%s\n' "$f"; fi
+  done < <(trail_paths "$(run_dir "$1")" "ruling-*.md")
   return 0
+}
+
+# The path of a ruling or options file named on a --from / --first-of form,
+# printed with a leading "./" cut. It has to sit under <run-dir>/work/ (no ".."
+# segment) and be a readable file, else the reason goes to stderr and the status
+# is 1. work_file <plan> <path>
+work_file() {
+  local dir prefix f="${2//\\//}"
+  f="${f#./}"
+  dir="$(run_dir "$1")"
+  dir="${dir#./}"
+  prefix="${dir:+$dir/}work/"
+  if [[ "$f" != "$prefix"?* || "/$f/" == */../* ]]; then
+    echo "error: $2 is outside ${prefix}" >&2
+    return 1
+  fi
+  if [[ ! -f "$f" || ! -r "$f" ]]; then
+    echo "error: cannot read $2" >&2
+    return 1
+  fi
+  printf '%s\n' "$f"
+}
+
+# The text after the first line of a file starting with a prefix, a trailing
+# carriage return cut; status 1 when no line starts with it. file_field <file> <prefix>
+file_field() {
+  local line
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    if [[ "$line" == "$2"* ]]; then
+      printf '%s\n' "${line#"$2"}"
+      return 0
+    fi
+  done < "$1"
+  return 1
+}
+
+# The first option of an options file: the text of its first "DECIDE: " line
+# split on " | ", the first part trimmed; status 1 when there is no such line.
+first_option() {
+  local t
+  t="$(file_field "$1" "DECIDE: ")" || return 1
+  t=" $t "
+  t="${t%% | *}"
+  t="${t#"${t%%[![:space:]]*}"}"
+  t="${t%"${t##*[![:space:]]}"}"
+  printf '%s\n' "$t"
 }
 
 # How many tasks the plan defines - the denominator of "progress", read from the
@@ -732,13 +801,34 @@ fi
 if [[ "${1:-}" == "--decide" ]]; then
   plan="${2:-}"
   task_id="${3:-}"
-  [[ -n "$plan" && -n "$task_id" && $# -eq 4 ]] || usage
-  text="$4"
+  from_form=""
+  if [[ $# -eq 5 && ( "${4:-}" == "--from" || "${4:-}" == "--first-of" ) ]]; then
+    from_form="$4"
+    [[ -n "$plan" && -n "$task_id" ]] || usage
+  else
+    [[ -n "$plan" && -n "$task_id" && $# -eq 4 ]] || usage
+    text="$4"
+  fi
   if [[ ! -f "$plan" ]]; then
     echo "error: plan file not found: $plan" >&2
     exit 2
   fi
-  if [[ -z "${text//[[:space:]]/}" || "$text" == *$'\n'* || "$text" == *$'\r'* ]]; then
+  if [[ -n "$from_form" ]]; then
+    ruling_file="$(work_file "$plan" "$5")" || exit 2
+    if [[ "$from_form" == "--from" ]]; then
+      what="a non-empty 'RULING: ' line"
+      ruling="$(file_field "$ruling_file" "RULING: ")" || ruling=""
+    else
+      what="a 'DECIDE: ' line with a non-empty first option"
+      ruling="$(first_option "$ruling_file")" || ruling=""
+    fi
+    if [[ -z "${ruling//[[:space:]]/}" ]]; then
+      echo "error: $5 holds no $what" >&2
+      exit 2
+    fi
+    text="auto: $ruling"
+  fi
+  if [[ -z "${text//[[:space:]]/}"|| "$text" == *$'\n'* || "$text" == *$'\r'* ]]; then
     echo "error: a decision text is one non-empty line" >&2
     exit 2
   fi
@@ -773,12 +863,33 @@ fi
 if [[ "${1:-}" == "--rule" ]]; then
   plan="${2:-}"
   subject="${3:-}"
-  [[ -n "$plan" && -n "$subject" && $# -eq 6 ]] || usage
+  from_form=0
+  if [[ $# -eq 5 && "${4:-}" == "--from" ]]; then
+    from_form=1
+    [[ -n "$plan" && -n "$subject" ]] || usage
+  else
+    [[ -n "$plan" && -n "$subject" && $# -eq 6 ]] || usage
+    ruling="$4"
+    why="$5"
+    cost="$6"
+  fi
   if [[ ! -f "$plan" ]]; then
     echo "error: plan file not found: $plan" >&2
     exit 2
   fi
-  for field in "$4" "$5" "$6"; do
+  if [[ $from_form -eq 1 ]]; then
+    ruling_file="$(work_file "$plan" "$5")" || exit 2
+    for key in RULING WHY COST; do
+      file_field "$ruling_file" "$key: " >/dev/null || {
+        echo "error: $5 holds no '$key: ' line" >&2
+        exit 2
+      }
+    done
+    ruling="$(file_field "$ruling_file" "RULING: ")"
+    why="$(file_field "$ruling_file" "WHY: ")"
+    cost="$(file_field "$ruling_file" "COST: ")"
+  fi
+  for field in "$ruling" "$why" "$cost"; do
     if [[ -z "${field//[[:space:]]/}" || "$field" == *$'\n'* || "$field" == *$'\r'* ]]; then
       echo "error: a ruling, its why and its cost are each one non-empty line" >&2
       exit 2
@@ -798,7 +909,7 @@ if [[ "${1:-}" == "--rule" ]]; then
     esac
   fi
   register="$(rulings_of "$plan")"
-  entry="- $subject: $4 | why: $5 | cost if wrong: $6"
+  entry="- $subject: $ruling | why: $why | cost if wrong: $cost"
   [[ -f "$register" ]] || printf '# Rulings\n\n' > "$register"
   if ! grep -Fxq -- "$entry" "$register"; then
     # a file cut short of its last newline would glue the entry onto its last line
@@ -1204,7 +1315,7 @@ if [[ -n "$fix_n" ]]; then
   trail=("tests-$fix_n.md" "repair-$fix_n-coder.md")
 else
   trail=("$task_id-coder.md" "review-$task_id-[0-9]*.md")
-  [[ -n "$landed" ]] || trail+=("$task_id-extra.md" "$task_id-extra-review.md")
+  [[ -n "$landed" ]] || trail+=("$task_id-extra.md" "$task_id-extra-review.md" "$task_id-options.md")
 fi
 while IFS= read -r t; do
   [[ -n "$t" ]] || continue

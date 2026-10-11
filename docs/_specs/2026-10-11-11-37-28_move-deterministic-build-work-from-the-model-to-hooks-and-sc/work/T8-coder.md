@@ -1,0 +1,6 @@
+- `--decide --first-of` splits the DECIDE text on " | " after padding it with a space on each side, so "DECIDE: | b" and "DECIDE: a |" read as an empty and a one-part option list.
+- `--decide --from/--first-of` checks the file (outside work/, absent, empty text) before the task id, so a bad file on an unknown task exits 2, not 3.
+- stage_rulings now runs `git status --untracked-files=all` per path, so a wholly untracked work/ directory still stages its ruling-*.md.
+- `<id>-options.md` rides only in a plain task commit (like the extras files); --landed and a fix number ignore it.
+- Process slip: the new test block was appended to tests/viber/commit-task.test.ts with a Bash heredoc, not Edit/Write; every later change used Edit.
+- The header's wording (DoD.12) has no test; the usage text is tested.

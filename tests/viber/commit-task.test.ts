@@ -2568,3 +2568,284 @@ test("--landed ignores both extras files: their paths and the files themselves s
     assert.deepEqual(await committedFiles(repo), [STATUS_REL]);
   });
 });
+
+// --- C6: --rule and --decide read the arbiter's ruling file ------------------
+
+const RULING_REL = `${RUN_DIR}/work/ruling-1.md`;
+const OPTIONS_REL = `${RUN_DIR}/work/T2-options.md`;
+const RULING_FILE = ["VERDICT: RULED", `RULING: ${RULE_ARGS[0]}`, `WHY: ${RULE_ARGS[1]}`, `COST: ${RULE_ARGS[2]}`, ""].join("\n");
+
+/** Writes a file, or nothing for a case whose file is absent. */
+function putFile(repo: GitRepo, rel: string, content: string | null): void {
+  if (content !== null) write(repo.dir, rel, content);
+}
+
+/** A file's text, or null when it does not exist. */
+function readOrNull(repo: GitRepo, rel: string): string | null {
+  const file = path.join(repo.dir, rel);
+  return fs.existsSync(file) ? fs.readFileSync(file, "utf-8") : null;
+}
+
+test("--rule --from appends the register line the text form writes, prints its two lines, commits nothing and keeps the file", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, RULING_REL, RULING_FILE);
+
+    const result = await run(repo.dir, repo.env, ["--rule", PLAN_REL, "T2", "--from", RULING_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "ruled: T2\nprogress: unchanged\n");
+    assert.equal(readRulings(repo), `# Rulings\n\n- T2: ${RULE_LINE}\n`);
+    assert.deepEqual(await subjects(repo), ["seed"]);
+    assert.deepEqual(await stagedFiles(repo), []);
+    assert.equal(readOrNull(repo, RULING_REL), RULING_FILE);
+  });
+});
+
+test("--rule --from strips a carriage return from every line and ignores the lines it does not read", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, RULING_REL, RULING_FILE.replace(/\n/g, "\r\n") + "NOTE: ignored\r\n");
+
+    const result = await run(repo.dir, repo.env, ["--rule", PLAN_REL, "T2", "--from", RULING_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(readRulings(repo), `# Rulings\n\n- T2: ${RULE_LINE}\n`);
+  });
+});
+
+const NASTY_RULING = 'say "hi" $HOME `date` back\\slash $(touch pwned)';
+const NASTY_WHY = "why: it's \"quoted\" and `ticked` and \\n literal";
+const NASTY_COST = "cost: $PATH ${HOME} \\\\ \"";
+
+test("--rule --from records texts carrying a double quote, a dollar sign, a backtick and a backslash verbatim", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, RULING_REL, `VERDICT: RULED\nRULING: ${NASTY_RULING}\nWHY: ${NASTY_WHY}\nCOST: ${NASTY_COST}\n`);
+
+    const result = await run(repo.dir, repo.env, ["--rule", PLAN_REL, "T2", "--from", RULING_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(readRulings(repo), `# Rulings\n\n- T2: ${NASTY_RULING} | why: ${NASTY_WHY} | cost if wrong: ${NASTY_COST}\n`);
+  });
+});
+
+test("--rule --from recording the same file twice leaves one register line", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, RULING_REL, RULING_FILE);
+    await run(repo.dir, repo.env, ["--rule", PLAN_REL, "T2", "--from", RULING_REL]);
+
+    const result = await run(repo.dir, repo.env, ["--rule", PLAN_REL, "T2", "--from", RULING_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(readRulings(repo), `# Rulings\n\n- T2: ${RULE_LINE}\n`);
+  });
+});
+
+test("--decide --from appends 'decision: <id>: auto: <ruling>' to status.md and prints its two lines without a commit", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    const before = readStatus(repo);
+    write(repo.dir, RULING_REL, "VERDICT: RULED\nRULING: keep the old parser\n");
+
+    const result = await run(repo.dir, repo.env, ["--decide", PLAN_REL, "T2", "--from", RULING_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "decided: T2\nprogress: unchanged\n");
+    assert.equal(readStatus(repo), `${before}decision: T2: auto: keep the old parser\n`);
+    assert.deepEqual(await subjects(repo), ["seed"]);
+    assert.equal(readOrNull(repo, RULING_REL), "VERDICT: RULED\nRULING: keep the old parser\n");
+  });
+});
+
+test("--decide --from writes the same line as the text form for 'auto: <ruling>'", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, RULING_REL, `RULING: ${NASTY_RULING}\n`);
+    await run(repo.dir, repo.env, ["--decide", PLAN_REL, "T2", "--from", RULING_REL]);
+    const fromFile = readStatus(repo);
+    write(repo.dir, STATUS_REL, statusBody(2));
+
+    await run(repo.dir, repo.env, ["--decide", PLAN_REL, "T2", `auto: ${NASTY_RULING}`]);
+    assert.equal(fromFile, readStatus(repo));
+  });
+});
+
+test("--decide --first-of records the first option of an options file as 'auto: <option>'", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    const before = readStatus(repo);
+    write(repo.dir, OPTIONS_REL, "VERDICT: FAIL\nDECIDE: a $x | b\n");
+
+    const result = await run(repo.dir, repo.env, ["--decide", PLAN_REL, "T2", "--first-of", OPTIONS_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "decided: T2\nprogress: unchanged\n");
+    assert.equal(readStatus(repo), `${before}decision: T2: auto: a $x\n`);
+  });
+});
+
+const FIRST_OF_REFUSALS: Array<[name: string, content: string]> = [
+  ["no DECIDE line", "VERDICT: FAIL\nREASON: nothing\n"],
+  ["a DECIDE line with no text", "DECIDE: \n"],
+  ["an empty first option", "DECIDE:  | b\n"],
+  ["a DECIDE line whose first option is blank", "DECIDE: | b\n"],
+  ["an empty file", ""],
+];
+
+for (const [name, content] of FIRST_OF_REFUSALS) {
+  test(`--decide --first-of on an options file with ${name} exits 2 and leaves status.md unchanged`, async () => {
+    await withGitRepo(async (repo) => {
+      await seed(repo);
+      const before = readStatus(repo);
+      write(repo.dir, OPTIONS_REL, content);
+
+      const result = await run(repo.dir, repo.env, ["--decide", PLAN_REL, "T2", "--first-of", OPTIONS_REL]);
+      assert.equal(result.status, 2, `stderr: ${result.stderr}`);
+      assert.equal(result.stdout, "");
+      assert.equal(readStatus(repo), before);
+    });
+  });
+}
+
+test("a task commit stages a changed <task-id>-options.md with the task's trail", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, `${RUN_DIR}/work/T1-options.md`, "DECIDE: a | b\n");
+
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(await committedFiles(repo), [STATUS_REL, "src/a.ts", `${RUN_DIR}/work/T1-options.md`].sort());
+  });
+});
+
+test("a task commit leaves another task's options file out", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, OPTIONS_REL, "DECIDE: a | b\n");
+
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(await committedFiles(repo), [STATUS_REL, "src/a.ts"].sort());
+  });
+});
+
+const FROM_ENTRY_REFUSALS: Array<[name: string, rel: string, content: string | null]> = [
+  ["a file with no RULING line", RULING_REL, "WHY: w\nCOST: c\n"],
+  ["a file with no WHY line", RULING_REL, "RULING: r\nCOST: c\n"],
+  ["a file with no COST line", RULING_REL, "RULING: r\nWHY: w\n"],
+  ["a file with an empty RULING", RULING_REL, "RULING: \nWHY: w\nCOST: c\n"],
+  ["a file with an empty WHY", RULING_REL, "RULING: r\nWHY: \nCOST: c\n"],
+  ["a file with a whitespace-only COST", RULING_REL, "RULING: r\nWHY: w\nCOST:    \n"],
+  ["an absent file", `${RUN_DIR}/work/ruling-9.md`, null],
+  ["a path in the run directory outside work/", `${RUN_DIR}/ruling-1.md`, RULING_FILE],
+  ["a path in another directory", "elsewhere/work/ruling-1.md", RULING_FILE],
+  ["a path leaving work/ through a '..' segment", `${RUN_DIR}/work/../ruling-1.md`, RULING_FILE],
+];
+
+for (const [name, rel, content] of FROM_ENTRY_REFUSALS) {
+  test(`--rule --from refuses ${name} with exit 2 and leaves rulings.md, status.md and the file unchanged`, async () => {
+    await withGitRepo(async (repo) => {
+      await seed(repo);
+      write(repo.dir, RULINGS_REL, `# Rulings\n\n- T2: ${RULE_LINE}\n`);
+      putFile(repo, rel, content);
+      const rulingsBefore = readRulings(repo);
+      const statusBefore = readStatus(repo);
+
+      const result = await run(repo.dir, repo.env, ["--rule", PLAN_REL, "T1", "--from", rel]);
+      assert.equal(result.status, 2, `stderr: ${result.stderr}`);
+      assert.equal(result.stdout, "");
+      assert.equal(readRulings(repo), rulingsBefore);
+      assert.equal(readStatus(repo), statusBefore);
+      assert.equal(readOrNull(repo, rel), content);
+    });
+  });
+}
+
+const DECIDE_FROM_REFUSALS: Array<[name: string, rel: string, content: string | null]> = [
+  ["a file with no RULING line", RULING_REL, "WHY: w\n"],
+  ["a file with an empty RULING", RULING_REL, "RULING: \n"],
+  ["an absent file", `${RUN_DIR}/work/ruling-9.md`, null],
+  ["a path in the run directory outside work/", `${RUN_DIR}/ruling-1.md`, "RULING: r\n"],
+  ["a path leaving work/ through a '..' segment", `${RUN_DIR}/work/../ruling-1.md`, "RULING: r\n"],
+];
+
+for (const [name, rel, content] of DECIDE_FROM_REFUSALS) {
+  test(`--decide --from refuses ${name} with exit 2 and leaves status.md and the file unchanged`, async () => {
+    await withGitRepo(async (repo) => {
+      await seed(repo);
+      putFile(repo, rel, content);
+      const statusBefore = readStatus(repo);
+
+      const result = await run(repo.dir, repo.env, ["--decide", PLAN_REL, "T2", "--from", rel]);
+      assert.equal(result.status, 2, `stderr: ${result.stderr}`);
+      assert.equal(result.stdout, "");
+      assert.equal(readStatus(repo), statusBefore);
+      assert.equal(readOrNull(repo, rel), content);
+    });
+  });
+}
+
+test("--decide --first-of refuses a path outside work/ with exit 2 and leaves status.md unchanged", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, `${RUN_DIR}/T2-options.md`, "DECIDE: a | b\n");
+    const before = readStatus(repo);
+
+    const result = await run(repo.dir, repo.env, ["--decide", PLAN_REL, "T2", "--first-of", `${RUN_DIR}/T2-options.md`]);
+    assert.equal(result.status, 2, `stderr: ${result.stderr}`);
+    assert.equal(readStatus(repo), before);
+  });
+});
+
+const FROM_SUBJECT_REFUSALS: Array<[name: string, form: string[], code: number, stderr: RegExp]> = [
+  ["--rule with an unknown fixed subject", ["--rule", PLAN_REL, "baselines", "--from", RULING_REL], 2, /unknown subject 'baselines'/],
+  ["--rule with a task id the plan lacks", ["--rule", PLAN_REL, "T9", "--from", RULING_REL], 3, /no task 'T9'/],
+  ["--decide with a task id the plan lacks", ["--decide", PLAN_REL, "T9", "--from", RULING_REL], 3, /no task 'T9'/],
+  ["--decide --first-of with a task id the plan lacks", ["--decide", PLAN_REL, "T9", "--first-of", OPTIONS_REL], 3, /no task 'T9'/],
+  ["--decide with a task on the done list", ["--decide", PLAN_REL, "T1", "--from", RULING_REL], 2, /task 'T1' is already done/],
+  ["--decide with a task on the skipped list", ["--decide", PLAN_REL, "T3", "--from", RULING_REL], 2, /task 'T3' is skipped/],
+];
+
+for (const [name, form, code, stderr] of FROM_SUBJECT_REFUSALS) {
+  test(`${name} keeps the text forms' refusal when it reads a file, leaving the register and status.md unchanged`, async () => {
+    await withGitRepo(async (repo) => {
+      await seed(repo, [
+        ["T1", "src/a.ts"],
+        ["T2", "src/b.ts"],
+        ["T3", "src/c.ts"],
+      ]);
+      write(repo.dir, STATUS_REL, "# status\n\nprogress: 1/3\ndone: T1\nskipped: T3\nunreviewed: none\ndeferred: none\nclosed: none\n");
+      write(repo.dir, RULING_REL, RULING_FILE);
+      write(repo.dir, OPTIONS_REL, "DECIDE: a | b\n");
+      const before = readStatus(repo);
+
+      const result = await run(repo.dir, repo.env, form);
+      assert.equal(result.status, code, `stderr: ${result.stderr}`);
+      assert.match(result.stderr, stderr);
+      assert.equal(readStatus(repo), before);
+      assert.equal(readOrNull(repo, RULINGS_REL), null);
+    });
+  });
+}
+
+test("the usage text lists the --from and --first-of forms", async () => {
+  await withGitRepo(async (repo) => {
+    const result = await run(repo.dir, repo.env, []);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /--rule <plan-file> <subject> --from <ruling-file>/);
+    assert.match(result.stderr, /--decide <plan-file> <task-id> --from <ruling-file>/);
+    assert.match(result.stderr, /--decide <plan-file> <task-id> --first-of <options-file>/);
+  });
+});
+
+for (const [form, arrange] of RULE_CARRIERS) {
+  test(`a ${form} commit stages a changed ruling-*.md of the run's work directory with the register`, async () => {
+    await withGitRepo(async (repo) => {
+      await seed(repo);
+      const args = await arrange(repo);
+      write(repo.dir, RULING_REL, RULING_FILE);
+
+      const result = await run(repo.dir, repo.env, args);
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.ok((await committedFiles(repo)).includes(RULING_REL), `committed: ${(await committedFiles(repo)).join(", ")}`);
+    });
+  });
+}
