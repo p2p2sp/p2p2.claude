@@ -5,7 +5,8 @@
  * What it must do: when the payload's top-level `agent_type` starts with
  * `viber:`, refuse with the one-line deny object a command holding, in command
  * position, killall, pkill, taskkill with an /IM argument, xargs running kill,
- * or kill fed a command substitution. Every other command (kill <PID>,
+ * or kill fed a command substitution; the reason opens with the "viber guard: "
+ * marker. Every other command (kill <PID>,
  * kill -0 <PID>, kill $!, taskkill by PID, a name merely quoted as an argument),
  * every other agent, the main session (no agent_type) and unreadable input print
  * nothing. The hook never answers allow and every case exits 0. The last case
@@ -30,7 +31,7 @@ const SUT = path.resolve(import.meta.dirname, "../../viber/hooks/scripts/kill-gu
 const HOOKS_JSON = path.resolve(import.meta.dirname, "../../viber/hooks/hooks.json");
 
 const DENY =
-  '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Stopping processes by name is refused in viber agents: it also stops processes you did not start. Stop only the PIDs you started yourself with kill <PID>, then confirm each is gone with kill -0 <PID>."}}\n';
+  '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"viber guard: Stopping processes by name is refused in viber agents: it also stops processes you did not start. Stop only the PIDs you started yourself with kill <PID>, then confirm each is gone with kill -0 <PID>."}}\n';
 
 // hooks.json invokes the script as `bash "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/kill-guard.sh"`,
 // so the harness runs it through bash the same way.
@@ -117,6 +118,12 @@ test("a viber agent payload with no command produces empty stdout", async () => 
 
 test("a command quoting agent_type text does not make a main-session call a viber one (only the top-level key counts)", async () => {
   assert.equal(await runCommand('echo "agent_type":"viber:x"; killall node'), "");
+});
+
+test("DoD.4: the hooks.json description says both guards open their refusal with the viber guard: marker and every hook fails open", () => {
+  const description: string = JSON.parse(fs.readFileSync(HOOKS_JSON, "utf8")).description;
+  assert.match(description, /Both guards open every refusal with "viber guard:"/);
+  assert.match(description, /Every hook fails open/);
 });
 
 test("DoD.13: hooks.json holds a PreToolUse entry with matcher Bash running kill-guard.sh through bash", () => {

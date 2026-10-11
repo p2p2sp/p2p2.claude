@@ -31,7 +31,9 @@
 #              - xargs whose command word is kill (xargs options allowed between)
 #              - kill whose arguments hold a command substitution ($( or a backtick)
 #            {"hookSpecificOutput":{"hookEventName":"PreToolUse",
-#             "permissionDecision":"deny","permissionDecisionReason":"<text>"}}
+#             "permissionDecision":"deny","permissionDecisionReason":"viber guard: <text>"}}
+#            The reason opens with the "viber guard: " marker, which tells the
+#            agent the refusal is a rule to follow, never a reason to halt.
 #            kill <PID>, kill -0 <PID>, kill $!, taskkill by PID and a name merely
 #            quoted as an argument (grep killall notes.md) are not refused.
 #   exit 0 : always (fail-open: a broken guard must never block a command).
@@ -79,6 +81,6 @@ if [[ "$cmd" =~ ${cp}(killall|pkill)${end} ]] \
   || [[ "$cmd" =~ ${cp}taskkill${span}[[:space:]]//?[iI][mM]([[:space:]]|$) ]] \
   || [[ "$cmd" =~ ${cp}xargs${xargs_opts}[[:space:]]+kill${end} ]] \
   || [[ "$cmd" =~ ${cp}kill[[:space:]]${span}(\$\(|\`) ]]; then
-  printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Stopping processes by name is refused in viber agents: it also stops processes you did not start. Stop only the PIDs you started yourself with kill <PID>, then confirm each is gone with kill -0 <PID>."}}'
+  printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"viber guard: Stopping processes by name is refused in viber agents: it also stops processes you did not start. Stop only the PIDs you started yourself with kill <PID>, then confirm each is gone with kill -0 <PID>."}}'
 fi
 exit 0
