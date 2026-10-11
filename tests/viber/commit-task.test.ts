@@ -2006,6 +2006,20 @@ test("--outside commits exactly the named paths in one commit of their own under
   });
 });
 
+test("--outside given the plan as an absolute path inside the repository commits and foots exactly as the relative form (closeout's call once absolutized it)", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "src/legacy.ts", "a hand edit\n");
+    write(repo.dir, `${RUN_DIR}/spec.md`, "edited by closeout\n");
+
+    const result = await run(repo.dir, repo.env, ["--outside", path.join(repo.dir, PLAN_REL), "src/legacy.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(await committedFiles(repo), ["src/legacy.ts"]);
+    assert.equal(await lastParagraph(repo), `Refs: ${PLAN_REL} outside the plan`);
+    assert.doesNotMatch(result.stderr, /spec\.md/, "the run directory is never unclaimed");
+  });
+});
+
 test("--outside leaves a path staged beside the call staged and out of its commit", async () => {
   await withGitRepo(async (repo) => {
     await seed(repo);
@@ -2651,6 +2665,42 @@ test("--decide --from appends 'decision: <id>: auto: <ruling>' to status.md and 
     assert.equal(readStatus(repo), `${before}decision: T2: auto: keep the old parser\n`);
     assert.deepEqual(await subjects(repo), ["seed"]);
     assert.equal(readOrNull(repo, RULING_REL), "VERDICT: RULED\nRULING: keep the old parser\n");
+  });
+});
+
+test("--decide --from takes an absolute or './' plan and ruling inside the repository as their relative forms, in any mix", async () => {
+  const abs = (rel: string, repo: GitRepo) => path.join(repo.dir, rel);
+  const mixes: Array<(repo: GitRepo) => [string, string]> = [
+    (repo) => [abs(PLAN_REL, repo), RULING_REL],
+    (repo) => [abs(PLAN_REL, repo), abs(RULING_REL, repo)],
+    (repo) => [PLAN_REL, abs(RULING_REL, repo)],
+    () => [`./${PLAN_REL}`, `./${RULING_REL}`],
+  ];
+  for (const mix of mixes) {
+    await withGitRepo(async (repo) => {
+      await seed(repo);
+      const before = readStatus(repo);
+      write(repo.dir, RULING_REL, "RULING: keep the old parser\n");
+      const [plan, ruling] = mix(repo);
+
+      const result = await run(repo.dir, repo.env, ["--decide", plan, "T2", "--from", ruling]);
+      assert.equal(result.status, 0, `${plan} ${ruling}: ${result.stderr}`);
+      assert.equal(readStatus(repo), `${before}decision: T2: auto: keep the old parser\n`);
+    });
+  }
+});
+
+test("--decide --from refuses an absolute ruling path carrying a '..' segment, even one resolving under work/", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    const before = readStatus(repo);
+    write(repo.dir, RULING_REL, "RULING: keep the old parser\n");
+    const dotted = `${repo.dir}/${RUN_DIR}/work/../work/ruling-1.md`;
+
+    const result = await run(repo.dir, repo.env, ["--decide", path.join(repo.dir, PLAN_REL), "T2", "--from", dotted]);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /is outside/);
+    assert.equal(readStatus(repo), before);
   });
 });
 

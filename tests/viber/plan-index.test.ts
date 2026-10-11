@@ -633,6 +633,25 @@ test("a path inside the run directory (a work/ note) is never reported orphan", 
   });
 });
 
+test("an absolute or './' plan path inside the repository prints the same index as the relative one (an absolute run directory once reported its own files orphan)", async () => {
+  await withGitRepo(async (repo) => {
+    seed(repo.dir, planBody(TWO_TASKS));
+    write(repo.dir, "src/login.ts", "committed\n");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "seed");
+
+    write(repo.dir, `${PLAN_DIR}/work/T1.round1.md`, "a coder's own trail note\n");
+
+    const relative = await run(repo.dir, repo.env, [PLAN_REL]);
+    assert.equal(relative.status, 0, `stderr: ${relative.stderr}`);
+    for (const spelling of [path.join(repo.dir, PLAN_REL), `./${PLAN_REL}`]) {
+      const result = await run(repo.dir, repo.env, [spelling]);
+      assert.equal(result.status, 0, `${spelling}: ${result.stderr}`);
+      assert.equal(result.stdout, relative.stdout, spelling);
+    }
+  });
+});
+
 test("a done task's dirty file is reported orphan, not dirty, since the task that claimed it is already settled", async () => {
   await withGitRepo(async (repo) => {
     seed(repo.dir, planBody(TWO_TASKS));

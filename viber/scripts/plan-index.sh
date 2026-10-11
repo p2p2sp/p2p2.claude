@@ -229,7 +229,8 @@
 # Contract:
 #   argv   : the plan file, optionally --split or --extra <task-id>, never both.
 #   cwd    : the repository root - the plan path and every path in the index are
-#            relative to it.
+#            relative to it; a plan path given absolute, or with a leading
+#            "./", inside it is read as its relative form.
 #   env    : none.
 #   exit   : 0 on a valid plan; a git failure during the --split commit never
 #            changes that, the decomposed files are already on disk.
@@ -276,6 +277,36 @@ fi
 # on the very same path - the basename check seeing ONE segment and refusing a
 # legitimate --split. Normalized once here, every later split reads alike.
 plan="${plan//\\//}"
+
+# An absolute path inside the cwd, rewritten relative to it; any other path is
+# printed unchanged. Both sides are resolved physically, so a symlinked spelling
+# (macOS /var against /private/var) or a Git Bash drive form (C:/ against /c/)
+# still matches; a path whose parent does not exist stays as it is. The same
+# function is in archive-run.sh and commit-task.sh.
+cwd_relative() {
+  local p="${1//\\//}" root base leaf="" full
+  case "$p" in
+    /*|[A-Za-z]:/*) ;;
+    *) printf '%s\n' "$1"; return 0 ;;
+  esac
+  root="$(pwd -P)"
+  if [[ -d "$p" ]]; then
+    base="$(cd -- "$p" 2>/dev/null && pwd -P)" || base=""
+  else
+    base="$(cd -- "${p%/*}/" 2>/dev/null && pwd -P)" || base=""
+    leaf="/${p##*/}"
+  fi
+  full="$base$leaf"
+  if [[ -n "$base" && "$full" == "$root/"?* ]]; then
+    printf '%s\n' "${full#"$root/"}"
+  else
+    printf '%s\n' "$1"
+  fi
+}
+
+# The orphan exclusion and every path printed below need "$dir" repo-relative,
+# so an absolute or "./" spelling of the same plan is folded into that form.
+plan="$(cwd_relative "${plan#./}")"
 
 # --split rebuilds <dir>/tasks from scratch, so it only ever accepts the run's
 # own <dir>/plan.md: pointed at a plan sitting loose in a repository it would

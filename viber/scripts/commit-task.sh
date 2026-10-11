@@ -22,6 +22,10 @@
 #   commit-task.sh --outside <plan-file> <file> [<file>...]
 #   commit-task.sh --extension <plan-file> <name> <file> [<file>...]
 #
+# The cwd is the repository root. A <plan-file>, <ruling-file> or
+# <options-file> given absolute inside it, or with a leading "./", is read as
+# its repo-relative form.
+#
 # The two positional forms take the commit subject from the task's own heading
 # line ("### T1 - <title>") in the plan, so the plan's title is literally what
 # lands in the history and no caller ever composes or paraphrases it.
@@ -249,6 +253,41 @@ run_dir() {
   local p="${1//\\//}"
   [[ "$p" == */* ]] || return 0
   printf '%s\n' "${p%/*}"
+}
+
+# An absolute path inside the cwd, rewritten relative to it; any other path is
+# printed unchanged. Both sides are resolved physically, so a symlinked spelling
+# (macOS /var against /private/var) or a Git Bash drive form (C:/ against /c/)
+# still matches; a path whose parent does not exist stays as it is. The same
+# function is in archive-run.sh and plan-index.sh.
+cwd_relative() {
+  local p="${1//\\//}" root base leaf="" full
+  case "$p" in
+    /*|[A-Za-z]:/*) ;;
+    *) printf '%s\n' "$1"; return 0 ;;
+  esac
+  root="$(pwd -P)"
+  if [[ -d "$p" ]]; then
+    base="$(cd -- "$p" 2>/dev/null && pwd -P)" || base=""
+  else
+    base="$(cd -- "${p%/*}/" 2>/dev/null && pwd -P)" || base=""
+    leaf="/${p##*/}"
+  fi
+  full="$base$leaf"
+  if [[ -n "$base" && "$full" == "$root/"?* ]]; then
+    printf '%s\n' "${full#"$root/"}"
+  else
+    printf '%s\n' "$1"
+  fi
+}
+
+# The plan path every form compares against repo-relative git output (the run
+# directory exclusion, the work/ prefix, the Refs footer): an absolute or "./"
+# spelling of a plan inside the cwd is folded into the relative form.
+plan_arg() {
+  local p="$1"
+  [[ -n "$p" ]] || return 0
+  cwd_relative "${p#./}"
 }
 
 # The run's trail files matching the given basename globs, one per line. The
@@ -493,6 +532,7 @@ stage_rulings() {
 work_file() {
   local dir prefix f="${2//\\//}"
   f="${f#./}"
+  [[ "/$f/" == */../* ]] || f="$(cwd_relative "$f")"
   dir="$(run_dir "$1")"
   dir="${dir#./}"
   prefix="${dir:+$dir/}work/"
@@ -773,7 +813,7 @@ warn_unclaimed() {
 # untouched task and an abandoned one look exactly alike. The marker has no
 # commit of its own to ride in and waits in the plan for the next one.
 if [[ "${1:-}" == "--skip" ]]; then
-  plan="${2:-}"
+  plan="$(plan_arg "${2:-}")"
   task_id="${3:-}"
   [[ -n "$plan" && -n "$task_id" && $# -eq 3 ]] || usage
   if [[ ! -f "$plan" ]]; then
@@ -799,7 +839,7 @@ fi
 # through the index, survives a resumed session and ends up in the archive. Like
 # --skip it has no commit of its own and waits in status.md for the next one.
 if [[ "${1:-}" == "--decide" ]]; then
-  plan="${2:-}"
+  plan="$(plan_arg "${2:-}")"
   task_id="${3:-}"
   from_form=""
   if [[ $# -eq 5 && ( "${4:-}" == "--from" || "${4:-}" == "--first-of" ) ]]; then
@@ -861,7 +901,7 @@ fi
 # The register outlives the run: rulings.md rides in whichever commit taking the
 # plan comes next, and archive-run.sh keeps it as a non-scaffolding file.
 if [[ "${1:-}" == "--rule" ]]; then
-  plan="${2:-}"
+  plan="$(plan_arg "${2:-}")"
   subject="${3:-}"
   from_form=0
   if [[ $# -eq 5 && "${4:-}" == "--from" ]]; then
@@ -931,7 +971,7 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
   ext=""
   plan=""
   if [[ "$form" != "--e2e" ]]; then
-    plan="${1:-}"
+    plan="$(plan_arg "${1:-}")"
     [[ -n "$plan" ]] || usage
     if [[ ! -f "$plan" ]]; then
       echo "error: plan file not found: $plan" >&2
@@ -1077,7 +1117,7 @@ if [[ "${1:-}" == "--repair" || "${1:-}" == "--chore" || "${1:-}" == "--qa" || "
   exit 0
 fi
 
-plan="${1:-}"
+plan="$(plan_arg "${1:-}")"
 task_id="${2:-}"
 
 if [[ -z "$plan" || -z "$task_id" ]]; then

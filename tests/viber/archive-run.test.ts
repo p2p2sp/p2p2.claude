@@ -5,7 +5,9 @@
  *
  * Three properties carry the design. The two GATES refuse rather than correct -
  * a path outside `docs/<runs>/`, one carrying a `..` segment and one holding no
- * `status.md` are all signals that the caller is outside the contract, and an
+ * `status.md` are all signals that the caller is outside the contract (an
+ * absolute path inside the repository is only another spelling, read as its
+ * relative form), and an
  * unfinished run still resumes from exactly the files this script would delete.
  * The move is a `git mv` of the WHOLE directory, so the caller's edit of
  * `spec.md` lands in the history as rename plus modification rather than as an
@@ -171,9 +173,10 @@ test("no argument, and more than one, are both refused with the usage line and e
   });
 });
 
-test("a path outside docs/<runs>/ is refused, an absolute one included, and nothing is touched", async () => {
+test("a path outside docs/<runs>/ is refused, an absolute one inside the repository included, and nothing is touched", async () => {
   await withSeededRepo(async (repo, runDir) => {
-    for (const bad of ["docs/other/run", "src/thing", path.join(repo.dir, "docs", "_specs", KEY)]) {
+    fs.mkdirSync(path.join(repo.dir, "docs", "other", "run"), { recursive: true });
+    for (const bad of ["docs/other/run", "src/thing", path.join(repo.dir, "docs", "other", "run")]) {
       const result = await run(repo.dir, [bad], repo.env);
       assert.equal(result.status, 2, `expected a refusal for ${bad}`);
       assert.equal(result.stdout, "");
@@ -191,6 +194,49 @@ test("a '..' segment is refused even under docs/<runs>/, because the prefix alon
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /carries no '\.\.' segment/);
   });
+});
+
+test("an absolute path carrying a '..' segment is refused before it is resolved, even when it names the run itself", async () => {
+  await withSeededRepo(async (repo, runDir) => {
+    const result = await run(repo.dir, [`${slash(repo.dir)}/docs/_specs/${KEY}/../${KEY}`], repo.env);
+    assert.equal(result.status, 2);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /carries no '\.\.' segment/);
+    assert.ok(fs.existsSync(path.join(repo.dir, runDir)), "the run directory must be untouched");
+  });
+});
+
+test("an absolute path to the run inside the repository archives it as its relative form would", async () => {
+  await withSeededRepo(async (repo, runDir) => {
+    const result = await run(repo.dir, [path.join(repo.dir, "docs", "_specs", KEY)], repo.env);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(slash(result.stdout).trim(), `ARCHIVED: docs/specs/${KEY} (3 files)`);
+    assert.ok(!fs.existsSync(path.join(repo.dir, runDir)));
+  });
+});
+
+test("an absolute path to a run directory outside the repository is refused, and nothing is touched", async () => {
+  await withSeededRepo(async (repo, runDir) => {
+    await withTempDir("p2p2-viber-", async (outside) => {
+      const outsideRun = path.join(outside, seedRun(outside, KEY));
+      const result = await run(repo.dir, [outsideRun], repo.env);
+      assert.equal(result.status, 2);
+      assert.equal(result.stdout, "");
+      assert.match(result.stderr, /lives under docs\/_specs\//);
+      assert.ok(fs.existsSync(outsideRun), "the outside directory must be untouched");
+      assert.ok(fs.existsSync(path.join(repo.dir, runDir)), "the run directory must be untouched");
+    });
+  });
+});
+
+test("a leading './' and a trailing '/' are how a path is typed, so the run still archives", async () => {
+  for (const spelling of [`./docs/_specs/${KEY}`, `docs/_specs/${KEY}/`, `./docs/_specs/${KEY}/`]) {
+    await withSeededRepo(async (repo) => {
+      const result = await run(repo.dir, [spelling], repo.env);
+      assert.equal(result.status, 0, `${spelling}: ${result.stderr}`);
+      assert.equal(slash(result.stdout).trim(), `ARCHIVED: docs/specs/${KEY} (3 files)`);
+    });
+  }
 });
 
 test("a directory that does not exist, and one holding no status.md, are both exit 2", async () => {

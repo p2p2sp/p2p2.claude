@@ -30,10 +30,12 @@
 #
 # Contract:
 #   argv   : $1 run directory (REQUIRED), repository-relative, exactly as
-#            plan-path.sh printed its `path:` line minus `/plan.md`. The safety
-#            gate rejects every path outside docs/<runs>/, an absolute one and
-#            one carrying a `..` segment included: that is not a typo to fix up,
-#            it is the signal that the caller is outside this script's contract.
+#            plan-path.sh printed its `path:` line minus `/plan.md`; an
+#            absolute path inside the repository is read as its relative form.
+#            The safety gate rejects every path outside docs/<runs>/, an
+#            absolute one outside the repository and one carrying a `..`
+#            segment included: that is not a typo to fix up, it is the signal
+#            that the caller is outside this script's contract.
 #   cwd    : any directory inside the host repository - the script moves to the
 #            repository root itself, because the argument is relative to it.
 #            Outside a repository the cwd is the base every path resolves
@@ -107,6 +109,32 @@ dir="${raw//\\//}"
 dir="${dir%/}"
 [[ "$dir" == ./* ]] && dir="${dir#./}"
 
+# An absolute path inside the cwd, rewritten relative to it; any other path is
+# printed unchanged. Both sides are resolved physically, so a symlinked spelling
+# (macOS /var against /private/var) or a Git Bash drive form (C:/ against /c/)
+# still matches; a path whose parent does not exist stays as it is. The same
+# function is in plan-index.sh and commit-task.sh.
+cwd_relative() {
+  local p="${1//\\//}" root base leaf="" full
+  case "$p" in
+    /*|[A-Za-z]:/*) ;;
+    *) printf '%s\n' "$1"; return 0 ;;
+  esac
+  root="$(pwd -P)"
+  if [[ -d "$p" ]]; then
+    base="$(cd -- "$p" 2>/dev/null && pwd -P)" || base=""
+  else
+    base="$(cd -- "${p%/*}/" 2>/dev/null && pwd -P)" || base=""
+    leaf="/${p##*/}"
+  fi
+  full="$base$leaf"
+  if [[ -n "$base" && "$full" == "$root/"?* ]]; then
+    printf '%s\n' "${full#"$root/"}"
+  else
+    printf '%s\n' "$1"
+  fi
+}
+
 # --- the two directory keys ---
 # Read here rather than taken from the caller: the caller that knows the run
 # directory is an agent, and a third reader of the same group is ~10 lines. Only
@@ -140,6 +168,10 @@ case "/$dir/" in
     exit 2
     ;;
 esac
+
+# Only once the '..' gate has seen the path as the caller wrote it: resolving
+# it first would fold a '..' segment away.
+dir="$(cwd_relative "$dir")"
 
 if [[ "$dir" != "docs/$runs_dir/"* ]]; then
   echo "error: refused $dir - a run directory lives under docs/$runs_dir/" >&2
