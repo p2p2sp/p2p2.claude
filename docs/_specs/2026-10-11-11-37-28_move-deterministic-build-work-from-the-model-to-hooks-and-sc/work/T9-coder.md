@@ -1,0 +1,4 @@
+- The coder dispatch carries only `extras:`; C7's `decide-file:` line is left to T10, which edits the same dispatch block of implementor/SKILL.md.
+- task-reviewer's `recheck:` bullet stays as the description of the scope command's output line, not as a dispatch line.
+- DoD.3 and DoD.8 read the file names and the `--extra` mode from the headers and path expressions of plan-index.sh and commit-task.sh as text, the way guard-prose.unit.test.ts reads shell-guard.sh.
+- agents/CLAUDE.md's write-scope contract still says a reviewer writes only its report; the build's close should add the reviewer extras file.

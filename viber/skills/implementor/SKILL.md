@@ -118,27 +118,28 @@ task: <dir>/tasks/<id>.md
 notes: <dir>/work/<id>-coder.md
 out: .temp/viber/<id>/
 refs: ${CLAUDE_PLUGIN_ROOT}/references
+extras: <dir>/work/<id>-extra.md
 deferred: <paths>
 prior: <dir>/work/<dep-id>-coder.md, ...
 decision: <task-id>: <text>
 ```
 
 - `out`: per task, shared by its reviewer.
+- `extras`: the same path on every attempt of the task; the coder keeps it.
 - `deferred`: the index entries naming this id plus every `--defer` this build passed naming it.
 - `prior`: the notes of the tasks its `deps` names.
 - `decision:`: one line per index `decision:` line plus one per `--decide` this build recorded, whose `<task-id>` is this task or one it depends on, directly or through another.
 - Tier: the attempt's tier (below).
-- Every coder re-run - a next attempt, a `WAIT:` hold, `retry` - is this same fresh dispatch, every labelled line above plus the `report:`, `reason:` or `decision:` line its answer names, and a `resume:` line carrying every path an `EXTRA:` line of the task's earlier coders returned.
+- Every coder re-run - a next attempt, a `WAIT:` hold, `retry` - is this same fresh dispatch, every labelled line above plus the `report:`, `reason:` or `decision:` line its answer names.
 
 Reviewer dispatch: `viber:task-reviewer` (Agent tool, `model` = the review tier) carrying the task's `task:`, `notes:`, `out:`, `refs:`, `deferred:` and `decision:` lines, any line a fragment of this step adds, and:
 
 - `report: <dir>/work/review-<id>-<round>.md`, round starting at 1 and rising with every review of that task.
-- `extra: <repo-relative paths, comma-separated>`: every path an `EXTRA:` line of that task's coder returned so far in this build, across every re-run, never the reviewer's own, except a path the index `files` column gives to a task not yet `done`. Omitted when empty.
-- `recheck: <task-id> | <command>`: one line per `done` task whose `files` column claims a path on `extra:`, `<command>` being that task's `verify:` command. Omitted when empty.
+- `extras: <dir>/work/<id>-extra-review.md`: the same path on every round of the task.
+- `scope: "${CLAUDE_PLUGIN_ROOT}/scripts/plan-index.sh" "<plan>" --extra "<id>"`: the command the reviewer runs for the task's extra paths and rechecks.
 
 Commit: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" "<plan>" "<id>"` with its `TaskUpdate` -> completed, plus:
 
-- `--with "<path>" ["<path>"...]` for every path an `EXTRA:` line of that task's coder or reviewer returned.
 - `--defer "<target-id>:<path>" [...]` for every `DEFERRED:` line its coder returned. `-> none` takes the earliest unfinished task other than this one whose `files` column claims that path; a path no task claims is named in the final summary.
 
 Warnings off the commit never stop the build: carry `refused <path> - claimed by task <id>`, `took <path> - claimed by committed task <id>` and `changed, claimed by no task in the plan` to the final summary.
@@ -164,7 +165,7 @@ Start with every task whose `deps` are done, in one message. On every return, an
 - Coder failure on attempt 1 to 4 -> the next attempt, asking nothing. From attempt 2 on, a `DECIDE:` line -> first the arbiter: `case: decide`, `options:` those options only, `task: <dir>/tasks/<id>.md`, `report: <dir>/work/<id>-coder.md`, `reason:` the returned `REASON:` (the short `DOD:` line when none came); record its ruling with subject `<id>`, then `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --decide "<plan>" "<id>" "auto: <ruling>"`, that text made one line and escaped as for `--rule`, then the next attempt with its `decision:` lines, the new one among them, the attempt count not starting over. No `DECIDE:` line -> no arbiter.
 - Coder failure on attempt 5, reviewer `FAIL` on attempt 5, or a task commit exiting other than 4 on attempt 5 -> the limit: the arbiter with `case: cap` (never `decide`), `task: <dir>/tasks/<id>.md`, `report:` lines for `<dir>/work/<id>-coder.md` and the task's last `REVIEW` path when it has one, `reason:` the failure's `REASON:` or the commit's error, and `options: accept | skip` after a review failure, `options: skip` otherwise. Record its ruling with subject `<id>`, then carry it out: `accept` -> the task's commit with `--unreviewed` appended, the task named unreviewed in the final summary; `skip` -> the `skip` answer's calls. An `accept` commit exiting other than 4 -> the arbiter again with `options: skip`, that commit's error as `reason:` and the same `report:` lines, its ruling recorded and carried out the same way.
 - Coder `VERDICT: DENIED` -> `AskUserQuestion` naming the task: retry / skip / abort.
-- Coder `PASS`, and review due or a non-empty `extra:` or `recheck:` line -> reviewer dispatch at the next round.
+- Coder `PASS`, and review due or the task's coder returned an `EXTRA:` line in any attempt -> reviewer dispatch at the next round.
 - Coder `PASS` otherwise -> commit.
 - Reviewer `VERDICT: PASS` -> commit.
 - Reviewer `VERDICT: FAIL` on attempt 1 to 4 -> the next attempt, with the returned `REVIEW` path as `report:`.
