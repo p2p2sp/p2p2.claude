@@ -1,5 +1,0 @@
-- plan-index.sh now captures the awk output in `index_out` and prints it after the --split cleanup, so a refused plan still prints nothing and removes nothing; checked under macOS /bin/bash 3.2.
-- --split finds the tasks not done by reading the task rows of the captured index (between `tasks:` and the first `verify:`), not by parsing the plan again.
-- --extra validates in the lenient --split mode (a frozen plan must still resolve); validation exits 3 and 4 come before the exit 2 for an unknown id.
-- A skipped task counts as "not yet done": a path it claims is left off, and --split removes its extras files.
-- I appended the new tests with a shell heredoc by mistake; the content is normal test code, nothing else was written that way.
