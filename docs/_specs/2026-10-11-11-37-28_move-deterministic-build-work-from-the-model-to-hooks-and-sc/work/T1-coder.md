@@ -1,0 +1,3 @@
+- verdict-nudge.sh lets whitespace, backticks, asterisks and hyphens mix before VERDICT:/AUDIT: (a superset of C1's order), so `- **VERDICT: PASS**` counts as an output line.
+- The message is cut with one bash regex `(([^"\\]|\\.)*)`; a 200 KB message is covered by a test and stays fast.
+- viber/hooks/CLAUDE.md (four scripts, wiring list, Tests line) is stale now; the build's close updates it per Out of scope.
