@@ -38,7 +38,7 @@ Every question below offers some of these four answers, each doing exactly this 
   - After a `DENIED`: same model, same round, a task's coder adding `reason: <the returned REASON>`.
   - After a failed commit: run the same call again.
 - `skip`: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --skip "<plan>" "<id>"` for that task, then the same call for every task depending on it, directly or through another dependent, one call per message, each with its `TaskUpdate` -> completed. Its half-finished files stay uncommitted in the tree; name them in the final summary.
-- `accept`: the user overrides the gate. On a task: its commit with `--unreviewed` appended, the task named unreviewed in the final summary. On the test run: go to step 6, the failing or refused run named in the final summary. On the arbiter: take the first option of its dispatch, recorded through `--rule` (step 4) with the refused call as its why and `not assessed - the arbiter was refused` as its cost, then carried out. On any other agent: go on as if it returned nothing, its refused call named in the final summary.
+- `accept`: the user overrides the gate. On a task: its commit with `--unreviewed` appended, the task named unreviewed in the final summary. On the test run: go to step 6, the failing or refused run named in the final summary. On the arbiter: take the first option of its dispatch, recorded through the fixed-words `--rule` call of step 4, then carried out. On any other agent: go on as if it returned nothing, its refused call named in the final summary.
 - `abort`: stop every dispatch, go to step 7.
 
 A `VERDICT: DENIED` question names the refused call from its `REASON:` line and its `retry` option reads `permission added and retry`.
@@ -119,6 +119,7 @@ notes: <dir>/work/<id>-coder.md
 out: .temp/viber/<id>/
 refs: ${CLAUDE_PLUGIN_ROOT}/references
 extras: <dir>/work/<id>-extra.md
+decide-file: <dir>/work/<id>-options.md
 deferred: <paths>
 prior: <dir>/work/<dep-id>-coder.md, ...
 decision: <task-id>: <text>
@@ -126,6 +127,7 @@ decision: <task-id>: <text>
 
 - `out`: per task, shared by its reviewer.
 - `extras`: the same path on every attempt of the task; the coder keeps it.
+- `decide-file`: the same path on every attempt of the task; the coder writes its `DECIDE:` line there.
 - `deferred`: the index entries naming this id plus every `--defer` this build passed naming it.
 - `prior`: the notes of the tasks its `deps` names.
 - `decision:`: one line per index `decision:` line plus one per `--decide` this build recorded, whose `<task-id>` is this task or one it depends on, directly or through another.
@@ -150,10 +152,12 @@ Attempts: an attempt is one coder dispatch, a `WAIT:` hold and the retry of a `V
 - Each attempt after the first runs one tier up from the last, clamped into `tiers.max`, its review tier rising with it (a waived review stays waived) and raised to `sonnet` from `haiku`; a `TaskUpdate` rewrites the task's subject with the new tiers.
 - A next attempt is the task's coder dispatched fresh, carrying `reason: <the returned REASON>` (`<the short DOD: line>` when no `REASON:` came, `<the commit's error>` after a refused commit), the returned `REVIEW` path as `report:` after a review failure, and its `decision:` lines.
 
-Arbiter dispatch: `viber:arbiter` (Agent tool) carrying `case:`, `options:` (the closed list, its first the fallback), `task:`, `report:` and `reason:` lines as the case below names, the last two omitted when empty. Its `RULED` return is recorded, then carried out, without a question:
+Arbiter dispatch: `viber:arbiter` (Agent tool) carrying `case:`, `options:` (the closed list, its first the fallback), `task:`, `report:` and `reason:` lines as the case below names, the last two omitted when empty, and `ruling: <dir>/work/ruling-<subject>.md`, `<subject>` being the task's id, else the case name (`baseline`, `tests`, `final-review`, `commit`). Its `RULED` return is recorded, then carried out, without a question:
 
-- A `RULING` naming no listed option -> take the first option, the mismatch named in the final summary.
-- Record it: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --rule "<plan>" "<subject>" "<ruling>" "<why>" "<cost>"`, `<subject>` being the task's id, else the case name (`baseline`, `tests`, `final-review`, `commit`), the `RULING`, `WHY` and `COST` each one line with every double quote, dollar sign, backtick or backslash rewritten into words. Exit non-zero -> name it in the final summary, rule nothing further, retry nothing, and carry the ruling out.
+- A `RULING` naming no listed option -> carry out the first option, the mismatch named in the final summary.
+- Record it: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --rule "<plan>" "<subject>" --from "<dir>/work/ruling-<subject>.md"`. Exit non-zero -> name it in the final summary, rule nothing further, retry nothing, and carry the ruling out.
+- An accepted refused arbiter is recorded with fixed words: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --rule "<plan>" "<subject>" "<first option>" "the arbiter was refused" "not assessed - the arbiter was refused"`, `<first option>` being the case's own first word (`accept`, `skip`, `continue`, `leave uncommitted`) on cases `cap`, `baseline`, `tests`, `final-review` and `commit`, and `the coder's first option` on case `decide`.
+- A decision taking the coder's first option - a `decide` ruling naming no listed option, or an accepted refused arbiter on case `decide` - is recorded by `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --decide "<plan>" "<id>" --first-of "<dir>/work/<id>-options.md"`.
 - A `--skip` or `--decide` call exiting non-zero after a ruling -> name it in the final summary, ask nothing, and carry on.
 - `VERDICT: DENIED` -> `AskUserQuestion`: retry / accept / abort.
 
@@ -162,7 +166,7 @@ Commit outside a task: every `commit-task.sh` commit but a task's own commit and
 Start with every task whose `deps` are done, in one message. On every return, answer with ONE message carrying every dispatch now legal plus at most one commit. Never wait for a batch to drain; when a constraint forces a choice, start whatever unblocks the most tasks.
 
 - Coder `VERDICT: FAIL` carrying `WAIT:` -> hold the task; once every task in flight at that return has returned, dispatch its coder fresh at the same tier, counting as no attempt and asking nothing. Nothing else in flight at that return, or the task already waited once on a path it names -> act on it as an ordinary `FAIL` below.
-- Coder failure on attempt 1 to 4 -> the next attempt, asking nothing. From attempt 2 on, a `DECIDE:` line -> first the arbiter: `case: decide`, `options:` those options only, `task: <dir>/tasks/<id>.md`, `report: <dir>/work/<id>-coder.md`, `reason:` the returned `REASON:` (the short `DOD:` line when none came); record its ruling with subject `<id>`, then `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --decide "<plan>" "<id>" "auto: <ruling>"`, that text made one line and escaped as for `--rule`, then the next attempt with its `decision:` lines, the new one among them, the attempt count not starting over. No `DECIDE:` line -> no arbiter.
+- Coder failure on attempt 1 to 4 -> the next attempt, asking nothing. From attempt 2 on, a `DECIDE:` line -> first the arbiter: `case: decide`, `options:` those options only, `task: <dir>/tasks/<id>.md`, `report: <dir>/work/<id>-coder.md`, `reason:` the returned `REASON:` (the short `DOD:` line when none came); record its ruling with subject `<id>`, then its decision: `"${CLAUDE_PLUGIN_ROOT}/scripts/commit-task.sh" --decide "<plan>" "<id>" --from "<dir>/work/ruling-<id>.md"`, or the `--first-of` call above when its `RULING` names no listed option, then the next attempt with its `decision:` lines, the new one among them, the attempt count not starting over. No `DECIDE:` line -> no arbiter.
 - Coder failure on attempt 5, reviewer `FAIL` on attempt 5, or a task commit exiting other than 4 on attempt 5 -> the limit: the arbiter with `case: cap` (never `decide`), `task: <dir>/tasks/<id>.md`, `report:` lines for `<dir>/work/<id>-coder.md` and the task's last `REVIEW` path when it has one, `reason:` the failure's `REASON:` or the commit's error, and `options: accept | skip` after a review failure, `options: skip` otherwise. Record its ruling with subject `<id>`, then carry it out: `accept` -> the task's commit with `--unreviewed` appended, the task named unreviewed in the final summary; `skip` -> the `skip` answer's calls. An `accept` commit exiting other than 4 -> the arbiter again with `options: skip`, that commit's error as `reason:` and the same `report:` lines, its ruling recorded and carried out the same way.
 - Coder `VERDICT: DENIED` -> `AskUserQuestion` naming the task: retry / skip / abort.
 - Coder `PASS`, and review due or the task's coder returned an `EXTRA:` line in any attempt -> reviewer dispatch at the next round.

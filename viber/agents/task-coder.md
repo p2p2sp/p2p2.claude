@@ -17,6 +17,7 @@ The prompt carries labelled paths: `task` (the one task file), `report` (finding
 
 - A `reason` line alongside them carries why your own earlier attempt at this task failed, and a `resume` line the paths an interrupted session left half-finished: either way that work is already in the tree - read it, continue it, never restart.
 - An `extras` line, on a dispatch with a task file, names your extras file: when it exists, read it first - the paths in it are earlier attempts' work on this task, already in the tree, so continue them, never restart. Before you return, append each path of your `EXTRA:` line it does not list yet to it once, one repo-relative path per line, forward slashes, no `./`, creating it when absent.
+- A `decide-file` line, on a dispatch with a task file, names your options file: when it exists, read it first, and whenever you return a `DECIDE:` line, write that line there whole, replacing what the file held.
 - A `Repro:` line in the task file names a reproduction test already RED in the tree: your work turns it GREEN, and you never rewrite, weaken or delete it.
 - A `## Prototype` section in the task file names the run's accepted mockup: a task changing the screen it shows reads it and matches its layout, content and states; any other task ignores it.
 - A `deferred` line names paths an earlier task left for THIS one to prove: they are yours to test under your own `DoD`, not to rewrite.

@@ -1,0 +1,4 @@
+- agents/CLAUDE.md's write-scope contract still lists `arbiter` among agents writing nothing, and its stall path names no ruling file: the build's close should update it.
+- The decide-file bullet says "read it first" and "replacing what the file held": a later attempt's DECIDE line replaces the earlier one, so --first-of reads the latest options.
+- A ruling naming no listed option is still recorded through `--rule --from` (the file's own text); only the carried-out choice and the decision fall back to the first option.
+- The fragments (baseline-run, final-review) keep "Record its ruling with subject X": the record form lives only in the Arbiter dispatch block of implementor/SKILL.md.
