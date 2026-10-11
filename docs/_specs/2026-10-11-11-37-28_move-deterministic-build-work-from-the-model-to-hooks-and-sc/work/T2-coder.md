@@ -1,0 +1,5 @@
+- shell-guard.sh sets LC_ALL=C: in a UTF-8 locale a 20 KB command took 5 s (the hook timeout is 10 s); by byte it takes 0.5 s.
+- Choices the contract left open: a # opening a word starts a comment (so `ls # a && b` is not R1); `>&2`, `2>&1`, `>&-` are descriptor duplications, never a file target; `--git-dir X` (space form) and the xargs options taking an argument are skipped as two tokens.
+- perl cluster is `-[0-9pnlaFsStTuUvwWcA]*i`, so `-MList::Util` is not mistaken for in-place editing; sed is literal `-i*` or `--in-place*`.
+- The hooks.json description does not yet claim the "viber guard:" marker for kill-guard.sh: T3 adds that sentence with the marker.
+- viber/hooks/CLAUDE.md (script count, wiring list, Tests line) is stale for shell-guard.sh and verdict-nudge.sh; the build's close updates it. verdict-nudge.sh is committed 100644 (T1), unlike its siblings.
