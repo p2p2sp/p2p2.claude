@@ -2404,3 +2404,167 @@ test("--e2e run from a subdirectory commits a cwd-relative path at its real path
     assert.deepEqual(await stagedFiles(repo), ["pkg/README.md"]);
   });
 });
+
+// --- the task's two extras files (C4): paths taken as if passed on --with -----
+
+const EXTRA_CODER_REL = `${RUN_DIR}/work/T1-extra.md`;
+const EXTRA_REVIEW_REL = `${RUN_DIR}/work/T1-extra-review.md`;
+
+test("a coder-file path and a reviewer-file path no task claims both land in the task's commit", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, "src/wiring.ts", "the coder's\n");
+    write(repo.dir, "src/fixture.ts", "the reviewer's\n");
+    write(repo.dir, EXTRA_CODER_REL, "src/wiring.ts\n");
+    write(repo.dir, EXTRA_REVIEW_REL, "src/fixture.ts\n");
+
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(
+      await committedFiles(repo),
+      [STATUS_REL, "src/a.ts", "src/fixture.ts", "src/wiring.ts", EXTRA_CODER_REL, EXTRA_REVIEW_REL].sort(),
+    );
+  });
+});
+
+test("an extras path an unfinished task claims is refused with its owner named and the rest commits", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, "src/b.ts", "another task's file\n");
+    write(repo.dir, "src/wiring.ts", "register\n");
+    write(repo.dir, EXTRA_CODER_REL, "src/b.ts\nsrc/wiring.ts\n");
+
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /warning: refused src\/b\.ts - claimed by task T2/);
+    assert.deepEqual(await committedFiles(repo), [STATUS_REL, "src/a.ts", "src/wiring.ts", EXTRA_CODER_REL].sort());
+  });
+});
+
+test("an extras path a done task claims lands with the committed task named on stderr", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, STATUS_REL, statusBody(2).replace("done: none", "done: T2").replace("progress: 0/2", "progress: 1/2"));
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "T2 done");
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, "src/b.ts", "a defect T1's tests exposed\n");
+    write(repo.dir, EXTRA_REVIEW_REL, "src/b.ts\n");
+
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /warning: took src\/b\.ts - claimed by committed task T2/);
+    assert.deepEqual(await committedFiles(repo), [STATUS_REL, "src/a.ts", "src/b.ts", EXTRA_REVIEW_REL].sort());
+  });
+});
+
+test("an extras path under .temp is refused and stays out of the commit", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, ".temp/viber/T1/build.log", "noise\n");
+    write(repo.dir, EXTRA_CODER_REL, ".temp/viber/T1/build.log\n");
+
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /refused \.temp\/viber\/T1\/build\.log/);
+    assert.deepEqual(await committedFiles(repo), [STATUS_REL, "src/a.ts", EXTRA_CODER_REL].sort());
+  });
+});
+
+test("a path on --with and in an extras file is committed once, and its ownership warning is not repeated", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, STATUS_REL, statusBody(2).replace("done: none", "done: T2").replace("progress: 0/2", "progress: 1/2"));
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "T2 done");
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, "src/b.ts", "a defect T1's tests exposed\n");
+    write(repo.dir, EXTRA_CODER_REL, "src/b.ts\n");
+    write(repo.dir, EXTRA_REVIEW_REL, "src/b.ts\n");
+
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "T1", "--with", "src/b.ts"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stderr.split("warning: took src/b.ts").length - 1, 1, `stderr: ${result.stderr}`);
+    assert.deepEqual(await committedFiles(repo), [STATUS_REL, "src/a.ts", "src/b.ts", EXTRA_CODER_REL, EXTRA_REVIEW_REL].sort());
+  });
+});
+
+test("an extras file with blank lines, carriage returns and a leading ./ commits the paths it lists", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, "src/x.ts", "x\n");
+    write(repo.dir, "src/y.ts", "y\n");
+    write(repo.dir, EXTRA_CODER_REL, "\r\n\n./src/x.ts\r\n\nsrc/y.ts\r\n");
+
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.doesNotMatch(result.stderr, /could not stage/);
+    assert.deepEqual(await committedFiles(repo), [STATUS_REL, "src/a.ts", "src/x.ts", "src/y.ts", EXTRA_CODER_REL].sort());
+  });
+});
+
+test("an extras file whose last line has no newline still commits that path", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, "src/x.ts", "x\n");
+    write(repo.dir, EXTRA_CODER_REL, "src/x.ts");
+
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(await committedFiles(repo), [STATUS_REL, "src/a.ts", "src/x.ts", EXTRA_CODER_REL].sort());
+  });
+});
+
+test("--unreviewed commits the extras paths and both extras files too", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, "src/wiring.ts", "the coder's\n");
+    write(repo.dir, "src/fixture.ts", "the reviewer's\n");
+    write(repo.dir, EXTRA_CODER_REL, "src/wiring.ts\n");
+    write(repo.dir, EXTRA_REVIEW_REL, "src/fixture.ts\n");
+
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "T1", "--unreviewed"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(
+      await committedFiles(repo),
+      [STATUS_REL, "src/a.ts", "src/fixture.ts", "src/wiring.ts", EXTRA_CODER_REL, EXTRA_REVIEW_REL].sort(),
+    );
+  });
+});
+
+test("another task's extras file and its paths do not ride in this task's commit", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    write(repo.dir, "src/wiring.ts", "T2's coder, still running\n");
+    write(repo.dir, `${RUN_DIR}/work/T2-extra.md`, "src/wiring.ts\n");
+
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "T1"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(await committedFiles(repo), [STATUS_REL, "src/a.ts"].sort());
+  });
+});
+
+test("--landed ignores both extras files: their paths and the files themselves stay uncommitted", async () => {
+  await withGitRepo(async (repo) => {
+    await seed(repo);
+    write(repo.dir, "src/a.ts", "work\n");
+    await repo.git("add", "src/a.ts");
+    await repo.git("commit", "-m", "landed elsewhere");
+    const sha = (await repo.git("rev-parse", "HEAD")).stdout.trim();
+    write(repo.dir, "src/wiring.ts", "the coder's\n");
+    write(repo.dir, "src/fixture.ts", "the reviewer's\n");
+    write(repo.dir, EXTRA_CODER_REL, "src/wiring.ts\n");
+    write(repo.dir, EXTRA_REVIEW_REL, "src/fixture.ts\n");
+
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "T1", "--landed", sha]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(await committedFiles(repo), [STATUS_REL]);
+  });
+});

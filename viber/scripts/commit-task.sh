@@ -36,6 +36,14 @@
 # the committed task whose file changed under a later one. A skipped claimant
 # still refuses: its half-finished files stay uncommitted and visible.
 #
+# A task commit also takes every path of the task's two extras files, the coder's
+# "<run-dir>/work/<task-id>-extra.md" and the reviewer's
+# "<run-dir>/work/<task-id>-extra-review.md" (one path per line; blank lines
+# skipped, a carriage return and a leading "./" stripped), as if each were passed
+# on --with - same ownership rules, same warnings, a path named twice taken once -
+# and stages both files with the task's trail. --landed and a fix number ignore
+# them.
+#
 # --defer records code this task left without its own test because the criterion
 # that proves it belongs to a LATER task, one "<task-id>:<path>" entry per path.
 # It stages nothing - the path is already in the task's own map - and only names
@@ -1112,6 +1120,25 @@ if [[ -n "$landed" ]]; then
   subject="chore(viber): record $task_id done, landed in $(git rev-parse --short "$landed_sha")"
 fi
 
+# --- the paths the task's two extras files list ---
+# <run-dir>/work/<task-id>-extra.md (its coder) and -extra-review.md (its
+# reviewer) hold one path per line; each path is taken as if passed on --with,
+# under the same ownership rules below. Blank lines are skipped, a carriage
+# return and a leading "./" stripped, and a path already collected is not added
+# twice. A plain task commit alone reads them: a fix and --landed ignore both.
+extras_dir="$(run_dir "$plan")"
+if [[ -z "$fix_n" && -z "$landed" && -n "$extras_dir" ]]; then
+  for xf in "$extras_dir/work/$task_id-extra.md" "$extras_dir/work/$task_id-extra-review.md"; do
+    [[ -f "$xf" ]] || continue
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      line="${line%$'\r'}"
+      line="${line#./}"
+      [[ -n "$line" ]] || continue
+      printf '%s' "$extra" | grep -Fxq -- "$line" || extra="$extra$line"$'\n'
+    done < "$xf"
+  done
+fi
+
 # --- what the task forced outside its own map ---
 # Taken when no OTHER task claims the path, or every one that does is done: a
 # shared file is committed by whichever task declares it, never pulled out from
@@ -1177,6 +1204,7 @@ if [[ -n "$fix_n" ]]; then
   trail=("tests-$fix_n.md" "repair-$fix_n-coder.md")
 else
   trail=("$task_id-coder.md" "review-$task_id-[0-9]*.md")
+  [[ -n "$landed" ]] || trail+=("$task_id-extra.md" "$task_id-extra-review.md")
 fi
 while IFS= read -r t; do
   [[ -n "$t" ]] || continue
