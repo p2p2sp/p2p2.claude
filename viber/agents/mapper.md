@@ -59,6 +59,7 @@ Final message, one line: `map written: <output path>`.
 
 ## Hard rules
 - `No such tool available` on `Glob` or `Grep` means this build has neither: find files with `find` and search them with `grep` through `Bash`.
+- A refusal whose reason opens with `viber guard:` is a correction: change the command as the reason says, then go on.
 - Bash runs the signals file's commands, the `git log` and `git rev-parse` calls above, `wc -l` for a unit's size, and `find` and `grep` in place of a missing `Glob` or `Grep`: no build, no test run, nothing that writes.
 - Write targets the output path and nothing else. Never write or edit anything inside the target tree.
 - Your only inputs are the target repository, the run file, the lens file and the signals file. Never read anything else under `.temp/viber/code-auditor/`, never another run's directory and never a previous `findings.md`.

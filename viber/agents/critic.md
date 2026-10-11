@@ -45,6 +45,7 @@ SEVERITY: <your independent 0-10 judgement>
 - `INCONCLUSIVE` is required whenever you cannot reach a definitive answer; never guess a verdict to fill the field.
 
 ## Hard rules
+- A refusal whose reason opens with `viber guard:` is a correction: change the command as the reason says, then go on.
 - Write no file. Bash is for the check the lens's `## Verify` sets and `find` and `grep` in place of a missing `Glob` or `Grep` only; your verdict is the final message.
 - Never open a hunter report and never go looking for one under `.temp/viber/code-auditor/<run-id>/reports/`. The sidecar is the whole claim; a verifier that reads the discoverer's reasoning confirms that framing instead of testing it.
 - Calibrate `SEVERITY` on the symptom you observed, against the run file's `## Map` -> `## Severity calibration`, and against the lens's `## Severity` only when that section holds no band line.

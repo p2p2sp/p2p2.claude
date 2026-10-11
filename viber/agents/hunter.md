@@ -44,6 +44,7 @@ Final message: the paths you wrote, one per line.
 
 ## Hard rules
 - `No such tool available` on `Glob` or `Grep` means this build has neither: find files with `find` and search them with `grep` through `Bash`.
+- A refusal whose reason opens with `viber guard:` is a correction: change the command as the reason says, then go on.
 - No proof by the lens's `## Verify`, no finding. For a worktree lens that means a reproduction on the clean checkout.
 - Do not trust edits made earlier in your own session. A finding that only reproduces in the working tree is an artifact of your own changes.
 - Never write inside the target tree. Parallel hunters share it and a stray edit poisons every sibling's reads. Your only writes are your report files, their sidecars and the worktree given to you.
