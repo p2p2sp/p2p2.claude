@@ -45,7 +45,8 @@ reference. Back to the [viber guide](../README.md).
   `rulings.md`. The build summary lists each finding, what was wrong and what the fix changed.
 - **`build.memory`**: the root `CLAUDE.md` stays yours. The build only suggests changes to it.
 - **`build.cleanup`**: first notes anything the build delivered that the specification does not
-  promise. What it archives is described in [Where viber writes](files.md#the-archive).
+  promise, then records every file the build left uncommitted with its reason and commits those
+  left without a deliberate reason. What it archives is described in [Where viber writes](files.md#the-archive).
 - **`build.extensions`**: one entry per agent from your project's `.claude/agents/`, run in that
   order just before the run is archived. An entry runs alone unless it holds `parallel: true`:
   consecutive such entries run together in one message, as one step. Empty runs none.

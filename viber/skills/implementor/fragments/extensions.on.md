@@ -18,6 +18,6 @@ Run the steps in listed order. Dispatch every name of a step in one message, the
 - `VERDICT: FAIL` -> its `REASON:` goes to the final summary with that extension's name.
 - An agent type the harness reports as not found -> that name goes to the final summary with the hint to reload the session so the harness loads the new agent file.
 - `VERDICT: DENIED` -> `AskUserQuestion` naming that extension: retry / accept / abort.
-- An `--extension` call exiting non-zero -> its paths named uncommitted in the final summary.
+- An `--extension` call exiting non-zero -> one `left uncommitted: <path> | extension <name> commit refused` line per path in the final summary.
 
 A `FAIL`, a not-found agent type or a refused `--extension` commit gets no retry, arbiter or question and never stops the archive. Every `build.extensions-missing:` name other than `none` goes to the final summary as a listed extension with no agent file, also when no step is dispatched.

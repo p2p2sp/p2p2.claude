@@ -1683,10 +1683,12 @@ uruchamia te części zamknięcia, które włączają twoje przełączniki:</p>
   jest wymienione w podsumowaniu i nigdy nie wstrzymuje archiwizacji, a przerwany build pomija tę część.
   <a href="#skill-extension"><code>/viber:extension</code></a> tworzy i rejestruje takiego agenta;</span></li>
   <li><span lang="en"><a href="#key-build-cleanup"><code>build.cleanup</code></a>: <a href="#agent-closeout"><code>closeout</code></a>
-  notes on the specification what the build delivered beyond it, then archives the run. An aborted build
+  notes on the specification what the build delivered beyond it, records every file the build left uncommitted
+  with its reason, commits those left without a deliberate reason, then archives the run. An aborted build
   skips this part.</span><span lang="pl"><a href="#key-build-cleanup"><code>build.cleanup</code></a>:
   <a href="#agent-closeout"><code>closeout</code></a> odnotowuje w specyfikacji to, co build dostarczył ponad
-  nią, a potem archiwizuje przebieg. Przerwany build pomija tę część.</span></li>
+  nią, zapisuje każdy plik, który build zostawił niezacommitowany, z powodem, commituje te zostawione bez
+  celowego powodu, a potem archiwizuje przebieg. Przerwany build pomija tę część.</span></li>
 </ul>
 <p lang="en">The build composes a short summary: the tasks committed, the review rounds spent, the test verdict,
 the time it took, what memory, rules and QA recorded, the archive path when the run is archived, and anything left for you, such as an
@@ -3041,9 +3043,11 @@ kontekście. Żadnego nie uruchamiasz sam.</p>
   i <code>qa.e2e.md</code> dla <a href="#skill-e2e"><code>/viber:e2e</code></a>, gdy
   <a href="#key-build-qa"><code>build.qa</code></a> jest włączony.</span></li>
   <li id="agent-closeout"><code>closeout</code> <span lang="en">notes on the specification what the build
-  delivered beyond it, writes the build summary to <code>outcome.md</code>, then archives the run, when <a href="#key-build-cleanup"><code>build.cleanup</code></a> is
-  on.</span><span lang="pl">odnotowuje w specyfikacji to, co build dostarczył ponad nią, zapisuje podsumowanie buildu
-  w <code>outcome.md</code>, a potem archiwizuje przebieg, gdy <a href="#key-build-cleanup"><code>build.cleanup</code></a> jest włączony.</span></li>
+  delivered beyond it, commits the files the build left uncommitted without a deliberate reason, writes the build
+  summary to <code>outcome.md</code> with every file left uncommitted and its reason, then archives the run, when <a href="#key-build-cleanup"><code>build.cleanup</code></a> is
+  on.</span><span lang="pl">odnotowuje w specyfikacji to, co build dostarczył ponad nią, commituje pliki zostawione przez build
+  niezacommitowane bez celowego powodu, zapisuje podsumowanie buildu w <code>outcome.md</code> wraz z każdym
+  niezacommitowanym plikiem i jego powodem, a potem archiwizuje przebieg, gdy <a href="#key-build-cleanup"><code>build.cleanup</code></a> jest włączony.</span></li>
 </ul>
 
 <h4><span lang="en">After a build</span><span lang="pl">Po buildzie</span></h4>
@@ -3253,12 +3257,14 @@ wartość.</p>
   <div id="key-build-cleanup">
     <dt><code>build.cleanup</code> <span class="tag on"><span lang="en">on</span><span lang="pl">wł.</span></span></dt>
     <dd><span lang="en">The build ends by noting on the specification anything it delivered that the specification
-    does not promise, then archiving the run with the build summary in <code>outcome.md</code> and dropping the plan, the state
+    does not promise, committing the files it left uncommitted without a deliberate reason, then archiving the run
+    with the build summary in <code>outcome.md</code>, every file left uncommitted listed there with its reason, and dropping the plan, the state
     file and the trail, through
     <a href="#agent-closeout"><code>closeout</code></a>. All of them stay in git history.</span><span lang="pl">Build
-    kończy się odnotowaniem w specyfikacji wszystkiego, co dostarczył, a czego specyfikacja nie obiecuje,
+    kończy się odnotowaniem w specyfikacji wszystkiego, co dostarczył, a czego specyfikacja nie obiecuje, i
+    zacommitowaniem plików zostawionych niezacommitowanymi bez celowego powodu,
     potem przez <a href="#agent-closeout"><code>closeout</code></a> archiwizuje przebieg z podsumowaniem buildu
-    w <code>outcome.md</code> i usuwa plan, plik stanu
+    w <code>outcome.md</code>, gdzie każdy niezacommitowany plik ma swój powód, i usuwa plan, plik stanu
     i ślad pracy. Wszystko to zostaje w historii gita.</span></dd>
   </div>
   <div id="key-build-extensions">

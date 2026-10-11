@@ -38,7 +38,7 @@ With `build.cleanup` on, the build ends by moving what is worth keeping to `docs
 - the specification
 - the test scenarios
 - `rulings.md`
-- the build summary, `outcome.md`
+- the build summary, `outcome.md`, with the list of files left uncommitted and the reason for each
 
 It drops the plan, the progress file and the working notes. They stay in git, so nothing is lost.
 The archive is the half you would want to read a year later.
