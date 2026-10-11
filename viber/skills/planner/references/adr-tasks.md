@@ -13,7 +13,7 @@ input:
 <the confirmed viber:intent summary or viber:fixer diagnosis in context, verbatim>
 ```
 
-- A reply with no `VERDICT:` line gets one `SendMessage`, `Finish your task, then return your output lines.`; a second reply without one is handled as `VERDICT: DENIED` with `REASON: no verdict returned`.
+- A reply with no `VERDICT:` line is handled as `VERDICT: DENIED` with `REASON: no verdict returned`.
 - `VERDICT: DENIED` - one `AskUserQuestion` naming the refused call from its `REASON:` line: permission added and retry, or continue with no record task.
 - `VERDICT: NONE` - ask nothing, add nothing and go back to the skill.
 - `VERDICT: FOUND` - ask.

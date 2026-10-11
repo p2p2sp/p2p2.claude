@@ -74,7 +74,7 @@ The ID list is every `### QA-<nn> <title>` heading under `## UI scenarios` and `
 
 The writer's completion notice saying it "stopped with background work of its own still running": hold its verdict and `SendMessage` it, once: `Stop every process you started that is still running, then return your output lines again.` Act on what it returns then. The same notice again -> act on the verdict as returned.
 
-The writer returning no `VERDICT:` line: `SendMessage` it, once: `Finish your task, then return your output lines.` Still none -> treat it as this scenario's second `FAIL`: go straight to the `AskUserQuestion` of point 5, naming the scenario, with `REASON: no verdict returned`.
+The writer returning no `VERDICT:` line -> treat it as this scenario's second `FAIL`: go straight to the `AskUserQuestion` of point 5, naming the scenario, with `REASON: no verdict returned`.
 
 Never open the application, write a spec file, edit one the writer produced, or read a red run yourself.
 
