@@ -6,6 +6,8 @@
 # Usage:
 #   plan-index.sh <plan-file>            validate + index (the planner's call)
 #   plan-index.sh <plan-file> --split    ... and decompose (the orchestrator's call)
+#   plan-index.sh <plan-file> --extra <task-id>
+#                                        the reviewer's scope for one task (below)
 #
 # stdout (the orchestrator's only view of the plan - the decomposed files are read
 # by agents):
@@ -37,6 +39,26 @@
 #                                   dirty (its "Repro:" path excepted)
 #   orphan: lib/x.ts,lib/y.ts       only when non-empty: changed paths claimed
 #                                   by no task not "done" (run directory excluded)
+#
+# --extra <task-id> prints, instead of the index, the scope a reviewer checks
+# beyond the task's own Files, read from the coder extras file
+# <run-dir>/work/<task-id>-extra.md (one repo-relative path per line; the
+# reviewer file <task-id>-extra-review.md is never read):
+#   extra: lib/x.ts,src/a.ts        the file paths in file order, minus a blank
+#                                   line, a repeat, one under .temp/, one the
+#                                   task's own Files lists and one a task not yet
+#                                   done lists; a carriage return and a leading
+#                                   "./" are stripped first
+#   recheck: T1 | node --test tests/a.test.ts
+#                                   one per done task whose Files lists a path of
+#                                   the extra line, in task order, its Verification
+#                                   command as on "verify:"
+# Nothing at all when no path remains or the file is missing, exit 0. The plan is
+# validated as under --split. An id the plan does not hold, or --extra with
+# --split, exits 2.
+#
+# --split removes, before anything else is written, the coder and reviewer extras
+# files of every task not done; a done task keeps its files.
 #
 # "feeds" is the comma-separated "<id>:<count>" entries of the contract blocks
 # whose "File:" path is in this task's "Files" and which at least one OTHER
@@ -159,8 +181,9 @@
 #
 # Validation (exit != 0, nothing on stdout, nothing written) - catches plan drift
 # before a build starts:
-#   2 - plan file missing or unusable, a second argument that is not --split, or
-#       a --split pointed at anything but the run's own <dir>/plan.md
+#   2 - plan file missing or unusable, an argument that is not --split or
+#       --extra <task-id>, --extra beside --split, a --extra id the plan does not
+#       hold, or a --split pointed at anything but the run's own <dir>/plan.md
 #   3 - no <!-- TASK --> blocks
 #   4 - broken task contract (<!-- TASK --> blocks under no "## Tasks" heading,
 #       where the cut would leave tasks/ empty while the index still lists
@@ -203,7 +226,7 @@
 #       could not stage).
 #
 # Contract:
-#   argv   : the plan file, optionally --split.
+#   argv   : the plan file, optionally --split or --extra <task-id>, never both.
 #   cwd    : the repository root - the plan path and every path in the index are
 #            relative to it.
 #   env    : none.
@@ -213,10 +236,32 @@
 set -euo pipefail
 
 plan="${1:-}"
-mode="${2:-}"
+mode=""
+extra_id=""
+has_extra=0
+[[ $# -eq 0 ]] || shift
+usage="error: usage: plan-index.sh <plan-file> [--split | --extra <task-id>]"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --split) mode="--split" ;;
+    --extra)
+      if [[ $# -lt 2 || -z "$2" ]]; then echo "$usage" >&2; exit 2; fi
+      has_extra=1
+      extra_id="$2"
+      shift
+      ;;
+    *) echo "$usage" >&2; exit 2 ;;
+  esac
+  shift
+done
 
-if [[ -z "$plan" ]] || { [[ -n "$mode" ]] && [[ "$mode" != "--split" ]]; }; then
-  echo "error: usage: plan-index.sh <plan-file> [--split]" >&2
+if [[ -z "$plan" ]]; then
+  echo "$usage" >&2
+  exit 2
+fi
+
+if [[ "$has_extra" -eq 1 && "$mode" == "--split" ]]; then
+  echo "error: --extra cannot be combined with --split" >&2
   exit 2
 fi
 
@@ -290,9 +335,17 @@ if [[ -f "$dir/rulings.md" ]]; then
   done < "$dir/rulings.md"
 fi
 
+# --extra validates like --split: it runs against a plan already landed, which
+# must still resolve after a rule was added.
+awk_mode="$mode"
+[[ "$has_extra" -eq 0 ]] || awk_mode="--split"
+
 # The path travels through ENVIRON, not -v: awk -v expands escape sequences and
-# would mangle a Windows path containing backslashes.
-plan="$plan" changed="$changed" mode="$mode" rundir="$dir" \
+# would mangle a Windows path containing backslashes. The output is held until
+# the awk pass has exited 0, so a plan refused for any reason prints nothing and
+# --split below touches nothing.
+index_out="$(plan="$plan" changed="$changed" mode="$awk_mode" rundir="$dir" \
+extra="$extra_id" workdir="$dir/work" \
 st_done="$st_done" st_skipped="$st_skipped" st_unreviewed="$st_unreviewed" \
 st_deferred="$st_deferred" st_closed="$st_closed" st_decisions="$st_decisions" st_rulings="$st_rulings" \
 awk '
@@ -368,10 +421,41 @@ function patterned(p,   m, seg, k) {
   return 0
 }
 
+# the --extra report for task "self": the paths of its coder extras file, in file
+# order, minus a blank line, a path under .temp/, a repeat, one the task itself
+# lists and one a task not yet done lists; then one recheck line per done task
+# whose Files lists a kept path, in task order. Nothing at all when no path is
+# kept or the file is missing. A carriage return and a leading dot-slash are
+# stripped from each line first.
+function scope(self,   f, line, p, k, out, me, claimed) {
+  f = workdir "/" self "-extra.md"
+  me = seen[self]
+  out = ""
+  while ((getline line < f) > 0) {
+    sub(/\r$/, "", line)
+    p = trim(line)
+    sub(/^\.\//, "", p)
+    if (p == "" || index(p, ".temp/") == 1 || (p in xseen)) continue
+    xseen[p] = 1
+    if ((me, p) in fset) continue
+    claimed = 0
+    for (k = 1; k <= n; k++) if (!(id[k] in isdone) && ((k, p) in fset)) claimed = 1
+    if (claimed) continue
+    out = (out == "" ? p : out "," p)
+    for (k = 1; k <= n; k++) if ((id[k] in isdone) && ((k, p) in fset)) recheck[k] = 1
+  }
+  close(f)
+  if (out == "") return
+  printf "extra: %s\n", out
+  for (k = 1; k <= n; k++) if (k in recheck) printf "recheck: %s | %s\n", id[k], verifycmd(verif[k])
+}
+
 BEGIN {
   n = 0; ncrit = 0; ncon = 0; err = 0; title = ""
   plan = ENVIRON["plan"]
   mode = ENVIRON["mode"]
+  extra = ENVIRON["extra"]
+  workdir = ENVIRON["workdir"]
   # what is committed, plus the two decisions and the close that no later
   # session could read off the tree, all of it out of the status file
   done    = listed(ENVIRON["st_done"])
@@ -710,6 +794,9 @@ END {
 
   if (err) exit 4
 
+  # --extra names a task the plan holds, or the call is refused
+  if (extra != "" && !(extra in seen)) { printf "error: --extra: no such task: %s\n", extra > "/dev/stderr"; exit 2 }
+
   # task state from the done list, and the tasks the user dropped from the
   # skipped one - both are settled, neither is dispatched again
   ndone = 0
@@ -718,6 +805,8 @@ END {
   split(skipped, slist, /[[:space:]]+/)
   for (k in slist) if (slist[k] != "" && slist[k] != "-") isskipped[slist[k]] = 1
   for (i = 1; i <= n; i++) if (id[i] in isdone) ndone++
+
+  if (extra != "") { scope(extra); exit 0 }
 
   printf "plan: %s\n", plan
   printf "title: %s\n", title
@@ -781,7 +870,31 @@ END {
   }
   if (orph != "") printf "orphan: %s\n", orph
 }
-' "$plan"
+' "$plan")"
+
+# --split: the extras files of a task not done belong to a session that is over
+# (a done task keeps its files, committed in its trail). Task rows sit between
+# the "tasks:" header and the first "verify:" line of the index.
+if [[ "$mode" == "--split" ]]; then
+  in_rows=0
+  while IFS= read -r row; do
+    case "$row" in
+      "tasks: "*) in_rows=1 ;;
+      "verify: "*) in_rows=0 ;;
+      *)
+        if [[ $in_rows -eq 1 ]]; then
+          row_id="${row%% | *}"
+          row_rest="${row#* | }"
+          if [[ "${row_rest%% | *}" != "done" ]]; then
+            rm -f -- "$dir/work/$row_id-extra.md" "$dir/work/$row_id-extra-review.md"
+          fi
+        fi
+        ;;
+    esac
+  done < <(printf '%s\n' "$index_out")
+fi
+
+[[ -z "$index_out" ]] || printf '%s\n' "$index_out"
 
 [[ "$mode" == "--split" ]] || exit 0
 

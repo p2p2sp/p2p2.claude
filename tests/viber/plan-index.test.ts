@@ -2257,3 +2257,213 @@ test("a DoD line naming another task validates under --split - a frozen plan res
     assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
   });
 });
+
+// --- the scope command: plan-index.sh <plan> --extra <task-id> ---------------
+
+/** T1 and T4 are done, T2 is still open, T3 is the task under review. T1 claims
+ *  two files, so one task can hold several paths of the coder's extras file. */
+const SCOPE_TASKS: TaskFields[] = [
+  { id: "T1", files: "src/done-a.ts,src/done-a2.ts" },
+  { id: "T2", files: "src/todo.ts" },
+  { id: "T3", files: "src/own.ts" },
+  { id: "T4", files: "src/done-b.ts" },
+];
+
+const EXTRA_CODER = `${PLAN_DIR}/work/T3-extra.md`;
+const EXTRA_REVIEWER = `${PLAN_DIR}/work/T3-extra-review.md`;
+
+/** A run with SCOPE_TASKS, T1 and T4 done, and the coder's extras file for T3 holding `coder`. */
+function seedScope(dir: string, coder: string | null): void {
+  seed(dir, planBody(SCOPE_TASKS, 1));
+  seedStatus(dir, { progress: "2/4", done: "T1 T4" });
+  if (coder !== null) write(dir, EXTRA_CODER, coder);
+}
+
+async function scope(dir: string, id = "T3") {
+  return run(dir, {}, [PLAN_REL, "--extra", id]);
+}
+
+test("a coder-file path no task claims prints on an extra line and no recheck line", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seedScope(dir, "lib/new.ts\n");
+
+    const result = await scope(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "extra: lib/new.ts\n");
+  });
+});
+
+test("a path under .temp/ is left off the extra line", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seedScope(dir, ".temp/viber/T3/out.md\nlib/new.ts\n");
+
+    const result = await scope(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "extra: lib/new.ts\n");
+  });
+});
+
+test("the reviewer's extras file is never read (only the coder's paths reach the reviewer's scope)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seedScope(dir, null);
+    write(dir, EXTRA_REVIEWER, "lib/reviewer-only.ts\n");
+
+    const result = await scope(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+  });
+});
+
+test("a path a done task claims prints on the extra line with one recheck line carrying that task's verification command", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seedScope(dir, "src/done-a.ts\n");
+
+    const result = await scope(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "extra: src/done-a.ts\nrecheck: T1 | npm test\n");
+  });
+});
+
+test("a path the task's own Files lists is left off", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seedScope(dir, "src/own.ts\n");
+
+    const result = await scope(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+  });
+});
+
+test("a path a task not yet done claims is left off (that task's own coder owns it)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seedScope(dir, "src/todo.ts\n");
+
+    const result = await scope(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+  });
+});
+
+test("several paths print one comma-separated extra line in file order, with one recheck line per done task in task order", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seedScope(dir, "src/done-b.ts\nlib/b.ts\nsrc/done-a2.ts\nsrc/done-a.ts\nlib/a.ts\n");
+
+    const result = await scope(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(
+      result.stdout,
+      "extra: src/done-b.ts,lib/b.ts,src/done-a2.ts,src/done-a.ts,lib/a.ts\nrecheck: T1 | npm test\nrecheck: T4 | npm test\n",
+    );
+  });
+});
+
+test("blank lines are ignored and a carriage return or a leading ./ is stripped from a coder-file path", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seedScope(dir, "\n./lib/a.ts\r\n\r\nlib/b.ts\r\n\n");
+
+    const result = await scope(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "extra: lib/a.ts,lib/b.ts\n");
+  });
+});
+
+test("a missing coder file prints nothing and exits 0", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seedScope(dir, null);
+
+    const result = await scope(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+  });
+});
+
+test("a coder file leaving no path prints nothing and exits 0", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seedScope(dir, "\n.temp/viber/T3/out.md\nsrc/own.ts\n");
+
+    const result = await scope(dir);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+  });
+});
+
+test("--extra with an id the plan does not hold exits 2 with nothing on stdout", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seedScope(dir, "lib/new.ts\n");
+
+    const result = await scope(dir, "T9");
+    assert.equal(result.status, 2, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+  });
+});
+
+test("--extra combined with --split exits 2 and decomposes nothing", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seedScope(dir, "lib/new.ts\n");
+
+    const result = await run(dir, {}, [PLAN_REL, "--extra", "T3", "--split"]);
+    assert.equal(result.status, 2, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+    assert.equal(fs.existsSync(path.join(dir, PLAN_DIR, "tasks")), false);
+  });
+});
+
+test("--split removes the coder and reviewer extras files of every task not done and keeps those of a done task", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seedScope(dir, "lib/new.ts\n");
+    write(dir, EXTRA_REVIEWER, "lib/rev.ts\n");
+    write(dir, `${PLAN_DIR}/work/T1-extra.md`, "lib/kept.ts\n");
+    write(dir, `${PLAN_DIR}/work/T1-extra-review.md`, "lib/kept-rev.ts\n");
+    write(dir, `${PLAN_DIR}/work/T2-extra.md`, "lib/gone.ts\n");
+
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.deepEqual(fs.readdirSync(path.join(dir, PLAN_DIR, "work")).sort(), ["T1-extra-review.md", "T1-extra.md"]);
+  });
+});
+
+test("--split with a committed extras file of a task not done prints the orphan and dirty lines exactly as it would without one", async () => {
+  await withGitRepo(async (repo) => {
+    seedScope(repo.dir, "lib/new.ts\n");
+    write(repo.dir, "src/todo.ts", "committed\n");
+    await repo.git("add", "-A");
+    await repo.git("commit", "-m", "seed");
+
+    write(repo.dir, "src/todo.ts", "half a coder's work\n");
+    write(repo.dir, "lib/x.ts", "nobody's task claims this\n");
+
+    const result = await run(repo.dir, repo.env, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.ok(
+      result.stdout.endsWith("verify: T4 | npm test\ndirty: T2 | src/todo.ts\norphan: lib/x.ts\n"),
+      `stdout: ${result.stdout}`,
+    );
+  });
+});
+
+test("the plain index and the --split index are the same lines as before the scope command existed", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seedScope(dir, "lib/new.ts\n");
+
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(
+      result.stdout,
+      [
+        `plan: ${PLAN_REL}`,
+        "title: Add login",
+        "progress: 2/4",
+        "tasks: id | state | tdd | excl | hard | deps | feeds | files | title",
+        "T1 | done | required | - | - | - | - | src/done-a.ts,src/done-a2.ts | do the thing",
+        "T2 | todo | required | - | - | - | - | src/todo.ts | do the thing",
+        "T3 | todo | required | - | - | - | - | src/own.ts | do the thing",
+        "T4 | done | required | - | - | - | - | src/done-b.ts | do the thing",
+        "verify: T1 | npm test",
+        "verify: T2 | npm test",
+        "verify: T3 | npm test",
+        "verify: T4 | npm test",
+        "",
+      ].join("\n"),
+    );
+  });
+});
