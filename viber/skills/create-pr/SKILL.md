@@ -1,7 +1,7 @@
 ---
 name: create-pr
 description: Opens a pull request for the current branch. Only on the user's request.
-allowed-tools: Read, Edit(./.temp/viber/create-pr/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pr-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pr-create.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh:*)
+allowed-tools: Read, Edit(./.temp/viber/create-pr/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pr-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pr-create.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh:*), Bash(date:*)
 user-invocable: true
 model: sonnet
 ---
@@ -64,7 +64,7 @@ Print the title, the target (`TARGET=`) and the body exactly as it will be writt
 
 ## 6. Create
 
-`Write` the body to `<root>/.temp/viber/create-pr/body.md` (`<root>` the project root; `Read` the file first when it exists), then run `"${CLAUDE_PLUGIN_ROOT}/scripts/pr-create.sh" "<file>" "<title>" --base "<TARGET>"`, plus ` --draft` for the draft answer.
+`Write` the body to `<root>/.temp/viber/create-pr/body-<stamp>.md` (`<root>` the project root, `<stamp>` the output of `date +%Y-%m-%d-%H-%M-%S`, so every body gets its own file), then run `"${CLAUDE_PLUGIN_ROOT}/scripts/pr-create.sh" "<file>" "<title>" --base "<TARGET>"`, plus ` --draft` for the draft answer.
 
 - Exit 0 -> report `PR_URL=`, plus one line that the pull request stays unassigned when `ASSIGNEE=dropped` (the script assigns its author itself), then, when `QA=` is set, run `"${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh" "<QA>" --pr "<PR_URL>"` with that `PR_URL=` and report the result as step 7 says. Never retry it.
 - Exit 1 -> report its `ERROR` line. Never retry.
