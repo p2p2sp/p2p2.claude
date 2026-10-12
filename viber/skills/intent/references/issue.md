@@ -4,7 +4,7 @@
 
 ## Comment
 
-1. Write the confirmed summary as the comment, in the language of your conversation with the user: what the interview settled and what it changed against the issue. No secrets, credentials or file contents: the comment may be public.
+1. Write the confirmed summary as the comment, in the language of your conversation with the user: what the interview settled and what it changed against the issue. No secrets, credentials or file contents: the comment may be public. No Claude or Claude Code attribution.
 2. `Write` it to `<root>/.temp/viber/intent/<N>.md`, `<N>` being the `NUMBER=` value, then run `"${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh" "<URL>" "<file>"`, `<URL>` being the `URL=` value.
    - Exit 0 -> report the `COMMENT_URL=` value.
    - Exit 1 -> report its `ERROR` line and say whether a comment landed is unknown. Never retry.

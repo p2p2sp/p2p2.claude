@@ -14,7 +14,7 @@ Compose a commit message per the Conventional Commits rules below from the commi
 
 - In modes `all` and `paths` always run `commit.sh` exactly once with the resolved selector, whatever the context shows: a reply with no tool call commits nothing. Never decide on your own that there is nothing to commit, never re-inspect the tree, never question the selection.
 - Run only `commit.sh` and `commit-selfcheck.sh`: no `git`, no push, and no second `commit.sh` with a different or empty selector (that widens the commit to everything staged).
-- Never add a `Co-Authored-By` line.
+- Never add a `Co-Authored-By` line or any other Claude or Claude Code attribution.
 
 Before SHA: !`git rev-parse --verify -q HEAD 2>/dev/null || echo "(none)"`
 

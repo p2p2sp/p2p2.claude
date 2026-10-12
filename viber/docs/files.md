@@ -62,7 +62,8 @@ build then runs that agent at its close and commits what it wrote in a commit of
 ## Settings
 
 `.claude/settings.json` gets every setting viber recommends, including a bare `Bash` allow (see
-[Install](../README.md#install)). If the file already exists and differs, setup asks first:
+[Install](../README.md#install)) and an empty `attribution`, which keeps Claude Code's byline
+(`Co-Authored-By`, "Generated with Claude Code") out of commits and pull requests. If the file already exists and differs, setup asks first:
 
 | Choice | Effect |
 | --- | --- |

@@ -1924,6 +1924,10 @@ followed by <code>/plugin install viber@p2p2</code> does the same as the termina
   whether to merge or reset when that file exists and differs from the recommended one;</span><span lang="pl">wpisuje zalecane uprawnienia do
   <code>.claude/settings.json</code>, a gdy ten plik istnieje i różni się od zalecanego, najpierw pyta, czy
   scalić, czy zastąpić;</span></li>
+  <li><span lang="en">turns off Claude Code's byline (<code>Co-Authored-By</code>, <q>Generated with Claude Code</q>)
+  in commits and pull requests through an empty <code>attribution</code> in that same file;</span><span lang="pl">wyłącza
+  podpis Claude Code (<code>Co-Authored-By</code>, <q>Generated with Claude Code</q>) w commitach i pull
+  requestach przez puste <code>attribution</code> w tym samym pliku;</span></li>
   <li><span lang="en">adds <code>.temp/</code> and <code>.claude/viber.local.yml</code> to <code>.gitignore</code>
   when nothing ignores them yet;</span><span lang="pl">dopisuje <code>.temp/</code> i
   <code>.claude/viber.local.yml</code> do <code>.gitignore</code>, gdy nic ich jeszcze nie

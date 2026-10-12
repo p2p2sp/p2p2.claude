@@ -51,7 +51,7 @@ Then collapse each run of blanks to one and trim.
 
 ## 4. Body
 
-Fill from `SPEC=`'s file (`Read`), the `COMMIT=` lines and this conversation, never from anything else: a value none of them states is never invented. No secrets, credentials or file contents: the pull request may be public.
+Fill from `SPEC=`'s file (`Read`), the `COMMIT=` lines and this conversation, never from anything else: a value none of them states is never invented. No secrets, credentials or file contents: the pull request may be public. No Claude or Claude Code attribution (no "Generated with Claude Code" line, no `Co-Authored-By`).
 
 - `TEMPLATE=` set -> `Read` it and fill each section in template order. The four placeholders of step 3 are replaced wherever they stand. A section none of the three sources answers reads `_No response_`. Every HTML comment of the template is dropped. A checkbox stays unchecked unless a source states it done.
 - `TEMPLATE=` empty -> the sections `## Summary`, `## Changes` and `## Testing`, filled the same way.

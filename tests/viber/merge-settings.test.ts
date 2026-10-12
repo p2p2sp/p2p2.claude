@@ -479,9 +479,12 @@ test("a template path that does not exist reports the missing template and exits
 test("the shipped template carries the recommended block only: built-in tools, recoverable operations asked, irreversible ones denied, no host-specific key", () => {
   const template = readJson(TEMPLATE_SETTINGS);
 
-  assert.deepEqual(Object.keys(template), ["$schema", "showClearContextOnPlanAccept", "permissions"]);
+  assert.deepEqual(Object.keys(template), ["$schema", "showClearContextOnPlanAccept", "attribution", "permissions"]);
   assert.equal(template.$schema, "https://json.schemastore.org/claude-code-settings.json");
   assert.equal(template.showClearContextOnPlanAccept, true);
+  // An empty string is what hides the harness's own byline: no Co-Authored-By
+  // trailer on a commit, no "Generated with Claude Code" line in a PR body.
+  assert.deepEqual(template.attribution, { commit: "", pr: "" });
   assert.deepEqual(Object.keys(template.permissions), ["defaultMode", "disableAutoMode", "allow", "ask", "deny"]);
   assert.equal(template.permissions.defaultMode, "acceptEdits");
   // "disable" is the literal the harness reads; a boolean is silently inert.
