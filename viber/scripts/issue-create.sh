@@ -21,6 +21,8 @@
 #            --project <P>    repeatable, passed to gh verbatim
 #   cwd  : gh resolves the repository from the cwd.
 #   env  : none of its own; gh reads its usual auth and host config.
+#   file : $1, sent verbatim as the issue body, then removed once the issue
+#          exists (exit 0); every other exit leaves it in place.
 #   stdout, exit 0:
 #            ISSUE_URL=https://<host>/<owner>/<repo>/issues/<N>
 #            ISSUE_NUMBER=<N>
@@ -80,6 +82,7 @@ if [ $st -ne 0 ] || [ -z "$url" ]; then
   echo "ERROR issue-create.sh: gh issue create failed: $(printf '%s' "$out" | tr '\n\r' '  ')" >&2
   exit 1
 fi
+rm -f "$body"
 
 number=${url##*/}
 rest=${url#https://}

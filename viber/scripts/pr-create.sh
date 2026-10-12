@@ -16,7 +16,8 @@
 #   cwd  : the repository whose current branch is published; gh resolves the
 #          repository from it too. A relative body file resolves against it.
 #   env  : none of its own; git and gh read their usual auth and config.
-#   file : $1, sent verbatim as the pull request body; never modified.
+#   file : $1, sent verbatim as the pull request body, then removed once the
+#          pull request exists (exit 0); every other exit leaves it in place.
 #   remote: `branch.<branch>.remote`, else `origin`. Push: `git push -u
 #          <remote> <branch>`. Create: `gh pr create --base <base> --head
 #          <branch> --title <title> --body-file <file>` plus `--draft`.
@@ -93,6 +94,7 @@ if [ $st -ne 0 ] || [ -z "$url" ]; then
   echo "ERROR pr-create.sh: gh pr create failed, branch $remote/$branch is pushed: $(printf '%s' "$out" | tr '\n\r' '  ')" >&2
   exit 1
 fi
+rm -f "$body"
 
 assignee=@me
 gh pr edit "$url" --add-assignee @me >/dev/null 2>&1 || assignee=dropped

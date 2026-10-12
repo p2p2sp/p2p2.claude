@@ -2276,9 +2276,9 @@ z nich mówi, jak nim sterować.</p>
     <div>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
       <dd><span lang="en">No code. The issue body it creates from goes to
-      <code>.temp/viber/create-issue/issue-body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>. It stops with a reason when the project has no issue
+      <code>.temp/viber/create-issue/issue-body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>, removed once the issue exists. It stops with a reason when the project has no issue
       form template, no <code>gh</code> or no GitHub repository.</span><span lang="pl">Żadnego kodu. Treść issue
-      trafia do <code>.temp/viber/create-issue/issue-body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>. Kończy z powodem, gdy projekt nie ma
+      trafia do <code>.temp/viber/create-issue/issue-body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>, usuwana po utworzeniu issue. Kończy z powodem, gdy projekt nie ma
       formularza issue, <code>gh</code> albo repozytorium na GitHubie.</span></dd>
     </div>
   </dl>
@@ -2565,10 +2565,10 @@ z nich mówi, jak nim sterować.</p>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
       <dd><span lang="en">One reproduction test in your test suite, left failing until the build turns it
       green. With <code>github.issues</code> on and your yes, one new issue on GitHub, its draft body in
-      <code>.temp/viber/fixer/issue-body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>.</span><span lang="pl">Jeden test reprodukcyjny w twoich
+      <code>.temp/viber/fixer/issue-body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>, removed once the issue exists.</span><span lang="pl">Jeden test reprodukcyjny w twoich
       testach, który nie przechodzi, dopóki build go nie naprawi. Przy włączonym <code>github.issues</code> i
       twojej zgodzie: jedno nowe issue na GitHubie, a jego szkic treści w
-      <code>.temp/viber/fixer/issue-body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>.</span></dd>
+      <code>.temp/viber/fixer/issue-body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>, usuwany po utworzeniu issue.</span></dd>
     </div>
   </dl>
 </article>
@@ -2662,13 +2662,13 @@ z nich mówi, jak nim sterować.</p>
     </div>
     <div>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
-      <dd><span lang="en">No code. The body goes to <code>.temp/viber/create-pr/body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>. On your yes it
+      <dd><span lang="en">No code. The body goes to <code>.temp/viber/create-pr/body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>, removed once the pull request exists. On your yes it
       pushes the branch to its remote and creates the pull request, or a draft; it reports the pull request's
       URL. Nothing else in viber pushes. When the run has a <code>qa.md</code>, it also posts it as a comment on the
       run's issue, or on the pull request when the run has no issue, once per run: a target that already has
       that comment gets no second one. On a branch
       whose pull request exists already, that comment is all it does.</span><span lang="pl">Żadnego kodu. Treść trafia do
-      <code>.temp/viber/create-pr/body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>. Na twoje tak wypycha gałąź na jej zdalne repozytorium i tworzy
+      <code>.temp/viber/create-pr/body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>, usuwana po utworzeniu pull requesta. Na twoje tak wypycha gałąź na jej zdalne repozytorium i tworzy
       pull request albo szkic; podaje jego adres URL. Nic innego w viber niczego nie wypycha. Gdy przebieg ma
       <code>qa.md</code>, publikuje go też jako komentarz pod issue przebiegu, a gdy przebieg nie ma issue, pod
       pull requestem, raz na przebieg: miejsce, które ma już ten komentarz, nie dostaje drugiego. Na gałęzi, której pull request już istnieje, robi tylko to.</span></dd>

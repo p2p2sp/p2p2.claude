@@ -8,7 +8,8 @@
  * issue URL, TYPE is none/applied/dropped/error depending on the `gh api`
  * PATCH outcome (and that PATCH always carries `--hostname <host>` for the
  * issue's own host, github.com included), a failed PATCH never removes the
- * created issue, and bad arguments or a missing body file exit 2 with gh
+ * created issue, the body file is removed once the issue exists and kept on
+ * a failed create, and bad arguments or a missing body file exit 2 with gh
  * never invoked.
  *
  * issue-create.sh is `#!/bin/sh`, so every case runs through
@@ -66,7 +67,7 @@ async function runStubbed(
   shell: Shell,
   args: string[],
   env: Record<string, string> = {},
-): Promise<{ result: RunResult; calls: string[][]; body: string }> {
+): Promise<{ result: RunResult; calls: string[][]; body: string; bodyKept: boolean }> {
   return await withTempDir("p2p2-issue-create-", (cwd) =>
     withStub("gh", GH_STUB, async (stubDir) => {
       const body = path.join(cwd, "body.md");
@@ -80,7 +81,7 @@ async function runStubbed(
         .split("===\n")
         .map((block) => block.split("\n").filter((line) => line.length > 0))
         .filter((call) => call.length > 0);
-      return { result, calls, body };
+      return { result, calls, body, bodyKept: fs.existsSync(body) };
     }),
   );
 }
@@ -143,8 +144,9 @@ test(
 
 test("gh issue create fails: exit 1, one ERROR line carrying gh's message, nothing on stdout", async () => {
   await assertPosix(async (shell) => {
-    const { result, calls } = await runStubbed(shell, ["<body>", "A title"], { CREATE_EXIT: "1", CREATE_STDERR: "HTTP 401: Bad credentials\n" });
+    const { result, calls, bodyKept } = await runStubbed(shell, ["<body>", "A title"], { CREATE_EXIT: "1", CREATE_STDERR: "HTTP 401: Bad credentials\n" });
     assert.equal(result.status, 1);
+    assert.ok(bodyKept, "a failed create keeps the body file");
     assert.equal(result.stdout, "");
     const lines = result.stderr.split("\n").filter((l) => l.length > 0);
     assert.equal(lines.length, 1, `expected a single ERROR line, got:\n${result.stderr}`);
@@ -168,12 +170,13 @@ for (const out of ["", "not a url\n", "https://github.com/acme/widgets/pull/42\n
 
 test("no --type: the body reaches gh issue create through --body-file, flags forward verbatim and in order, TYPE=none, and gh api is never called", async () => {
   await assertPosix(async (shell) => {
-    const { result, calls, body } = await runStubbed(
+    const { result, calls, body, bodyKept } = await runStubbed(
       shell,
       ["<body>", "A title", "--label", "bug", "--assignee", "octocat", "--label", "triage", "--project", "Roadmap"],
       { CREATE_STDOUT: ISSUE_URL + "\n" },
     );
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(bodyKept, false, "the body file is removed once the issue exists");
     assert.equal(result.stdout, `ISSUE_URL=${ISSUE_URL}\nISSUE_NUMBER=42\nTYPE=none\n`);
     assert.equal(calls.length, 1);
     assert.deepEqual(calls[0], [

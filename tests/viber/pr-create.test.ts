@@ -6,8 +6,8 @@
  * `branch.<branch>.remote`, else origin) before `gh pr create` runs with base,
  * head, title and `--body-file` (plus `--draft` on request), the new pull
  * request is assigned to `@me` (a refusal reads ASSIGNEE=dropped, still exit
- * 0), a success prints PR_URL/PR_NUMBER/PUSHED/ASSIGNEE, a failed push exits 1 before gh runs, a gh failure
- * exits 1 naming the branch as pushed, and bad arguments, a detached HEAD or
+ * 0), a success prints PR_URL/PR_NUMBER/PUSHED/ASSIGNEE and removes the body file, a failed push exits 1 before gh runs, a gh failure
+ * exits 1 naming the branch as pushed and keeps the body file, and bad arguments, a detached HEAD or
  * a missing gh exit 2 with nothing pushed.
  *
  * pr-create.sh is `#!/bin/sh`, so every case runs through
@@ -122,6 +122,7 @@ test("a branch pushed to a bare remote gets its upstream set, gh pr create is ca
         ["pr", "create", "--base", "main", "--head", "feature/x", "--title", "Add x", "--body-file", scene.body],
         ["pr", "edit", PR_URL, "--add-assignee", "@me"],
       ]);
+      assert.equal(fs.existsSync(scene.body), false, "the body file is removed once the pull request exists");
     });
   });
 });
@@ -200,6 +201,7 @@ test("a gh failure exits 1 with one ERROR line naming the branch as pushed", asy
       assert.equal(lines.length, 1, `expected a single ERROR line, got:\n${result.stderr}`);
       assert.match(lines[0], /^ERROR pr-create\.sh: gh pr create failed.*origin\/feature\/x is pushed.*Bad credentials/);
       assert.equal(await remoteHeads(scene), "refs/heads/feature/x");
+      assert.ok(fs.existsSync(scene.body), "a failed create keeps the body file");
     });
   });
 });
