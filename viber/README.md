@@ -147,7 +147,8 @@ tests plus the integration tests the change reaches. End-to-end tests stay with 
 An idea too big for one cycle, such as a whole application, is split into ordered parts before any
 detail question, and the interview covers every part. Each part gets its own plan and its own
 build. A finished build names the next part, which resumes from the decisions already made, and
-nothing is stubbed in between.
+nothing is stubbed in between. With GitHub issues on, each part gets its own sub-issue under
+one parent issue, and a part that resumes is tied to its sub-issue.
 
 ### When it decides for you
 

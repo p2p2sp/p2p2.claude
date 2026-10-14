@@ -10,3 +10,5 @@ Once the split is accepted, interview every part in order, each with the questio
 ## The summary
 
 A split intent opens its `## Done` summary with the accepted roadmap, one line per part plus which one this cycle covers, carrying under each later part the decisions settled for it and its open unknowns, and names every later part among the boundaries; its cap is 15 lines plus up to 5 per later part carrying its decisions.
+
+Once a part's sub-issue exists, its roadmap line carries `   - Issue: <full issue URL>` as the first indented line under it, before its decisions, this cycle's part included; a part with no sub-issue carries no such line, and an `Issue:` line adds to the cap one line per part.

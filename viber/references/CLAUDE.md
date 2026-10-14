@@ -14,7 +14,7 @@ The nine markdown files viber skills and agents read by path while they work: th
   - `adr-admission.md`: `adr-screener`, dispatched through `skills/planner/references/adr-tasks.md` when `planning.adr` is on.
   - `rule-admission.md`: `rules-writer` and `rules-auditor`.
   - `node-doctrine.md`: `memory-writer`, `memory-node-writer` and `memory-auditor` (its `## Template` part, for `SHAPE` findings).
-  - `issue-save.md`: `create-issue` and the fragments `skills/fixer/fragments/issues-save.true.md` and `skills/intent/fragments/issues-done.true.md`, each passing `directory:`, `eligible:` and `content:`.
+  - `issue-save.md`: `create-issue` and the fragments `skills/fixer/fragments/issues-save.true.md` and `skills/intent/fragments/issues-done.true.md`, each passing `directory:`, `eligible:` and `content:` (an issue set: `parent:` and `parts:` in place of `content:`).
 
 ## Contracts
 
