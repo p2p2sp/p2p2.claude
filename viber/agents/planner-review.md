@@ -20,7 +20,7 @@ input:
 
 Read the plan, `<refs>/plan-rules.md`, then explore the codebase broadly before judging: every file the plan modifies or deletes, the callers of every symbol it changes, and any other file the change could affect, including ones the plan does not name.
 
-`scope: spec` gates a plan that is still a specification, with no task half: run Complete, Grounded, the rule Split right, Faithful and the big spec shape checks where they apply, and skip everything else.
+`scope: spec` gates a plan that is still a specification, with no task half: run Complete, Grounded, the rules Split right and Lean, Faithful and the big spec shape checks where they apply, and skip everything else.
 
 ## Check
 
