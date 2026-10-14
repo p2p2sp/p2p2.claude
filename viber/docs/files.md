@@ -12,7 +12,7 @@ Every file viber creates or changes in your project. Back to the [viber guide](.
 | `.claude/viber.yml` | The config, see [Configuring viber](configuration.md) |
 | `.claude/settings.json` | The settings viber recommends |
 | `.gitignore` | `.temp/` and `.claude/viber.local.yml`, when no rule ignores them yet |
-| `.temp/viber/` | Scratch files, and `/viber:prototype`'s mockups in `.temp/viber/prototype/` |
+| `.temp/viber/` | Scratch files, `/viber:prototype`'s mockups in `.temp/viber/prototype/` and `/viber:code-auditor`'s `findings.md` files in `.temp/viber/code-auditor/` |
 | your e2e directory | Playwright tests from `/viber:e2e` |
 
 The directory names under `docs/` are the defaults; `directories:` in `.claude/viber.yml` changes
@@ -22,6 +22,9 @@ them.
 
 - `plan.md` is the plan as it was approved. It is never edited once it lands.
 - `status.md` holds the run's progress.
+- `attachments/` holds the copies of the files the plan lists as attachments (a prototype mockup, a
+  code-auditor `findings.md`), made when the plan lands. It exists only for a plan that lists any,
+  and `spec.md` lists them under `## Attachments`.
 - The notes and reports the run produces are committed beside them, so an interrupted build
   resumes in a new session or on another computer: ask Claude to continue the build, and it reopens
   the run most recently worked on.
@@ -38,6 +41,7 @@ With `build.cleanup` on, the build ends by moving what is worth keeping to `docs
 - the specification
 - the test scenarios
 - `rulings.md`
+- `attachments/`, when the run has one
 - the build summary, `outcome.md`, with the list of files left uncommitted and the reason for each
 
 It drops the plan, the progress file and the working notes. They stay in git, so nothing is lost.

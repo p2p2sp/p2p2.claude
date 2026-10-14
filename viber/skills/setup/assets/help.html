@@ -1206,15 +1206,15 @@ w wyglądzie twojego projektu, a twój kod zostaje nietknięty.</p>
   <li>
     <span class="label"><span lang="en">What is left</span><span lang="pl">Co zostaje</span></span>
     <p lang="en">The mockup in <code>.temp/viber/prototype/&lt;slug&gt;.html</code> and its conclusions. On your
-    word they go to <a href="#skill-intent"><code>/viber:intent</code></a> with a <code>Prototype:</code> line
-    naming the mockup, so the interview starts from it. Once the plan lands, the mockup is copied into the
-    run directory as <code>prototype.html</code> and every task that changes the screen it shows builds against
-    it.</p>
+    word they go to <a href="#skill-intent"><code>/viber:intent</code></a> with an <code>Attachment:</code> line
+    naming the mockup, so the interview starts from it. The plan lists the mockup as an attachment, and once the
+    plan lands it is copied into the run directory's <code>attachments/</code>; every task that changes the
+    screen it shows names it and builds against it.</p>
     <p lang="pl">Makieta w <code>.temp/viber/prototype/&lt;slug&gt;.html</code> i wnioski z rozmowy. Na twoje
-    słowo trafiają do <a href="#skill-intent"><code>/viber:intent</code></a> z linią <code>Prototype:</code>
-    wskazującą makietę, więc wywiad zaczyna od niej. Gdy plan trafi do katalogu przebiegu, makieta jest tam
-    kopiowana jako <code>prototype.html</code>, a każde zadanie zmieniające pokazany na niej ekran buduje
-    według niej.</p>
+    słowo trafiają do <a href="#skill-intent"><code>/viber:intent</code></a> z linią <code>Attachment:</code>
+    wskazującą makietę, więc wywiad zaczyna od niej. Plan wymienia makietę jako załącznik, a gdy plan trafi do
+    katalogu przebiegu, makieta jest kopiowana do jego <code>attachments/</code>; każde zadanie zmieniające
+    pokazany na niej ekran wskazuje ją i buduje według niej.</p>
   </li>
 </ol>
 <details>
@@ -1554,13 +1554,17 @@ done or skipped, and <code>work/</code> holds the agents' notes and reports.</p>
 oraz osobny plik dla każdego zadania w <code>tasks/</code>. <code>status.md</code> zapisuje, które zadania są
 ukończone lub pominięte, a w <code>work/</code> leżą notatki i raporty agentów.</p>
 <p lang="en">A plan of one part of a split request also gets <code>roadmap.md</code>: the parts and the decisions
-settled for the later ones. A plan built from a <a href="#skill-prototype">mockup</a> gets
-<code>prototype.html</code>, its copy, named in every task file. When the build rules where it would otherwise have asked you, it also writes
+settled for the later ones. A plan built from files under <code>.temp/</code>, such as a
+<a href="#skill-prototype">mockup</a> or a <a href="#skill-code-auditor">code-auditor</a> <code>findings.md</code>,
+lists them as attachments: the plan's copies land in <code>attachments/</code>, <code>spec.md</code> lists them under
+<code>## Attachments</code>, and only a task that needs one names it. When the build rules where it would otherwise have asked you, it also writes
 <code>rulings.md</code>: one line per ruling, with its reason and what it costs if wrong. A build that ruled
 nothing has no such file.</p>
 <p lang="pl">Plan jednej części dzielonej prośby dostaje też <code>roadmap.md</code>: listę części i decyzje
-podjęte dla późniejszych. Plan zbudowany na <a href="#skill-prototype">makiecie</a> dostaje
-<code>prototype.html</code>, jej kopię, wskazaną w każdym pliku zadania. Gdy build rozstrzyga tam, gdzie inaczej by cię zapytał, zapisuje też
+podjęte dla późniejszych. Plan zbudowany na plikach z <code>.temp/</code>, takich jak
+<a href="#skill-prototype">makieta</a> albo <code>findings.md</code> z <a href="#skill-code-auditor">code-auditor</a>,
+wymienia je jako załączniki: kopie planu trafiają do <code>attachments/</code>, <code>spec.md</code> wypisuje je pod
+<code>## Attachments</code>, a wskazuje je tylko zadanie, które ich potrzebuje. Gdy build rozstrzyga tam, gdzie inaczej by cię zapytał, zapisuje też
 <code>rulings.md</code>: jedna linia na rozstrzygnięcie, z uzasadnieniem i kosztem pomyłki. Build, który niczego
 nie rozstrzygał, nie ma tego pliku.</p>
 <p lang="en">The directory is committed together with every task, which is why a build resumes in a new
@@ -1570,13 +1574,13 @@ na innym komputerze.</p>
 <p lang="en">With <a href="#key-build-cleanup"><code>build.cleanup</code></a> on, the build ends by moving the run to
 <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code> in one commit. The archive keeps the specification and the QA
 documents and drops <code>plan.md</code>, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>, which
-git history still holds; <code>roadmap.md</code>, <code>prototype.html</code>, <code>rulings.md</code> and the build summary <code>outcome.md</code> stay in the archive with them. A run with a task neither done
+git history still holds; <code>roadmap.md</code>, <code>attachments/</code>, <code>rulings.md</code> and the build summary <code>outcome.md</code> stay in the archive with them. A run with a task neither done
 nor skipped is never archived.
 <a href="#key-directories"><code>directories</code></a> renames both directories.</p>
 <p lang="pl">Przy włączonym <a href="#key-build-cleanup"><code>build.cleanup</code></a> build kończy się przeniesieniem
 przebiegu do <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code> w jednym commicie. Archiwum zachowuje
 specyfikację i dokumenty QA, a usuwa <code>plan.md</code>, <code>status.md</code>, <code>tasks/</code>
-i <code>work/</code>, które nadal są w historii gita; <code>roadmap.md</code>, <code>prototype.html</code>, <code>rulings.md</code> i podsumowanie buildu <code>outcome.md</code> zostają w archiwum razem z nimi.
+i <code>work/</code>, które nadal są w historii gita; <code>roadmap.md</code>, <code>attachments/</code>, <code>rulings.md</code> i podsumowanie buildu <code>outcome.md</code> zostają w archiwum razem z nimi.
 Przebieg z zadaniem ani ukończonym, ani pominiętym nigdy nie trafia do archiwum. Nazwy obu katalogów zmienisz kluczem
 <a href="#key-directories"><code>directories</code></a>.</p>
 
@@ -1837,11 +1841,11 @@ linie co w <code>rulings.md</code>.</p>
 <details id="ts-plan-gone">
   <summary><span lang="en">Where did <code>plan.md</code> and the task files go?</span><span lang="pl">Gdzie się podziały <code>plan.md</code> i pliki zadań?</span></summary>
   <p lang="en">With <code>build.cleanup</code> on, the <a href="#term-archive">archive</a> keeps the specification, the
-  QA documents, <code>roadmap.md</code>, <code>prototype.html</code>, <code>rulings.md</code> and <code>outcome.md</code> and drops the plan, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>. Git
+  QA documents, <code>roadmap.md</code>, <code>attachments/</code>, <code>rulings.md</code> and <code>outcome.md</code> and drops the plan, <code>status.md</code>, <code>tasks/</code> and <code>work/</code>. Git
   still has them: <code>git log -- docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code> lists the commits that
   touched the plan.</p>
   <p lang="pl">Przy włączonym <code>build.cleanup</code> <a href="#term-archive">archiwum</a> zachowuje specyfikację,
-  dokumenty QA, <code>roadmap.md</code>, <code>prototype.html</code>, <code>rulings.md</code> i <code>outcome.md</code>, a usuwa plan, <code>status.md</code>, <code>tasks/</code> i <code>work/</code>. Git nadal je
+  dokumenty QA, <code>roadmap.md</code>, <code>attachments/</code>, <code>rulings.md</code> i <code>outcome.md</code>, a usuwa plan, <code>status.md</code>, <code>tasks/</code> i <code>work/</code>. Git nadal je
   ma: <code>git log -- docs/_specs/&lt;stamp&gt;_&lt;slug&gt;/plan.md</code> wypisuje commity, które zmieniały
   plan.</p>
 </details>
@@ -1964,11 +1968,11 @@ każdą ustawioną przez ciebie wartość.</p>
   <div id="term-archive">
     <dt><span lang="en">archive</span><span lang="pl">archiwum</span></dt>
     <dd><span lang="en">Where a finished run goes with <code>build.cleanup</code> on, <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code>
-    by default. Only its specification, QA documents, <code>roadmap.md</code>, <code>prototype.html</code>, <code>rulings.md</code> and
+    by default. Only its specification, QA documents, <code>roadmap.md</code>, <code>attachments/</code>, <code>rulings.md</code> and
     <code>outcome.md</code> stay there.</span><span lang="pl">Miejsce, do którego
     przy włączonym <code>build.cleanup</code> trafia zakończony przebieg, domyślnie
     <code>docs/specs/&lt;stamp&gt;_&lt;slug&gt;/</code>. Zostają w nim tylko specyfikacja, dokumenty QA,
-    <code>roadmap.md</code>, <code>prototype.html</code>, <code>rulings.md</code> i <code>outcome.md</code>.</span></dd>
+    <code>roadmap.md</code>, <code>attachments/</code>, <code>rulings.md</code> i <code>outcome.md</code>.</span></dd>
   </div>
   <div id="term-build">
     <dt><span lang="en">build</span><span lang="pl">build</span></dt>
@@ -2319,11 +2323,11 @@ z nich mówi, jak nim sterować.</p>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
       <dd><span lang="en">The mockup, <code>.temp/viber/prototype/&lt;slug&gt;.html</code>, its name prefixed with
       the issue number when the run started from one, plus the comment file beside it. It never edits your
-      code. A plan built from the mockup lands it in the run directory as <code>prototype.html</code>, and every
-      task file names it.</span><span lang="pl">Makietę <code>.temp/viber/prototype/&lt;slug&gt;.html</code>, z numerem issue
+      code. A plan built from the mockup lists it as an attachment, lands it in the run directory's
+      <code>attachments/</code>, and every task that needs it names it.</span><span lang="pl">Makietę <code>.temp/viber/prototype/&lt;slug&gt;.html</code>, z numerem issue
       na początku nazwy, gdy przebieg zaczął się od issue, oraz obok plik komentarza. Nigdy nie zmienia
-      twojego kodu. Plan zbudowany na makiecie umieszcza ją w katalogu przebiegu jako <code>prototype.html</code>,
-      a każdy plik zadania ją wskazuje.</span></dd>
+      twojego kodu. Plan zbudowany na makiecie wymienia ją jako załącznik, umieszcza ją w <code>attachments/</code>
+      katalogu przebiegu, a każde zadanie, które jej potrzebuje, ją wskazuje.</span></dd>
     </div>
   </dl>
 </article>
@@ -2858,9 +2862,13 @@ z nich mówi, jak nim sterować.</p>
     <div>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
       <dd><span lang="en">Everything under <code>.temp/viber/code-auditor/&lt;run-id&gt;/</code>, ending on
-      <code>findings.md</code>. Your code is never edited.</span><span lang="pl">Wszystko w
+      <code>findings.md</code>. Your code is never edited. With at least one confirmed finding
+      its last message names the next step, <code>/viber:intent</code> given the path of <code>findings.md</code>,
+      which plans the fixes with <code>findings.md</code> as an attachment.</span><span lang="pl">Wszystko w
       <code>.temp/viber/code-auditor/&lt;run-id&gt;/</code>, na końcu <code>findings.md</code>. Twój kod nigdy
-      nie jest edytowany.</span></dd>
+      nie jest edytowany. Przy co najmniej jednym potwierdzonym znalezisku ostatnia wiadomość wskazuje następny
+      krok, <code>/viber:intent</code> z ścieżką do <code>findings.md</code>, który planuje poprawki z
+      <code>findings.md</code> jako załącznikiem.</span></dd>
     </div>
   </dl>
 </article>

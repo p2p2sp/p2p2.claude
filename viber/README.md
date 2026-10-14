@@ -97,7 +97,9 @@ A typical run is `/viber:setup` once, then `/viber:intent`. Each step names the 
   repository (`repo`). Whatever you leave out, it asks. One agent maps the scope for the lens, hunters
   investigate it, and an independent critic tries to refute every finding without seeing the hunter's
   reasoning; the lenses that run code do so on a clean checkout. The result is `findings.md` under
-  `.temp/viber/code-auditor/<run-id>/`, and your code is never edited.
+  `.temp/viber/code-auditor/<run-id>/`, and your code is never edited. With at least one
+  confirmed finding it ends on the next step, `/viber:intent <path of findings.md>`, which plans the
+  fixes with `findings.md` as an attachment.
 - **`/viber:extension`**: registers the agent in `build.extensions` with `parallel: false`.
 - **`/viber:handoff`**: the file holds where to look, what is done, the decisions, what comes next
   and open problems. Name a directory (`notes/`) or a `.md` path to save it elsewhere, and add a
@@ -121,7 +123,15 @@ With `github.issues` on, point `/viber:intent`, `/viber:fixer` or `/viber:protot
 - A prototype that started from an issue can post its conclusions there as a comment. You attach
   the HTML mockup to that comment yourself, since only the browser accepts attachments.
 - Either way, a prototype's conclusions carry on to `/viber:intent`, and the accepted mockup
-  travels with the plan into the build.
+  travels with the plan into the build as an attachment (see below).
+
+### Attachments
+
+A file under `.temp/` that a plan is built from, such as a prototype mockup or a code-auditor
+`findings.md`, travels with the plan as an attachment. The plan lists it, and when the plan lands
+the file is copied into the run directory's `attachments/`. The run's `spec.md` lists the copies
+under `## Attachments`, and they reach the archive beside `outcome.md`. A task that needs one of
+those files names it itself, so no coder reads a file its task does not need.
 
 ## How a run works
 

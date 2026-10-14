@@ -146,7 +146,7 @@
 
   <path d="M315 518 L315 550" class="link l-i" marker-end="url(#ar-i)"/>
   <path d="M315 518 L315 550" class="flow l-i"/>
-  <text x="327" y="540" class="lbl">its Prototype: line</text>
+  <text x="327" y="540" class="lbl">its Attachment: line</text>
 
   <rect x="40" y="554" width="460" height="140" rx="10" class="node"/>
   <rect x="40" y="554" width="4" height="140" rx="2" fill="var(--idea)"/>

@@ -257,8 +257,8 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
         <li>File in <code>.temp/viber/prototype/</code>, with the issue number in its name.</li>
         <li>Exit: on to <code>intent</code>, a comment on the issue, or both.</li>
         <li>You attach the mockup to the comment yourself in the browser.</li>
-        <li>The accepted mockup travels with the plan into the build.</li>
-        <li>The coder matches the screen to the mockup (layout, content, states).</li>
+        <li>The accepted mockup travels with the plan into the build as an attachment.</li>
+        <li>The coder of a task that names the mockup matches the screen to it (layout, content, states).</li>
         <li>Never edits the project's code.</li>
       </ul>
     </section>
@@ -384,7 +384,8 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
         <li>An integration test lives in the adapter's task, never on its own.</li>
         <li>End-to-end tests only on explicit request.</li>
         <li>A UI or endpoint change with no E2E: suggests <code>/viber:e2e</code> or <code>build.qa</code>.</li>
-        <li>The prototype's mockup under a <code>## Prototype</code> section.</li>
+        <li>The files the plan is built from (a mockup, a <code>findings.md</code>) as <code>attachments:</code> in its frontmatter.</li>
+        <li>A task that needs an attachment names it in its done clause; one that needs none names none.</li>
         <li>Script validation: the rules tagged <code>(script)</code>.</li>
         <li>Review by the <code>planner-review</code> agent: the rules tagged <code>(review)</code>, rounds until PASS.</li>
         <li>Findings that need a decision reach you as a question.</li>
@@ -579,7 +580,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
         <li>Every extension committed separately.</li>
         <li>Records drift: what was delivered beyond the specification.</li>
         <li>The build summary in <code>outcome.md</code>.</li>
-        <li>Archive in <code>docs/specs/</code>: specification, scenarios, rulings, summary.</li>
+        <li>Archive in <code>docs/specs/</code>: specification, scenarios, rulings, attachments, summary.</li>
         <li>Plan, status, tasks and notes dropped in one commit (git keeps them).</li>
         <li>Closing screen: two lines with the result, tests and elapsed time.</li>
         <li>Summary without an archive: at most 7 lines plus fixes and rulings.</li>
@@ -703,6 +704,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
         <li>An entry: root cause, reproduction, fix sketch.</li>
         <li>Coverage notes: units not investigated, hunts with no result.</li>
         <li>A variant wave: the same class of defect elsewhere.</li>
+        <li>With a confirmed finding, ends on the next step <code>/viber:intent &lt;path of findings.md&gt;</code>, which attaches it to the plan.</li>
         <li>Never edits code.</li>
         <li>Every defect class has one owner lens; the others hand it over by name.</li>
         <li>The code-auditor <code>README.md</code>: every lens, its angles, how it verifies and what it hands over, for people.</li>
@@ -811,6 +813,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
         <li><code>docs/specs/&lt;date&gt;_&lt;slug&gt;/</code>: the archive of a finished run.</li>
         <li><code>plan.md</code>: the plan as approved, never edited.</li>
         <li><code>status.md</code>: the run's progress.</li>
+        <li><code>attachments/</code>: copies of the files the plan lists, only when it lists any; archived with the run.</li>
         <li><code>rulings.md</code>: only when the arbiter ruled.</li>
         <li><code>docs/adr/</code>: decision records.</li>
         <li><code>CLAUDE.md</code> and <code>.claude/rules/</code>: what builds learned.</li>
