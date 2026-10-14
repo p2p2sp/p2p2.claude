@@ -60,11 +60,18 @@ End the body with one line per `ISSUE=` value, after a blank line: `Closes #<n>`
 
 ## 5. Preview
 
-Print the title, the target (`TARGET=`) and the body exactly as it will be written, plus, when `QA=` is set, one line saying the build's QA document (`QA=`) will be posted as a comment on the run's issue, or on the new pull request when the run has none, then one `AskUserQuestion`: create, create as draft or cancel. A correction typed as the answer -> apply it and preview again. Cancel -> stop, nothing created.
+`Write` the body to `<root>/.temp/viber/create-pr/body-<stamp>.md` first (`<root>` the project root, `<stamp>` the output of `date +%Y-%m-%d-%H-%M-%S`, so every body gets its own file). Then print, never the body text:
+
+- `Title: <title>`
+- `Target: <TARGET=>`
+- when `QA=` is set, one line saying the build's QA document (`QA=`) will be posted as a comment on the run's issue, or on the new pull request when the run has none
+- `Body: <absolute path of the written body file>`
+
+Then one `AskUserQuestion`: create, create as draft or cancel. A correction typed as the answer -> rewrite that same file, then preview again. Cancel -> stop, nothing created.
 
 ## 6. Create
 
-`Write` the body to `<root>/.temp/viber/create-pr/body-<stamp>.md` (`<root>` the project root, `<stamp>` the output of `date +%Y-%m-%d-%H-%M-%S`, so every body gets its own file), then run `"${CLAUDE_PLUGIN_ROOT}/scripts/pr-create.sh" "<file>" "<title>" --base "<TARGET>"`, plus ` --draft` for the draft answer.
+Run `"${CLAUDE_PLUGIN_ROOT}/scripts/pr-create.sh" "<file>" "<title>" --base "<TARGET>"` with the file of step 5, plus ` --draft` for the draft answer.
 
 - Exit 0 -> report `PR_URL=`, plus one line that the pull request stays unassigned when `ASSIGNEE=dropped` (the script assigns its author itself), then, when `QA=` is set, run `"${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh" "<QA>" --pr "<PR_URL>"` with that `PR_URL=` and report the result as step 7 says. Never retry it.
 - Exit 1 -> report its `ERROR` line. Never retry.
