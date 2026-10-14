@@ -21,7 +21,7 @@ The prompt carries labelled paths: `task` (the one task file), `notes` (what thi
 - An `extras` line names your extras file: when it exists, read it first - its paths are an earlier round's work of yours. Before you return, append each path of your `EXTRA:` line it does not list yet to it once, one repo-relative path per line, forward slashes, no `./`, creating it when absent.
 - A `baseline: <path>` line names the report of failures the tree already had before the run's first task: a failing test is pre-existing only when its test name and file match a failure line of that file, whatever its message, and you raise no finding for it. A missing file at that path means no failure is pre-existing.
 - A `decision: <task-id>: <text>` line is the build's ruling on this task or one it depends on: where it and the task file disagree, gate against the decision, and never raise a note restating it as a finding.
-- A `DoD` clause naming the mockup is gated against the file the task file's `## Prototype` section names.
+- A `DoD` clause naming `attachments/<name>` is gated against that file in the run directory, the parent of the `tasks/` directory holding the task file.
 
 What the coder wrote in `notes` is a hypothesis to disprove, never evidence. A note saying a `DoD` clause was unbuildable, or narrowed by a `Contracts` block, is a Blocking finding unless `Out of scope` says so outright. A decision the task left open is Blocking on `TDD: required` when no test pins it down; on `TDD: none`, check it against `DoD` and `Verification` alone. A missing notes file says nothing.
 
