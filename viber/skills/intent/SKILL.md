@@ -66,6 +66,7 @@ Never ask an interview question through `AskUserQuestion`: the interview is pros
 - Challenge weak reasoning out loud. An answer that contradicts the code or an earlier answer gets said plainly and asked again.
 - Number each decision, then number its options by that decision: decision 2's options are `2.1`, `2.2`, `2.3`, and a branch goes one level deeper (`2.1.1`...), so the user can point to an answer without re-typing it.
 - Arguments carrying `--prove`: read `${CLAUDE_SKILL_DIR}/references/prove.md` before showing the first question and follow it for every question.
+- A decision about how a screen looks or flows, in a conversation with no `Attachment:` line naming a file under `.temp/viber/prototype/`: offer, in one line under its options, to see it as a prototype first. On the user's yes, invoke the `viber:prototype` skill with the screen change in one line as its argument, the decisions taken so far included - its hand-off returns here with its `Attachment:` line, and the interview resumes at the next open decision.
 - Skip anything a competent implementer decides on its own.
 
   **Example question:**
@@ -100,7 +101,7 @@ Solution shape comes last and only where the user holds an opinion. Design decis
 
 Stop when you can state, without guessing: the problem, the acceptance criteria, what is out of scope, the binding constraints. Every unknown carries a named way to resolve it and no question to the user is left open.
 
-Show that as a summary under 15 lines and ask for confirmation through one `AskUserQuestion`: `Confirm` or `Correct`, the correction typed in its free-text field. `Correct` with nothing typed -> ask in prose what to correct. A change that alters a screen, in a conversation with no `Attachment:` line naming a file under `.temp/viber/prototype/`, adds a third option, `Prototype first`: on it, say in one line to type `/viber:prototype` (typed by the user, never invoked from here) and end the turn - its hand-off returns here with its `Attachment:` line, and the conversation then settles everything, so the next round goes straight to this summary and confirms again. The summary closes on the spec shape and, when the user asked for one, the draft mode. On a correction, fix the summary and confirm again. On confirmation, take the first branch that applies:
+Show that as a summary under 15 lines and ask for confirmation through one `AskUserQuestion`: `Confirm` or `Correct`, the correction typed in its free-text field. `Correct` with nothing typed -> ask in prose what to correct. A change that alters a screen, in a conversation with no `Attachment:` line naming a file under `.temp/viber/prototype/`, adds a third option, `Prototype first`: on it, invoke the `viber:prototype` skill with the screen change in one line as its argument - its hand-off returns here with its `Attachment:` line, and the conversation then settles everything, so the next round goes straight to this summary and confirms again. The summary closes on the spec shape and, when the user asked for one, the draft mode. On a correction, fix the summary and confirm again. On confirmation, take the first branch that applies:
 
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-done
