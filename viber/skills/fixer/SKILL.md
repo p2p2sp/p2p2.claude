@@ -57,6 +57,7 @@ The handoff payload - state it in context, in this order. No report file: the pa
 - **Blast radius** - other callers or behavior that depend on the current (wrong) behavior.
 - **Done condition** - repro test GREEN, every previously-passing test still green.
 - **Spec shape** - `spec-lite`, always: a fixer diagnosis never proposes `spec-full`.
+- **Attachments** - one line `Attachment: <absolute path, forward slashes, a Windows drive as C:/>` per path under the repository's `.temp/` that the input names; none when it names none.
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-diagnosis
 ```

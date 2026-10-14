@@ -77,8 +77,8 @@ One `AskUserQuestion` over the options below:
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-exit
 ```
 
-The conclusions, in the language the user is writing in: the change, the chosen variant and why (a three-variant run), the UI decisions, the open points outside UI, and one line `Prototype: <the mockup path>`.
+The conclusions, in the language the user is writing in: the change, the chosen variant and why (a three-variant run), the UI decisions, the open points outside UI, and one line `Attachment: <the mockup path>`.
 
 ## 7. Intent hand-off
 
-Print the conclusions, the `Prototype:` line included, then invoke the `viber:intent` skill. Its argument is the `URL=` value alone when the run is tied to an issue, else the conclusions.
+Print the conclusions, the `Attachment:` line included, then invoke the `viber:intent` skill. Its argument is the `URL=` value alone when the run is tied to an issue, else the conclusions.

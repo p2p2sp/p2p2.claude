@@ -30,6 +30,8 @@ Two sources already hold answers, and a question spent on either is wasted.
 - The conversation that led here - everything already in your context, a fetched issue included.
 - The repo where the answer lives - never spend a question on something the code states.
 
+Each path under the repository's `.temp/` that the arguments name (a `findings.md`, a mockup) becomes one line `Attachment: <absolute path, forward slashes, a Windows drive as C:/>`, unless the conversation already carries it. A path elsewhere gets no line.
+
 When those two sources already answer everything `## Done` asks for, skip every question: open with the line naming what you take as settled, then go straight into `## Done`'s summary and confirmation. Otherwise, open the first question with one line naming what you take as settled from the conversation, so a misreading is corrected before the next branches are built on it.
 
 ## Size the scope first
@@ -98,7 +100,7 @@ Solution shape comes last and only where the user holds an opinion. Design decis
 
 Stop when you can state, without guessing: the problem, the acceptance criteria, what is out of scope, the binding constraints. Every unknown carries a named way to resolve it and no question to the user is left open.
 
-Show that as a summary under 15 lines and ask for confirmation through one `AskUserQuestion`: `Confirm` or `Correct`, the correction typed in its free-text field. `Correct` with nothing typed -> ask in prose what to correct. A change that alters a screen, in a conversation carrying no `Prototype:` line, adds a third option, `Prototype first`: on it, say in one line to type `/viber:prototype` (typed by the user, never invoked from here) and end the turn - its hand-off returns here with that line, and the conversation then settles everything, so the next round goes straight to this summary and confirms again. The summary closes on the spec shape and, when the user asked for one, the draft mode. On a correction, fix the summary and confirm again. On confirmation, take the first branch that applies:
+Show that as a summary under 15 lines and ask for confirmation through one `AskUserQuestion`: `Confirm` or `Correct`, the correction typed in its free-text field. `Correct` with nothing typed -> ask in prose what to correct. A change that alters a screen, in a conversation with no `Attachment:` line naming a file under `.temp/viber/prototype/`, adds a third option, `Prototype first`: on it, say in one line to type `/viber:prototype` (typed by the user, never invoked from here) and end the turn - its hand-off returns here with its `Attachment:` line, and the conversation then settles everything, so the next round goes straight to this summary and confirms again. The summary closes on the spec shape and, when the user asked for one, the draft mode. On a correction, fix the summary and confirm again. On confirmation, take the first branch that applies:
 
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" github.issues "${CLAUDE_SKILL_DIR}" issues-done
@@ -108,4 +110,4 @@ Show that as a summary under 15 lines and ask for confirmation through one `AskU
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" branching.""mode "${CLAUDE_SKILL_DIR}" branching-handoff
 ```
 
-Hand off: invoke the `viber:planner` skill, restating the confirmed summary verbatim in that invocation - repeated in the newest turn it survives a compaction the interview behind it does not. A conversation carrying a `Prototype: <absolute path of the mockup>` line (`viber:prototype`'s hand-off) carries that line into the summary exactly as written; a conversation with none adds none.
+Hand off: invoke the `viber:planner` skill, restating the confirmed summary verbatim in that invocation - repeated in the newest turn it survives a compaction the interview behind it does not. Every `Attachment:` line of the conversation (`viber:prototype`'s hand-off, or one added from the arguments) is carried into the summary exactly as written; a conversation with none adds none.

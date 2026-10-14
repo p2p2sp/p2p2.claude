@@ -70,7 +70,7 @@ A critic whose final message carries no `VERDICT:` line is dispatched once more 
 
 Read `${CLAUDE_SKILL_DIR}/references/synthesis.md` and write `<ws>/findings.md` exactly as it specifies, reading only what its `## What the moderator reads` allows. It is the sole authority on folding verdicts, deduplication, severity and the shape of `findings.md`: never restate or reinterpret its rules.
 
-Show the user the path of `findings.md` and one short summary: units mapped, hunts dispatched, confirmed findings, units not investigated.
+Show the user the path of `findings.md` and one short summary: units mapped, hunts dispatched, confirmed findings, units not investigated. With at least one confirmed finding, the run's last message, after any variant wave, ends on the line `/viber:intent <absolute path of findings.md>`.
 
 ## Variant wave
 
