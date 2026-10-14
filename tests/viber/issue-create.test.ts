@@ -8,8 +8,10 @@
  * issue URL, TYPE is none/applied/dropped/error depending on the `gh api`
  * PATCH outcome (and that PATCH always carries `--hostname <host>` for the
  * issue's own host, github.com included), a failed PATCH never removes the
- * created issue, the body file is removed once the issue exists and kept on
- * a failed create, and bad arguments or a missing body file exit 2 with gh
+ * created issue, `--parent <N>` looks up the new issue's id and POSTs it to
+ * the parent's sub_issues endpoint (PARENT=applied|error|none, a failure never
+ * removing the issue), the body file is removed once the issue exists and kept
+ * on a failed create, and bad arguments or a missing body file exit 2 with gh
  * never invoked.
  *
  * issue-create.sh is `#!/bin/sh`, so every case runs through
@@ -46,8 +48,11 @@ const ISSUE_URL = "https://github.com/acme/widgets/issues/42";
 
 /** A `gh` stub logging every call's argv one-arg-per-line (a "===" separator
  *  after each) into `$ARGV_FILE`; the `issue create` call answers from
- *  CREATE_STDOUT/CREATE_STDERR/CREATE_EXIT, the `api` (PATCH) call from
- *  API_STDERR/API_EXIT - so one stub body serves both calls of one run. */
+ *  CREATE_STDOUT/CREATE_STDERR/CREATE_EXIT, an `api` call carrying PATCH (the
+ *  type step) from API_STDERR/API_EXIT, one carrying POST (the sub-issue
+ *  attach) from POST_STDERR/POST_EXIT, and any other `api` call (the issue id
+ *  lookup) from LOOKUP_STDOUT/LOOKUP_STDERR/LOOKUP_EXIT - so one stub body
+ *  serves every call of one run. */
 const GH_STUB = `
 for a in "$@"; do printf '%s\\n' "$a" >> "$ARGV_FILE"; done; printf '===\\n' >> "$ARGV_FILE"
 if [ "$1" = "issue" ]; then
@@ -55,8 +60,18 @@ if [ "$1" = "issue" ]; then
   printf '%s' "\${CREATE_STDOUT:-}"
   exit "\${CREATE_EXIT:-0}"
 elif [ "$1" = "api" ]; then
-  if [ -n "\${API_STDERR:-}" ]; then printf '%s' "$API_STDERR" >&2; fi
-  exit "\${API_EXIT:-0}"
+  case " $* " in
+    *" PATCH "*)
+      if [ -n "\${API_STDERR:-}" ]; then printf '%s' "$API_STDERR" >&2; fi
+      exit "\${API_EXIT:-0}" ;;
+    *" POST "*)
+      if [ -n "\${POST_STDERR:-}" ]; then printf '%s' "$POST_STDERR" >&2; fi
+      exit "\${POST_EXIT:-0}" ;;
+    *)
+      if [ -n "\${LOOKUP_STDERR:-}" ]; then printf '%s' "$LOOKUP_STDERR" >&2; fi
+      printf '%s\\n' "\${LOOKUP_STDOUT:-}"
+      exit "\${LOOKUP_EXIT:-0}" ;;
+  esac
 fi
 exit 1
 `;
@@ -177,7 +192,7 @@ test("no --type: the body reaches gh issue create through --body-file, flags for
     );
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(bodyKept, false, "the body file is removed once the issue exists");
-    assert.equal(result.stdout, `ISSUE_URL=${ISSUE_URL}\nISSUE_NUMBER=42\nTYPE=none\n`);
+    assert.equal(result.stdout, `ISSUE_URL=${ISSUE_URL}\nISSUE_NUMBER=42\nTYPE=none\nPARENT=none\n`);
     assert.equal(calls.length, 1);
     assert.deepEqual(calls[0], [
       "issue", "create", "--title", "A title", "--body-file", body,
@@ -193,7 +208,7 @@ test("--type applied: a non-github.com host's issue URL PATCHes repos/<owner>/<r
     const url = "https://github.example.com/acme/widgets/issues/7";
     const { result, calls } = await runStubbed(shell, ["<body>", "A title", "--type", "bug"], { CREATE_STDOUT: url + "\n" });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.equal(result.stdout, `ISSUE_URL=${url}\nISSUE_NUMBER=7\nTYPE=applied\n`);
+    assert.equal(result.stdout, `ISSUE_URL=${url}\nISSUE_NUMBER=7\nTYPE=applied\nPARENT=none\n`);
     assert.equal(calls.length, 2);
     assert.deepEqual(calls[1], ["api", "--hostname", "github.example.com", "-X", "PATCH", "repos/acme/widgets/issues/7", "-f", "type=bug"]);
   });
@@ -208,7 +223,7 @@ for (const msg of ["issue types are not enabled for this repository", "HTTP 404:
         API_STDERR: msg,
       });
       assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-      assert.equal(result.stdout, `ISSUE_URL=${ISSUE_URL}\nISSUE_NUMBER=42\nTYPE=dropped\nTYPE_ERROR=${msg}\n`);
+      assert.equal(result.stdout, `ISSUE_URL=${ISSUE_URL}\nISSUE_NUMBER=42\nTYPE=dropped\nTYPE_ERROR=${msg}\nPARENT=none\n`);
       assert.ok(!calls.some((c) => c.includes("delete")), "the created issue must never be deleted");
     });
   });
@@ -223,7 +238,84 @@ test("--type PATCH fails on an unrecognized reason: TYPE=error, TYPE_ERROR carri
       API_STDERR: msg,
     });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.equal(result.stdout, `ISSUE_URL=${ISSUE_URL}\nISSUE_NUMBER=42\nTYPE=error\nTYPE_ERROR=${msg}\n`);
+    assert.equal(result.stdout, `ISSUE_URL=${ISSUE_URL}\nISSUE_NUMBER=42\nTYPE=error\nTYPE_ERROR=${msg}\nPARENT=none\n`);
+    assert.ok(!calls.some((c) => c.includes("delete")), "the created issue must never be deleted");
+  });
+});
+
+// --- --parent -------------------------------------------------------------------------
+
+for (const args of [
+  ["<body>", "A title", "--parent"],
+  ["<body>", "A title", "--parent", "abc"],
+  ["<body>", "A title", "--parent", "7x"],
+  ["<body>", "A title", "--parent", "0"],
+  ["<body>", "A title", "--parent", "-3"],
+]) {
+  test(`--parent with a missing or non-numeric value (${JSON.stringify(args.slice(2))}): exit 2, the ERROR line on stderr and gh is never called`, async () => {
+    await assertPosix(async (shell) => {
+      const { result, calls } = await runStubbed(shell, args);
+      assert.equal(result.status, 2, result.stderr);
+      assert.equal(result.stdout, "");
+      assert.match(result.stderr, /^ERROR issue-create\.sh: --parent needs an issue number$/m);
+      assert.equal(calls.length, 0);
+    });
+  });
+}
+
+test("--parent 7 looks up the new issue's id and POSTs it to repos/<owner>/<repo>/issues/7/sub_issues with --hostname <host>, PARENT=applied", async () => {
+  await assertPosix(async (shell) => {
+    const url = "https://github.example.com/acme/widgets/issues/42";
+    const { result, calls } = await runStubbed(shell, ["<body>", "A title", "--parent", "7"], {
+      CREATE_STDOUT: url + "\n",
+      LOOKUP_STDOUT: "9001",
+    });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, `ISSUE_URL=${url}\nISSUE_NUMBER=42\nTYPE=none\nPARENT=applied\n`);
+    assert.equal(calls.length, 3);
+    assert.deepEqual(calls[1], ["api", "--hostname", "github.example.com", "repos/acme/widgets/issues/42", "--jq", ".id"]);
+    assert.deepEqual(calls[2], ["api", "--hostname", "github.example.com", "-X", "POST", "repos/acme/widgets/issues/7/sub_issues", "-F", "sub_issue_id=9001"]);
+  });
+});
+
+test("--parent after --type: the TYPE lines come before the PARENT line", async () => {
+  await assertPosix(async (shell) => {
+    const { result } = await runStubbed(shell, ["<body>", "A title", "--parent", "7", "--type", "bug"], {
+      CREATE_STDOUT: ISSUE_URL + "\n",
+      LOOKUP_STDOUT: "9001",
+    });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, `ISSUE_URL=${ISSUE_URL}\nISSUE_NUMBER=42\nTYPE=applied\nPARENT=applied\n`);
+  });
+});
+
+test("--parent: the id lookup fails: PARENT=error with a one-line PARENT_ERROR, exit 0, no POST and the issue never removed", async () => {
+  await assertPosix(async (shell) => {
+    const msg = "HTTP 500: Internal Server Error";
+    const { result, calls, bodyKept } = await runStubbed(shell, ["<body>", "A title", "--parent", "7"], {
+      CREATE_STDOUT: ISSUE_URL + "\n",
+      LOOKUP_EXIT: "1",
+      LOOKUP_STDERR: msg + "\nsecond line",
+    });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(bodyKept, false);
+    assert.equal(result.stdout, `ISSUE_URL=${ISSUE_URL}\nISSUE_NUMBER=42\nTYPE=none\nPARENT=error\nPARENT_ERROR=${msg} second line\n`);
+    assert.equal(calls.length, 2);
+    assert.ok(!calls.some((c) => c.includes("delete")), "the created issue must never be deleted");
+  });
+});
+
+test("--parent: the sub-issue POST fails: PARENT=error with a one-line PARENT_ERROR, exit 0 and the issue never removed", async () => {
+  await assertPosix(async (shell) => {
+    const msg = "HTTP 422: Validation Failed";
+    const { result, calls } = await runStubbed(shell, ["<body>", "A title", "--parent", "7"], {
+      CREATE_STDOUT: ISSUE_URL + "\n",
+      LOOKUP_STDOUT: "9001",
+      POST_EXIT: "1",
+      POST_STDERR: msg,
+    });
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, `ISSUE_URL=${ISSUE_URL}\nISSUE_NUMBER=42\nTYPE=none\nPARENT=error\nPARENT_ERROR=${msg}\n`);
     assert.ok(!calls.some((c) => c.includes("delete")), "the created issue must never be deleted");
   });
 });
