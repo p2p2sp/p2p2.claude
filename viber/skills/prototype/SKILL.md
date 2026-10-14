@@ -1,6 +1,6 @@
 ---
 name: prototype
-description: Turns a UI change into one working, self-contained HTML mockup in the project's own look - a single proposal or three variants to choose from - refines it in a UI-only conversation, then carries the conclusions to viber:intent, onto the GitHub issue it started from, or both. Use when the user wants to see or compare a UI change before planning it. Takes the change in prose, or an issue number or URL when github.issues is on.
+description: HTML mockup of a UI change in the project's own look, one proposal or three variants. Use when the user wants to see or compare a UI change before planning it.
 argument-hint: "[the UI change, or an issue number/URL when github.issues is on]"
 allowed-tools: Read, Grep, Glob, Agent, Skill, AskUserQuestion, Edit(./.temp/viber/prototype/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/issue-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/post-comment.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/open-page.sh:*)
 user-invocable: true
