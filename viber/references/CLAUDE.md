@@ -21,7 +21,7 @@ The nine markdown files viber skills and agents read by path while they work: th
 - `plan-rules.md` tags every rule: `(script)` is a rule `scripts/plan-index.sh` rejects, `(review)` one `planner-review` gates clause by clause and reports under the rule's name. A rule tagged `(script)` with no matching check in `plan-index.sh` is enforced by nobody.
 - A rule ending in `(blocking)` in `test-strategy.md` or `integration-tests.md` is a Blocking finding for `task-reviewer` and `planner-review` and binds `task-coder` and `fixer`; an untagged rule is guidance only.
 - `plan-rules.md`'s `Memory-owned` rule reads the `build.memory` switch, which `planner-review` receives as its `memory:` line (`false` when missing).
-- `issue-save.md` consumes the `STATUS=ready` block of `scripts/issue-templates.sh` and calls `scripts/issue-create.sh` as one literal line, reading its exit codes 0, 1, 2 and its `TYPE=dropped|error` lines.
+- `issue-save.md` consumes the `STATUS=ready` block of `scripts/issue-templates.sh` and calls `scripts/issue-create.sh` as one literal line, reading its exit codes 0, 1, 2 and its `TYPE=dropped|error` and `PARENT=error` lines. Every preview shows the path of a body file already written, never the body text.
 
 ## Change together
 

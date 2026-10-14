@@ -32,9 +32,11 @@ This directory holds the scripts more than one viber skill or agent calls: the c
 
 - The issue reference grammar (`<N>`, `#<N>`, or `https://<host>/<owner>/<repo>/issues/<N>` with any `#...` fragment or `?...` query dropped) is parsed the same way in `issue-facts.sh` and `post-comment.sh`; `qa-comment.sh` applies it to the run's `issue:` and to `--pr` pull request URLs.
 - A `config.sh --branching` line added or renamed: its readers in `run-branch.sh` and `pr-facts.sh`.
+- The `Covers:` token grammar lives in the two `covnums` copies of `plan-index.sh`: one edit changes both.
 
 ## Traps
 
 - The GitHub wrappers are `#!/bin/sh` and must stay POSIX: CI runs them under every POSIX shell present, and the portability sweep flags bash-only syntax in them. The other scripts are bash and may use arrays and `[[ ]]`.
 - A failed GitHub call is never retried by its caller: `post-comment.sh` exits 1 when whether the comment landed is unknown, and `pr-create.sh` exits 1 after the push may already have happened (its ERROR line names the pushed branch); the caller reports instead.
-- `issue-create.sh` never removes a created issue when applying its type fails: the failure is reported as `TYPE=dropped` (benign: types not enabled, 403, 404) or `TYPE=error`, with exit 0.
+- `issue-create.sh` never removes a created issue when applying its type or its `--parent` attach fails: the type failure is reported as `TYPE=dropped` (benign: types not enabled, 403, 404) or `TYPE=error`, the attach failure as `PARENT=error` with `PARENT_ERROR=`, always with exit 0. `--parent` takes a positive number of the same repository and attaches through the REST sub-issues endpoint; a bad value exits 2 before `gh` runs.
+- `plan-index.sh` counts only `AC<n>` tokens of a `Covers:` value as criteria; `#<n>` and a bare `<n>` cover nothing, so a task writing them fails with exit 4.

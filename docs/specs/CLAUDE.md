@@ -19,4 +19,4 @@ Holds one directory per run of viber that built a change to this repo and closed
 ## Traps
 
 - An archived `spec.md` states what was promised and delivered at that run's close, never what the plugins do now: never take a contract from it, and never edit it to match later code. A later change is a new run with its own key.
-- A `roadmap.md` entry marked `(built)` or `(this plan)` is already delivered; the next part is its first unmarked entry.
+- A `roadmap.md` entry marked `(built)` or `(this plan)` is already delivered; the next part is its first unmarked entry. An entry may carry `Issue: <url>` as its first indented line, the part's sub-issue; resuming that part ties the run to it.
