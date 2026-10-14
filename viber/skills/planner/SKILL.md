@@ -38,9 +38,9 @@ Before writing a task, decide which files get created, modified or deleted and w
 
 The specification half is `${CLAUDE_SKILL_DIR}/templates/spec-lite.md` or `${CLAUDE_SKILL_DIR}/templates/spec-full.md`, whichever shape the input names; the task half is `${CLAUDE_SKILL_DIR}/templates/tasks.md` under either. Fill the spec, append the task half under it, and write the result into the plan file plan mode names in its system message, the only file you may write while planning. Keep every section and every HTML marker of both templates, except one a template comment says to drop; add no section of your own.
 
-Fill the frontmatter per its placeholders: `source:` is the only way back to the file once approval clears this context; `issue:` and `prototype:` come only from the input's `Issue:` / `Prototype:` lines, never from the scope, and a draft round carries them over (below). A task building the screen the mockup shows names matching "the mockup under `## Prototype`" in its `DoD`.
+Fill the frontmatter per its placeholders: `source:` is the only way back to the file once approval clears this context; `issue:` comes only from the input's `Issue:` line and the `attachments:` entries only from its `Attachment:` lines, never from the scope, and a draft round carries both over (below). Each `Attachment:` line is one entry: a unique name that is the file's own name, changed only to avoid a repeat, always ending in the file extension, then the line's path. A task needing one of those files names `attachments/<name>` in its `DoD`; a task needing none names none.
 
-A round continuing a draft reads `docs/<directories.runs>/<key>/plan.md` first and carries its specification over, changing only what the input's remarks change - its `issue:` line travels with the rest of that specification unless a remark changes it - and writes the key into the frontmatter's `into:` key; any other plan drops that line.
+A round continuing a draft reads `docs/<directories.runs>/<key>/plan.md` first and carries its specification over, changing only what the input's remarks change - its `issue:` line and its `attachments:` block travel with the rest of that specification unless a remark changes them - and writes the key into the frontmatter's `into:` key; any other plan drops that line.
 
 An input carrying a roadmap, or a `Roadmap: <path>` line (read that `roadmap.md`), fills `## Roadmap` per its template comment and repeats every later entry under `### Out of scope`; no roadmap in the input means no such section. What a later entry brings stays absent: no task delivers a stand-in for it, no acceptance criterion depends on it, nothing is stubbed, mocked or temporarily substituted. A part is never a release: no acceptance criterion needs a working application between parts.
 
@@ -102,6 +102,8 @@ A plan with its task half that changes a UI or an endpoint and carries no end-to
 A change that went through a draft lands here, since nothing downstream lands a plan carrying no task - the only thing this step executes:
 
 `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-path.sh" --land "<plan-path>"`
+
+On a non-zero exit, report the reason it printed on stderr and stop: nothing landed, so name no landed path and no next step.
 
 ```!
 "${CLAUDE_PLUGIN_ROOT}/scripts/switch-text.sh" branching.""mode "${CLAUDE_SKILL_DIR}" branching-land
