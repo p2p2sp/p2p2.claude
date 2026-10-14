@@ -403,6 +403,33 @@ test("a outcome.md written uncommitted just before the call lands in the archive
   });
 });
 
+test("a finished run holding attachments/<name> and outcome.md leaves both under the archive directory", async () => {
+  await withSeededRepo(
+    async (repo, runDir) => {
+      assert.equal((await run(repo.dir, [runDir], repo.env)).status, 0);
+      assert.deepEqual(filesUnder(repo.dir, `docs/specs/${KEY}`), [
+        "attachments/findings.md",
+        "outcome.md",
+        "qa.e2e.md",
+        "qa.md",
+        "spec.md",
+      ]);
+    },
+    { extra: { "attachments/findings.md": "# Findings\n", "outcome.md": "3/3 tasks committed\n" } },
+  );
+});
+
+test("an attachments/<name> file still uncommitted when the run is archived lands in the archive commit, leaving the tree clean", async () => {
+  await withSeededRepo(async (repo, runDir) => {
+    fs.mkdirSync(path.join(repo.dir, runDir, "attachments"), { recursive: true });
+    fs.writeFileSync(path.join(repo.dir, runDir, "attachments", "mockup.html"), "<h1>Login</h1>\n");
+
+    assert.equal((await run(repo.dir, [runDir], repo.env)).status, 0);
+    assert.equal((await repo.git("show", `HEAD:docs/specs/${KEY}/attachments/mockup.html`)).stdout, "<h1>Login</h1>\n");
+    assert.equal((await repo.git("status", "--porcelain")).stdout.trim(), "");
+  });
+});
+
 test("the move is one commit, and a spec.md edited before the call lands as a rename plus a modification", async () => {
   await withSeededRepo(async (repo, runDir) => {
     // what closeout does just before calling: the drift, marked in place
