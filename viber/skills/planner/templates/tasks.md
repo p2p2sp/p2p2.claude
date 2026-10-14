@@ -3,7 +3,7 @@
 <!-- TASK -->
 ### T1 - <title>
 - TDD: required | none
-- Covers: #1, #2
+- Covers: AC1, AC2
 - Uses: C1 | none
 - Depends-on: none
 - Files: <repo-relative path>, <repo-relative path>
@@ -16,7 +16,7 @@
 ### T2 - <title>
 - TDD: required | none
 - Exclusive: true
-- Covers: #<n>
+- Covers: AC<n>
 - Uses: C1, C2
 - Depends-on: T1
 - Files: <repo-relative path>

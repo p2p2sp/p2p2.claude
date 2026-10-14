@@ -226,7 +226,7 @@ function planBody(
       ...(t.exclusive === undefined ? [] : [`- Exclusive: ${t.exclusive}`]),
       ...(t.repro === undefined ? [] : [`- Repro: ${t.repro}`]),
       ...(t.hard === undefined ? [] : [`- Hard: ${t.hard}`]),
-      `- Covers: ${t.covers ?? "#1"}`,
+      `- Covers: ${t.covers ?? "AC1"}`,
       ...(t.uses === null ? [] : [`- Uses: ${t.uses ?? "C1"}`]),
       `- Depends-on: ${t.deps ?? "none"}`,
       `- Files: ${t.files ?? "src/a.ts"}`,
@@ -246,7 +246,7 @@ const TWO_TASKS: TaskFields[] = [
   {
     id: "T2",
     title: "Reject a bad password",
-    covers: "#2",
+    covers: "AC2",
     uses: "none",
     deps: "T1",
     files: "src/reject.ts",
@@ -337,7 +337,7 @@ test("Exclusive: true reaches the orchestrator as excl yes, and an absent line a
         {
           id: "T2",
           title: "Prove the endpoint against a real server",
-          covers: "#2",
+          covers: "AC2",
           uses: "none",
           deps: "T1",
           files: "test/login.api.ts",
@@ -371,7 +371,7 @@ test("a Hard line reaches the orchestrator as hard yes, and an absent line as '-
       dir,
       planBody([
         { id: "T1", title: "Add the login handler", files: "src/login.ts", hard: "lockout races between concurrent attempts" },
-        { id: "T2", title: "Reject a bad password", covers: "#2", deps: "T1", files: "src/reject.ts" },
+        { id: "T2", title: "Reject a bad password", covers: "AC2", deps: "T1", files: "src/reject.ts" },
       ]),
     );
 
@@ -789,7 +789,7 @@ test("a <!-- TASK --> block above the plan's own \"## Tasks\" heading is refused
       "<!-- TASK -->",
       "### T0 - Misplaced task",
       "- TDD: required",
-      "- Covers: #1",
+      "- Covers: AC1",
       "- Uses: none",
       "- Depends-on: none",
       "- Files: src/misplaced.ts",
@@ -836,7 +836,8 @@ test("a broken task contract exits 4 and names the task", async () => {
       [{ id: "T 1/x", files: "src/a.ts" }],
       /task id "T 1\/x"/,
     ],
-    ["a Covers pointing at a criterion that does not exist", [{ id: "T1", covers: "#9" }], /Covers #9/],
+    ["a Covers pointing at a criterion that does not exist", [{ id: "T1", covers: "AC9" }], /task T1: Covers AC9, absent from acceptance criteria/],
+    ["a Covers still written in the old #<n> form - it names no criterion", [{ id: "T1", covers: "#1" }], /task T1: Covers references no acceptance criterion/],
     [
       "a task with no Uses line - the one a plan written before the field looks like",
       [{ id: "T1", uses: null }],
@@ -966,7 +967,7 @@ test("an Exclusive task depending on earlier tasks and having no dependents itse
         {
           id: "T2",
           title: "Prove the endpoint against a real server",
-          covers: "#2",
+          covers: "AC2",
           uses: "none",
           deps: "T1",
           files: "test/login.api.ts",
@@ -1072,24 +1073,34 @@ test("a Files entry whose brackets wrap whole segments is an exact path and reac
 test("an acceptance criterion no task's Covers names exits 4 (nothing downstream gates the spec as a whole)", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
     // both criteria present, every task pointing at the first one
-    seed(dir, planBody([{ id: "T1", covers: "#1" }]));
+    seed(dir, planBody([{ id: "T1", covers: "AC1" }]));
 
     const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
     assert.equal(result.stdout, "");
-    assert.match(result.stderr, /criterion #2 is covered by no task/);
+    assert.match(result.stderr, /acceptance criterion AC2 is covered by no task/);
   });
 });
 
 test("only the criterion tokens of Covers count, so a digit inside an annotation covers nothing", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    // "(see S2)" carries a 2, and criterion #2 is still covered by no task
-    seed(dir, planBody([{ id: "T1", covers: "#1 (see S2)" }]));
+    // "(see S2)" carries a 2, and criterion AC2 is still covered by no task
+    seed(dir, planBody([{ id: "T1", covers: "AC1 (see S2)" }]));
 
     const result = await run(dir, {}, [PLAN_REL]);
     assert.equal(result.status, 4, `stderr: ${result.stderr}`);
-    assert.match(result.stderr, /criterion #2 is covered by no task/);
-    assert.doesNotMatch(result.stderr, /criterion #1 |Covers #/);
+    assert.match(result.stderr, /acceptance criterion AC2 is covered by no task/);
+    assert.doesNotMatch(result.stderr, /criterion AC1 |Covers AC/);
+  });
+});
+
+test("one task writing Covers: AC1, AC2 validates and its task file carries both criteria", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seed(dir, planBody([{ id: "T1", covers: "AC1, AC2" }]));
+
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(readRun(dir, "tasks/T1.md"), /^## Covered criteria\n1\. A user with valid[^\n]*\n[^\n]*\n2\. An invalid password is rejected\.$/m);
   });
 });
 
@@ -1179,7 +1190,7 @@ test("a contract file whose holders never name the block exits 4 (its writer wou
       planBody(
         [
           { id: "T1", uses: "none", files: "src/login.ts" },
-          { id: "T2", covers: "#2", uses: "C1", deps: "T1", files: "src/reject.ts" },
+          { id: "T2", covers: "AC2", uses: "C1", deps: "T1", files: "src/reject.ts" },
         ],
         2,
         ownedContract("src/login.ts"),
@@ -1200,7 +1211,7 @@ test("one holder naming the block is enough - a file several tasks in one chain 
       planBody(
         [
           { id: "T1", uses: "C1", files: "src/login.ts" },
-          { id: "T2", covers: "#2", uses: "none", deps: "T1", files: "src/login.ts" },
+          { id: "T2", covers: "AC2", uses: "none", deps: "T1", files: "src/login.ts" },
         ],
         2,
         ownedContract("src/login.ts"),
@@ -1221,7 +1232,7 @@ test("feeds names a contract block one task writes with the count of other tasks
       planBody(
         [
           { id: "T1", uses: "C1", files: "src/login.ts" },
-          { id: "T2", covers: "#2", uses: "C1", deps: "T1", files: "src/reject.ts" },
+          { id: "T2", covers: "AC2", uses: "C1", deps: "T1", files: "src/reject.ts" },
           { id: "T3", uses: "C1", deps: "T1", files: "src/logout.ts" },
         ],
         2,
@@ -1240,7 +1251,7 @@ test("feeds names a contract block one task writes with the count of other tasks
  *  no dependency on T1 - it would run beside its own writer. */
 const CONSUMER_WITHOUT_WRITER: TaskFields[] = [
   { id: "T1", uses: "C1", files: "src/login.ts" },
-  { id: "T2", covers: "#2", uses: "C1", files: "src/reject.ts" },
+  { id: "T2", covers: "AC2", uses: "C1", files: "src/reject.ts" },
 ];
 
 test("a task using a contract block whose lower-numbered writer is not among its dependencies exits 4, naming both tasks (it would run beside the code it calls)", async () => {
@@ -1271,7 +1282,7 @@ test("a consumer reaching its writer through another task validates (a transitiv
       planBody(
         [
           { id: "T1", uses: "C1", files: "src/login.ts" },
-          { id: "T2", covers: "#2", uses: "none", deps: "T1", files: "src/session.ts" },
+          { id: "T2", covers: "AC2", uses: "none", deps: "T1", files: "src/session.ts" },
           { id: "T3", uses: "C1", deps: "T2", files: "src/reject.ts" },
         ],
         2,
@@ -1290,7 +1301,7 @@ test("two tasks using a block on File: none need no dependency between them (suc
       dir,
       planBody([
         { id: "T1", files: "src/login.ts" },
-        { id: "T2", covers: "#2", files: "src/reject.ts" },
+        { id: "T2", covers: "AC2", files: "src/reject.ts" },
       ]),
     );
 
@@ -1306,7 +1317,7 @@ test("a consumer numbered below its only writer raises nothing from the dependen
       planBody(
         [
           { id: "T1", uses: "C1", files: "src/reject.ts" },
-          { id: "T2", covers: "#2", uses: "C1", files: "src/login.ts" },
+          { id: "T2", covers: "AC2", uses: "C1", files: "src/login.ts" },
         ],
         2,
         ownedContract("src/login.ts"),
@@ -1352,7 +1363,7 @@ test("a plan that introduces no shape at all validates with every task on Uses: 
 
 test("a rejected plan is never decomposed - --split writes nothing when validation fails", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    seed(dir, planBody([{ id: "T1", covers: "#9" }]));
+    seed(dir, planBody([{ id: "T1", covers: "AC9" }]));
 
     const result = await run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(result.status, 4);
@@ -2222,7 +2233,7 @@ test("a DoD line naming another task's id outside backticks exits 4 with the C1 
           { id: "T1", files: "src/a.ts" },
           {
             id: "T2",
-            covers: "#1",
+            covers: "AC1",
             uses: "none",
             deps: "T1",
             files: "src/b.ts",
@@ -2261,7 +2272,7 @@ test("a DoD line whose word merely contains another task's id exits 0 (T10 besid
           { id: "T1", files: "src/a.ts" },
           {
             id: "T2",
-            covers: "#1",
+            covers: "AC1",
             uses: "none",
             deps: "T1",
             files: "src/b.ts",
@@ -2286,7 +2297,7 @@ test("a DoD line naming another task's id only inside a backtick span exits 0 (a
           { id: "T1", files: "src/a.ts" },
           {
             id: "T2",
-            covers: "#1",
+            covers: "AC1",
             uses: "none",
             deps: "T1",
             files: "src/b.ts",
@@ -2311,7 +2322,7 @@ test("a DoD line naming another task validates under --split - a frozen plan res
           { id: "T1", files: "src/a.ts" },
           {
             id: "T2",
-            covers: "#1",
+            covers: "AC1",
             uses: "none",
             deps: "T1",
             files: "src/b.ts",

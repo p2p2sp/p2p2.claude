@@ -6,7 +6,7 @@ Two documents per build, both in the build's own run directory: `qa.md`, which a
 
 - `QA-<nn>`, zero-padded, sequential from `QA-01`, numbered once per build across both documents together. Past 99 the numbering keeps counting.
 - Exactly one tag per ID, `ui` or `api`, never written as a field: it is expressed by where the entry lands - `ui` in `qa.md` and under `## UI scenarios`, `api` under `## API scenarios` only. A criterion observable both on screen and through an endpoint yields two scenarios and two IDs, one of each tag, never one scenario carrying both.
-- The same ID names the same case in both documents and in the generated test's title, and `Covers:` cites its acceptance criterion as `#<n> <criterion text>`.
+- The same ID names the same case in both documents and in the generated test's title, and `Covers:` cites its acceptance criterion as `AC<n> <criterion text>`.
 
 ## Acceptance document `qa.md`
 
@@ -26,7 +26,7 @@ Human-only, `ui` scenarios only - manual API testing is out of scope. Written wh
 ## QA-01 <scenario title>
 - [ ] <the word "done" in the document's language>
 
-Covers: #<n> <criterion text>
+Covers: AC<n> <criterion text>
 
 Preconditions: <one sentence - the state the tester starts from>
 
@@ -52,7 +52,7 @@ Accounts: <role> <login> - <where the passwords live> | unknown
 ## UI scenarios
 
 ### QA-<nn> <scenario title>
-- Covers: #<n> <criterion text>
+- Covers: AC<n> <criterion text>
 - Role: <role the scenario runs as | unknown>
 - Route: <path the scenario starts on>
 - Seed: <what must exist and how to create it, as a request | none>
@@ -64,7 +64,7 @@ Accounts: <role> <login> - <where the passwords live> | unknown
 ## API scenarios
 
 ### QA-<nn> <scenario title>
-- Covers: #<n> <criterion text>
+- Covers: AC<n> <criterion text>
 - Endpoint: <METHOD> <path>
 - Auth: <how the request authenticates | none | unknown>
 - Request: <body or query | none>
@@ -74,7 +74,7 @@ Accounts: <role> <login> - <where the passwords live> | unknown
 - QA-<nn> - <reason no test can drive this scenario>
 
 ## Out of scope
-- #<n> <criterion text> - <reason it has no scenario>
+- AC<n> <criterion text> - <reason it has no scenario>
 ```
 
 The three header lines always come first, in that order. A UI entry carries all seven fields, an API entry all five, each on its own line in the template's order; nothing to seed is `none`. A section with no entries is left out rather than written empty, and an ID under `## Not automatable` gets no scenario entry and no automation line.

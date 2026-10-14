@@ -418,12 +418,12 @@ function verifycmd(s,   p) {
 }
 
 # the criterion numbers of a "Covers:" value: tokens split on commas and
-# whitespace, only "<n>" or "#<n>" counting, so an annotation like "(see S3)"
-# names no criterion. c and m are locals: the callers loop on globals.
+# whitespace, only "AC<n>" counting, so "#3", "3" and an annotation like
+# "(see S3)" name no criterion. c and m are locals: the callers loop on globals.
 function covnums(s, out,   c, m, k, j) {
   m = split(s, c, /[,[:space:]]+/)
   j = 0
-  for (k = 1; k <= m; k++) if (c[k] ~ /^#?[0-9]+$/) { sub(/^#/, "", c[k]); out[++j] = c[k] }
+  for (k = 1; k <= m; k++) if (c[k] ~ /^AC[0-9]+$/) { sub(/^AC/, "", c[k]); out[++j] = c[k] }
   return j
 }
 
@@ -675,7 +675,7 @@ END {
     m = covnums(covers[i], cnums)
     if (m == 0) fail("task " id[i] ": Covers references no acceptance criterion")
     for (k = 1; k <= m; k++)
-      if (!(cnums[k] + 0 in crit)) fail("task " id[i] ": Covers #" cnums[k] ", absent from acceptance criteria")
+      if (!(cnums[k] + 0 in crit)) fail("task " id[i] ": Covers AC" cnums[k] ", absent from acceptance criteria")
       else covered[cnums[k] + 0] = 1
 
     # Uses is what carries a contract block into the task file, so it is
@@ -748,7 +748,7 @@ END {
   # nothing downstream gates the specification as a whole. Walked by number, not
   # with "for (c in crit)", which awk iterates in no defined order.
   for (c = 1; c <= ncrit; c++)
-    if ((c in crit) && !(c in covered)) fail("acceptance criterion #" c " is covered by no task")
+    if ((c in crit) && !(c in covered)) fail("acceptance criterion AC" c " is covered by no task")
 
   # a contract block reaches a coder only through a "Uses:" line - one no task
   # names sits in the plan unreachable, and the shape it describes is then
@@ -979,12 +979,12 @@ function dodlines(s,   v, m, cl, k, c, out, j) {
 }
 
 # the criterion numbers of a "Covers:" value: tokens split on commas and
-# whitespace, only "<n>" or "#<n>" counting, so an annotation like "(see S3)"
-# names no criterion. c and m are locals: the callers loop on globals.
+# whitespace, only "AC<n>" counting, so "#3", "3" and an annotation like
+# "(see S3)" name no criterion. c and m are locals: the callers loop on globals.
 function covnums(s, out,   c, m, k, j) {
   m = split(s, c, /[,[:space:]]+/)
   j = 0
-  for (k = 1; k <= m; k++) if (c[k] ~ /^#?[0-9]+$/) { sub(/^#/, "", c[k]); out[++j] = c[k] }
+  for (k = 1; k <= m; k++) if (c[k] ~ /^AC[0-9]+$/) { sub(/^AC/, "", c[k]); out[++j] = c[k] }
   return j
 }
 
