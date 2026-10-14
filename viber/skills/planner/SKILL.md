@@ -30,7 +30,7 @@ Never propose, write or show a mockup or prototype: plan mode writes the plan fi
 
 Before writing a task, decide which files get created, modified or deleted and what each one owns: locked-in boundaries are what lets tasks run in parallel.
 
-- One responsibility per file. Files that change together live together.
+- One responsibility per file, and each new file hides more than its interface exposes: a file that only forwards to another (deleting it would move no complexity, only remove a hop) is folded into its caller. Files that change together live together.
 - Read the codebase for everything `plan-rules.md`'s Reach and Owned rules force into the file map, not only what the change introduces.
 - A file you have to touch that has grown unwieldy may be split, as a task.
 
