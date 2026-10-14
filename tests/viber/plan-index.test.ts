@@ -24,8 +24,12 @@
  * carrying the block verbatim, the plan's goal, the text of the criteria its
  * `Covers:` line names, the contract blocks its `Uses:` line names, the big
  * shape's `### Must not change` where the plan has one, and the plan's
- * out-of-scope list, then a `## Prototype` section naming the run's
- * `prototype.html` when the run holds one. That file IS a coder's WHOLE input - it gets no `spec:` line
+ * out-of-scope list. A task file carries no attachment or prototype section:
+ * the files a plan is built from (`<run>/attachments/`, copied there by
+ * `plan-path.sh --land`) are listed instead at the end of `spec.md`, under
+ * `## Attachments`, one repo-relative path per line sorted by name, and
+ * committed with the decomposition; no such directory or no file in it, no
+ * section. A task file IS a coder's WHOLE input - it gets no `spec:` line
  * at all - so a task file that loses a field, loses a contract or picks up a
  * neighbour's is silent, uncatchable drift. The one line it does NOT carry
  * verbatim is `- DoD:`, cut on `;` into one numbered `- DoD.<k>:` line per
@@ -1998,10 +2002,12 @@ test("the header names roadmap.md among the files --split writes", () => {
   assert.match(splitDoc, /^#\s+roadmap\.md\s+- /m);
 });
 
-// --- the prototype -----------------------------------------------------------
+// --- the attachments ---------------------------------------------------------
 
-/** The accepted UI mockup `plan-path.sh --land` copies into the run directory. */
-const PROTOTYPE_REL = `${PLAN_DIR}/prototype.html`;
+/** Where `plan-path.sh --land` copies the files the plan's `attachments:` key names. */
+const ATTACH_DIR = `${PLAN_DIR}/attachments`;
+const ATTACH_MOCKUP = `${ATTACH_DIR}/prototype.html`;
+const ATTACH_FINDINGS = `${ATTACH_DIR}/findings.md`;
 
 async function committedFiles(repo: GitRepo): Promise<string[]> {
   return (await repo.git("show", "--name-only", "--format=", "HEAD")).stdout
@@ -2012,36 +2018,84 @@ async function committedFiles(repo: GitRepo): Promise<string[]> {
     .sort();
 }
 
-test("--split with prototype.html in the run directory closes every task file with a ## Prototype section naming its repo-relative path, after the out-of-scope list", async () => {
+test("--split over a run whose attachments directory holds two files ends spec.md with ## Attachments and both repo-relative paths sorted by name", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody(TWO_TASKS));
-    write(dir, PROTOTYPE_REL, "<!doctype html><title>Login</title>\n");
+    write(dir, ATTACH_MOCKUP, "<!doctype html><title>Login</title>\n");
+    write(dir, ATTACH_FINDINGS, "# findings\n");
+
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(
+      readRun(dir, "spec.md"),
+      `${liteHead(2).join("\n")}\n## Attachments\n${ATTACH_FINDINGS}\n${ATTACH_MOCKUP}\n`,
+    );
+  });
+});
+
+test("--split over a run whose attachments directory is empty ends spec.md exactly where the head ends (no empty ## Attachments section)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seed(dir, planBody(TWO_TASKS));
+    fs.mkdirSync(path.join(dir, ATTACH_DIR), { recursive: true });
+
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(readRun(dir, "spec.md"), liteHead(2).join("\n"));
+  });
+});
+
+test("--split over a run with no attachments directory leaves spec.md without a ## Attachments section", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seed(dir, planBody(TWO_TASKS));
+
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.doesNotMatch(readRun(dir, "spec.md"), /## Attachments/);
+  });
+});
+
+test("no task file carries ## Attachments or ## Prototype when the run holds attachments (each task names the file it needs itself)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seed(dir, planBody(TWO_TASKS));
+    write(dir, ATTACH_MOCKUP, "<!doctype html><title>Login</title>\n");
+    write(dir, ATTACH_FINDINGS, "# findings\n");
 
     const result = await run(dir, {}, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(taskFiles(dir), ["T1.md", "T2.md"]);
     for (const name of taskFiles(dir)) {
-      const body = readRun(dir, `tasks/${name}`);
-      assert.ok(body.endsWith(`\n\n## Prototype\n${PROTOTYPE_REL}\n`), `${name}:\n${body}`);
-      assert.ok(body.indexOf("## Out of scope") < body.indexOf("## Prototype"), `${name}:\n${body}`);
-      assert.equal(body.split("## Prototype").length, 2, `${name} carries one Prototype section`);
+      assert.doesNotMatch(readRun(dir, `tasks/${name}`), /## Attachments|## Prototype|prototype\.html|findings\.md/, name);
     }
   });
 });
 
-test("prototype.html is committed with the decomposition", async () => {
+test("no task file carries ## Attachments or ## Prototype when the run holds no attachments", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seed(dir, planBody(TWO_TASKS));
+
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    for (const name of taskFiles(dir)) {
+      assert.doesNotMatch(readRun(dir, `tasks/${name}`), /## Attachments|## Prototype/, name);
+    }
+  });
+});
+
+test("the decomposition commit includes every file under attachments/", async () => {
   await withGitRepo(async (repo) => {
     write(repo.dir, "README.md", "seed\n");
     await repo.git("add", "-A");
     await repo.git("commit", "-m", "seed");
     seed(repo.dir, planBody(TWO_TASKS));
-    write(repo.dir, PROTOTYPE_REL, "<!doctype html><title>Login</title>\n");
+    write(repo.dir, ATTACH_MOCKUP, "<!doctype html><title>Login</title>\n");
+    write(repo.dir, ATTACH_FINDINGS, "# findings\n");
 
     const result = await run(repo.dir, repo.env, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.deepEqual(await committedFiles(repo), [
       PLAN_REL,
-      PROTOTYPE_REL,
+      ATTACH_FINDINGS,
+      ATTACH_MOCKUP,
       `${PLAN_DIR}/spec.md`,
       `${PLAN_DIR}/status.md`,
       `${PLAN_DIR}/tasks/T1.md`,
@@ -2050,7 +2104,7 @@ test("prototype.html is committed with the decomposition", async () => {
   });
 });
 
-test("--split without prototype.html writes no ## Prototype section and commits nothing beyond the decomposition (a run with no mockup reads as it always did)", async () => {
+test("--split without attachments commits nothing beyond the decomposition (a run with no attachments reads as it always did)", async () => {
   await withGitRepo(async (repo) => {
     write(repo.dir, "README.md", "seed\n");
     await repo.git("add", "-A");
@@ -2059,9 +2113,6 @@ test("--split without prototype.html writes no ## Prototype section and commits 
 
     const result = await run(repo.dir, repo.env, [PLAN_REL, "--split"]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    for (const name of taskFiles(repo.dir)) {
-      assert.doesNotMatch(readRun(repo.dir, `tasks/${name}`), /## Prototype|prototype\.html/, name);
-    }
     assert.deepEqual(await committedFiles(repo), [
       PLAN_REL,
       `${PLAN_DIR}/spec.md`,

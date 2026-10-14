@@ -134,7 +134,12 @@
 #                    closing fence of the same character) is content and
 #                    stays whole, comments and blank lines included. The
 #                    "## Roadmap" section is cut out of it too, into roadmap.md.
-#   roadmap.md     - only when the plan carries a "## Roadmap" section: that
+#                    It ends with "## Attachments" when <run>/attachments/ (the
+#                    files plan-path.sh --land copied there) holds a file: one
+#                    line per file, its repo-relative path ("$dir" is the
+#                    repo-relative run directory, as for the orphan line),
+#                    sorted by name; no directory or no file, no section.
+#   roadmap.md    - only when the plan carries a "## Roadmap" section: that
 #                    section, heading included, up to the next "## " heading,
 #                    its HTML comments dropped. The parts of a split change and
 #                    the decisions settled for the later ones, which a later
@@ -143,12 +148,9 @@
 #                    plan's "## Goal", the text of the criteria its "Covers:" line
 #                    names, the "## Contracts" blocks its "Uses:" line names, the
 #                    plan's "### Must not change" when the big shape has one,
-#                    the plan's "### Out of scope" and, when the run directory
-#                    holds prototype.html (the accepted UI mockup plan-path.sh
-#                    --land copies beside the plan), a closing "## Prototype"
-#                    section naming its repo-relative path ("$dir" is the
-#                    repo-relative run directory, as for the orphan line) so
-#                    a coder changing the screen it shows can match it. The block is
+#                    the plan's "### Out of scope". It carries no attachment or
+#                    prototype section: a task that needs an attached file names
+#                    it itself. The block is
 #                    verbatim but for its "- DoD:" line, cut on ";" into one
 #                    "- DoD.<k>: <clause>" line per clause (no ";" -> "DoD.1",
 #                    an empty trailing clause dropped): a coder answers for each
@@ -176,8 +178,8 @@
 # once it lands, so a run resumed after an upgrade must still validate.
 # tasks/ is rebuilt from scratch on every call, so a re-run after a plan edit
 # carries no stale task file, and the decomposition is committed together with the
-# plan and prototype.html when the run holds one (pathspec-scoped, best-effort):
-# it lives under docs/, so leaving it
+# plan and attachments/ when the run holds files there (pathspec-scoped,
+# best-effort): it lives under docs/, so leaving it
 # uncommitted would have every later commit-task.sh run report it as left behind.
 #
 # Validation (exit != 0, nothing on stdout, nothing written) - catches plan drift
@@ -936,12 +938,7 @@ fi
 rm -rf -- "$dir/tasks" "$dir/roadmap.md"
 mkdir -p -- "$dir/tasks"
 
-# The accepted UI mockup, when --land copied one into the run: its path, under
-# the repo-relative "$dir", closes every task file. Empty means no section.
-proto=""
-[[ ! -f "$dir/prototype.html" ]] || proto="$dir/prototype.html"
-
-dir="$dir" proto="$proto" awk '
+dir="$dir" awk '
 function trim(s) { sub(/^[[:space:]]+/, "", s); sub(/[[:space:]]+$/, "", s); return s }
 
 # the body under a heading, up to the next heading of any level: leading blank
@@ -991,7 +988,7 @@ function covnums(s, out,   c, m, k, j) {
   return j
 }
 
-BEGIN { dir = ENVIRON["dir"]; proto = ENVIRON["proto"] }
+BEGIN { dir = ENVIRON["dir"] }
 { line[NR] = $0 }
 
 END {
@@ -1119,8 +1116,6 @@ END {
       }
       if (mnc != "") printf "\n## Must not change\n%s", mnc > f
       if (oos != "") printf "\n## Out of scope\n%s", oos > f
-      # the accepted mockup, last: read by a task changing the screen it shows
-      if (proto != "") printf "\n## Prototype\n%s\n", proto > f
       close(f)
       n++
       continue
@@ -1146,6 +1141,24 @@ END {
 }
 ' "$plan"
 
+# --- the attachments, closing the specification ---
+# The files --land copied into <run>/attachments/ are listed by repo-relative
+# path, sorted by name (byte order, whatever the locale), so a task that needs
+# one names it itself. No directory, or no file in it, means no section.
+attach_list=""
+if [[ -d "$dir/attachments" ]]; then
+  while IFS= read -r attach; do
+    [[ -f "$attach" ]] || continue
+    attach_list="$attach_list$attach"$'\n'
+  done < <(printf '%s\n' "$dir"/attachments/* | LC_ALL=C sort)
+fi
+if [[ -n "$attach_list" ]]; then
+  {
+    printf '\n## Attachments\n'
+    printf '%s' "$attach_list"
+  } >> "$dir/spec.md"
+fi
+
 # --- the run's state file ---
 # Created here, with the run, and only when it is not there yet: a resume splits
 # again and must find its progress untouched. commit-task.sh is its only other
@@ -1168,8 +1181,8 @@ fi
 # task's "Files:" list names it, and commit-task.sh stages nothing it was not
 # given. The pathspec names only the paths this call itself writes or owns
 # (plan.md, spec.md, tasks/, status.md, roadmap.md when the plan carries a
-# "## Roadmap" section and prototype.html when --land copied one in, which every
-# task file names under "## Prototype") rather than the whole run directory:
+# "## Roadmap" section and attachments/ when --land copied files in, which
+# spec.md lists under "## Attachments") rather than the whole run directory:
 # a coder's own docs/<run>/work/ trail file is written later, by a different
 # actor, and must stay untracked until commit-task.sh decides it belongs in a
 # task's own commit - swept in here it would ride into a chore commit no task
@@ -1206,7 +1219,7 @@ commit_msg=(-m "chore(viber): decompose plan ${dir##*/}")
 [[ -z "$issue" ]] || commit_msg+=(-m "Refs: $issue")
 split_paths=("$dir/plan.md" "$dir/spec.md" "$dir/tasks" "$dir/status.md")
 [[ ! -f "$dir/roadmap.md" ]] || split_paths+=("$dir/roadmap.md")
-[[ ! -f "$dir/prototype.html" ]] || split_paths+=("$dir/prototype.html")
+[[ -z "$attach_list" ]] || split_paths+=("$dir/attachments")
 if git rev-parse --git-dir >/dev/null 2>&1; then
   git add -A -- "${split_paths[@]}" >/dev/null 2>&1 || true
   if ! git diff --cached --quiet -- "${split_paths[@]}" 2>/dev/null; then
