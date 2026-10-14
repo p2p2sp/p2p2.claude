@@ -35,7 +35,7 @@ No deviation: leave `spec.md` untouched and go straight to the leftovers.
 `Edit` `spec.md` in place, in the language it is already written in - every word you add, the deviation section's own heading included. `D<n>` is the one neutral token - an anchor rather than text.
 
 - Mark each affected sentence with `[D<n>]` at its end, numbered from 1 in file order.
-- Append one section at the end of the file, one line per marker: `D<n> (#<criterion>): <one line naming what the build actually does>`.
+- Append one section at the end of the file, one line per marker: `D<n> (AC<n>): <one line naming what the build actually does>`.
 
 Never touch `qa.md` or `qa.e2e.md`: both already describe the behaviour that was delivered.
 

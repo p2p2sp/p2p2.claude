@@ -439,7 +439,7 @@ test("the move is one commit, and a spec.md edited before the call lands as a re
       fs
         .readFileSync(spec, "utf-8")
         .replace("on the next request.", "on the next request. [D1]")
-        .concat("\n## Deviations\n\nD1 (#2): a 5s cache holds the old role.\n"),
+        .concat("\n## Deviations\n\nD1 (AC2): a 5s cache holds the old role.\n"),
     );
 
     const before = (await repo.git("rev-parse", "HEAD")).stdout.trim();
