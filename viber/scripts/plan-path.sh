@@ -97,14 +97,21 @@
 #            landing, and on --branch, <src>'s frontmatter "branch:", "work:"
 #            and "issue:" keys and its task blocks' "Repro:" lines, for the
 #            run branch. On every form printing "branch:", the resolved
-#            plan's "work:" key, for the "target:" line. On every copy (a new
-#            run, an --into draft round, never an "existing" answer), the
-#            copy's frontmatter "prototype:" key: the accepted UI mockup it
-#            names (C:/, C:\ or POSIX form) is copied to prototype.html in the
-#            run directory, overwriting the one a former round left (a copy
-#            with no such key removes it); the key keeps its value. A mockup
-#            missing, not copied or not removed is one "warning:" line on
-#            stderr, the plan landed and exit and stdout unchanged.
+#            plan's "work:" key, for the "target:" line. On every --land, the
+#            source's frontmatter "attachments:" map, checked before the run
+#            branch step (exit 7, see below): "attachments:" alone on its line,
+#            then one "<name>: <source path>" entry per line, indented, the map
+#            ending at the first line not indented. A name is one file name
+#            with an extension (^[A-Za-z0-9][A-Za-z0-9_-]*(\.[A-Za-z0-9_-]+)+$)
+#            and unique; the path (C:/, C:\ or POSIX form) is non-empty. On
+#            every copy (a new run, an --into draft round, never an "existing"
+#            answer), each source file of the copy's map is copied to
+#            <run>/attachments/<name>, the directory a former round left being
+#            removed first (a copy with no map leaves none); the map keeps its
+#            source values. A source missing, a copy that failed or a former
+#            directory that could not be removed is one "warning:" line on
+#            stderr, the plan landed and exit and stdout unchanged. A
+#            "prototype:" key is not read.
 #   git    : HEAD moves only in the branch step of a first landing, or of a
 #            matching round landed again through --into, or by --checkout,
 #            through one checkout; every failure before or inside that step
@@ -208,6 +215,12 @@
 #         reason); stderr names the reason; nothing landed, HEAD, index and
 #         tree unchanged. A recorded branch that exists is kept or switched to
 #         whatever those errors are.
+#     7 - the source's attachments: map is unusable: "error: unusable
+#         attachments: <reason>" on stderr, <reason> one of "duplicate name
+#         <name>", "invalid name <name>", "entry without a path: <name>" or
+#         "attachments: carries a value"; stdout empty, nothing copied, no run
+#         directory created, HEAD, index and tree unchanged. Checked on every
+#         --land, before the run branch step.
 #
 # One "open:" line per OTHER run still holding a task that is neither committed
 # nor skipped - the resolved run is never among them, and a repository with
@@ -397,35 +410,91 @@ infm && /^source:/ { print "source: " ENVIRON["abs"]; next }
   rm -f "$tmp"
 }
 
-# The accepted UI mockup the copy's frontmatter "prototype:" key names, put
-# beside the landed plan as prototype.html, so the run keeps it once .temp/ is
-# cleared. The key keeps its value: nothing rewrites it to the run path. A
-# C:/ or C:\ value goes through cygpath -u where cygpath exists; without it the
-# value is used as written. A copy with no key removes the prototype.html a
-# former round left, so a run never names a mockup its plan dropped.
-# Fail-open: a missing mockup, a failed copy or a failed removal is one
-# warning on stderr, never an exit, since the plan is landed either way.
-land_prototype() {
-  local proto run
+# Reads the frontmatter "attachments:" map of $1 into att_names / att_paths
+# (att_n entries, in file order). Returns 7, the reason on stderr, when the map
+# is unusable; nothing is written. A file without the key yields no entries.
+# No apostrophe anywhere in the awk program: it sits inside single quotes.
+read_attachments() {
+  local line body reason=""
+  att_n=0
+  att_names=()
+  att_paths=()
+  while IFS= read -r line; do
+    case "$line" in
+      "E "*) reason="${line#E }"; break ;;
+      "A "*)
+        body="${line#A }"
+        att_names[att_n]="${body%% *}"
+        att_paths[att_n]="${body#* }"
+        att_n=$((att_n + 1))
+        ;;
+    esac
+  done < <(awk '
+function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+NR == 1 { if ($0 !~ /^---[ \t]*\r?$/) exit; next }
+/^---[ \t]*\r?$/ { exit }
+{ sub(/\r$/, "") }
+inmap && /^[ \t]/ {
+  e = trim($0)
+  if (e == "") next
+  p = index(e, ":")
+  name = e
+  path = ""
+  if (p) { name = trim(substr(e, 1, p - 1)); path = trim(substr(e, p + 1)) }
+  if (name !~ /^[A-Za-z0-9][A-Za-z0-9_-]*(\.[A-Za-z0-9_-]+)+$/) { print "E invalid name " name; exit }
+  if (path == "") { print "E entry without a path: " name; exit }
+  if (name in seen) { print "E duplicate name " name; exit }
+  seen[name] = 1
+  print "A " name " " path
+  next
+}
+inmap { inmap = 0 }
+/^attachments:/ {
+  v = $0
+  sub(/^attachments:/, "", v)
+  if (trim(v) != "") { print "E attachments: carries a value"; exit }
+  inmap = 1
+}
+' "$1" 2>/dev/null)
+  if [[ -n "$reason" ]]; then
+    echo "error: unusable attachments: $reason" >&2
+    return 7
+  fi
+  return 0
+}
+
+# The attachments of the copy $1, put beside the landed plan under
+# attachments/<name>, so the run keeps every file its plan is built from once
+# .temp/ is cleared. The map keeps its source values: nothing rewrites them to
+# the run path. A C:/ or C:\ value goes through cygpath -u where cygpath
+# exists; without it the value is used as written. The directory a former round
+# left is removed first, so a run never names a file its plan dropped; a copy
+# with no map leaves none. Fail-open: a missing source, a failed copy or a
+# failed removal is one warning on stderr, never an exit, since the plan is
+# landed either way.
+land_attachments() {
+  local run dir i src_file
   run="${1%/*}"
-  proto="$(awk '
-NR == 1 { if ($0 !~ /^---[[:space:]]*\r?$/) exit; next }
-/^---[[:space:]]*\r?$/ { exit }
-/^prototype:/ { sub(/^prototype:[[:space:]]*/, ""); sub(/[[:space:]]+$/, ""); print; exit }
-' "$1" || true)"
-  if [[ -z "$proto" ]]; then
-    rm -f -- "$run/prototype.html" 2>/dev/null \
-      || echo "warning: could not remove $run/prototype.html" >&2
+  dir="$run/attachments"
+  if [[ -e "$dir" ]] && ! rm -rf -- "$dir" 2>/dev/null; then
+    echo "warning: could not remove $dir" >&2
     return 0
   fi
-  if command -v cygpath >/dev/null 2>&1; then
-    proto="$(cygpath -u -- "$proto" 2>/dev/null || printf '%s\n' "$proto")"
-  fi
-  if [[ ! -f "$proto" ]]; then
-    echo "warning: prototype not found, not landed: $proto" >&2
-  elif ! cp -- "$proto" "$run/prototype.html" 2>/dev/null; then
-    echo "warning: could not copy the prototype to $run/prototype.html" >&2
-  fi
+  read_attachments "$1" 2>/dev/null || return 0
+  [[ "$att_n" -gt 0 ]] || return 0
+  mkdir -p -- "$dir" 2>/dev/null || true
+  for ((i = 0; i < att_n; i++)); do
+    src_file="${att_paths[i]}"
+    if command -v cygpath >/dev/null 2>&1; then
+      src_file="$(cygpath -u -- "$src_file" 2>/dev/null || printf '%s\n' "$src_file")"
+    fi
+    if [[ ! -f "$src_file" ]]; then
+      echo "warning: attachment not found, not landed: ${att_paths[i]}" >&2
+    elif ! cp -- "$src_file" "$dir/${att_names[i]}" 2>/dev/null; then
+      echo "warning: could not copy attachment ${att_names[i]}" >&2
+    fi
+  done
+  rmdir -- "$dir" 2>/dev/null || true
   return 0
 }
 
@@ -614,6 +683,7 @@ if [[ "$into_set" == 1 ]]; then
     echo "error: no run directory to land into: $specs_dir/$into" >&2
     exit 2
   fi
+  read_attachments "$src" || exit $?
   # the run's own plan landed again: nothing to copy, and cp would refuse the
   # file onto itself. Checked first, since a landed plan keeps its "into:" line
   # and a later build lands it once more. The plan-mode source of that round,
@@ -649,10 +719,12 @@ if [[ "$into_set" == 1 ]]; then
   fi
   strip_guidance "$dest"
   set_source "$dest"
-  land_prototype "$dest"
+  land_attachments "$dest"
   emit "$dest" new
   exit 0
 fi
+
+read_attachments "$src" || exit $?
 
 # Already landed? The source's own directory, resolved, against docs/_specs - so
 # a relative, an absolute and a native Windows path all answer alike, and
@@ -709,5 +781,5 @@ if ! mkdir -p -- "${dest%/*}" || ! cp -- "$src" "$dest"; then
 fi
 strip_guidance "$dest"
 set_source "$dest"
-land_prototype "$dest"
+land_attachments "$dest"
 emit "$dest" new

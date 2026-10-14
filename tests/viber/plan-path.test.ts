@@ -23,8 +23,9 @@
  * The caller is trusted to take this output as it stands - the skill never
  * re-verifies it - which makes the printed block and the exit codes (2:
  * unusable argv, 3: nothing to resume, 4: an --into target that is not a
- * draft, 5: the copy failed, 6: the run branch could not be set) the whole
- * interface.
+ * draft, 5: the copy failed, 6: the run branch could not be set, 7: the
+ * plan's attachments map is unusable) the whole interface. The files the map
+ * names land under the run's attachments/ directory.
  *
  * Under a `branching:` mode other than off, a first landing puts HEAD on the
  * run branch before anything is copied and prints a `branch:` line after
@@ -1182,19 +1183,24 @@ test("a changed source onto a decomposed draft still exits 4, even though the dr
   });
 });
 
-// --- the accepted UI mockup rides into the run as prototype.html ---
+// --- the plan's attachments ride into the run as attachments/<name> ---
 
-/** A plan whose frontmatter names its accepted mockup, and the draft it lands
- *  into when `into` is given. */
-function withPrototype(proto: string, body: string, into?: string): string {
-  return ["---", "source: /elsewhere/plans/round.md", ...(into ? [`into: ${into}`] : []), `prototype: ${proto}`, "---", "", body].join("\n");
+/** A plan whose frontmatter carries the given lines after `source:`, and the
+ *  draft it lands into when `into` is given. */
+function withFrontmatter(lines: string[], body: string, into?: string): string {
+  return ["---", "source: /elsewhere/plans/round.md", ...(into ? [`into: ${into}`] : []), ...lines, "---", "", body].join("\n");
 }
 
-/** A mockup under the host's `.temp/`, where the prototype skill writes one. */
-function mockup(root: string, name: string, html: string): string {
-  const file = path.join(root, ".temp", "viber", "prototype", name);
+/** A plan whose frontmatter lists `name: path` attachments, indented under `attachments:`. */
+function withAttachments(entries: string[], body: string, into?: string): string {
+  return withFrontmatter(["attachments:", ...entries.map((entry) => `  ${entry}`)], body, into);
+}
+
+/** A file under the host's `.temp/`, where the skills write the files a plan is built from. */
+function attachment(root: string, name: string, content: string | Buffer): string {
+  const file = path.join(root, ".temp", "viber", "attach", name);
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, html);
+  fs.writeFileSync(file, content);
   return file;
 }
 
@@ -1203,17 +1209,12 @@ function posixForm(file: string): string {
   return process.platform === "win32" ? slash(file).replace(/^([A-Za-z]):/, (_, d: string) => `/${d.toLowerCase()}`) : file;
 }
 
-/** The value of the landed copy's frontmatter `prototype:` line. */
-function prototypeLine(text: string): string {
-  const match = /^prototype: (.*)$/m.exec(text);
-  assert.ok(match, `no prototype: line in\n${text}`);
-  return match[1];
-}
-
-test("a new landing copies the mockup its prototype: key names (a POSIX path) into the run as prototype.html, the key keeping its source value", async () => {
+test("a plan naming two attachments lands both under attachments/<name> byte for byte, its frontmatter keeping the source values", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    const proto = posixForm(mockup(dir, "login.html", "<p>accepted</p>\n"));
-    const src = sourcePlan(dir, "outside/add-login.md", withPrototype(proto, PLAN_BODY));
+    const page = posixForm(attachment(dir, "login.html", "<p>accepted</p>\n"));
+    const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x00, 0xff]);
+    const shot = posixForm(attachment(dir, "shot.png", bytes));
+    const src = sourcePlan(dir, "outside/add-login.md", withAttachments([`mockup.html: ${page}`, `screen.png: ${shot}`], PLAN_BODY));
 
     const result = await run(dir, ["--land", src]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
@@ -1222,107 +1223,151 @@ test("a new landing copies the mockup its prototype: key names (a POSIX path) in
     assert.equal(resolved.state, "new");
 
     const runDir = path.join(dir, path.dirname(resolved.path));
-    assert.equal(fs.readFileSync(path.join(runDir, "prototype.html"), "utf-8"), "<p>accepted</p>\n");
-    assert.equal(prototypeLine(fs.readFileSync(path.join(dir, resolved.path), "utf-8")), proto);
+    assert.deepEqual(fs.readFileSync(path.join(runDir, "attachments", "mockup.html")), Buffer.from("<p>accepted</p>\n"));
+    assert.deepEqual(fs.readFileSync(path.join(runDir, "attachments", "screen.png")), bytes);
+    const landed = fs.readFileSync(path.join(dir, resolved.path), "utf-8");
+    assert.ok(landed.includes(["attachments:", `  mockup.html: ${page}`, `  screen.png: ${shot}`].join("\n")), landed);
   });
 });
 
-test(
-  "a prototype: key in the C:/ or C:\\ form lands the mockup too (cygpath normalizes it)",
-  { skip: process.platform === "win32" ? false : "a drive-letter path exists only on Windows" },
-  async () => {
-    for (const form of ["mixed", "native"] as const) {
+for (const form of ["mixed", "native"] as const) {
+  test(
+    `an attachment source in the ${form === "mixed" ? "C:/" : "C:\\"} form lands too (cygpath normalizes it)`,
+    { skip: process.platform === "win32" ? false : "a drive-letter path exists only on Windows" },
+    async () => {
       await withTempDir("p2p2-viber-", async (dir) => {
-        const file = mockup(dir, "login.html", `<p>${form}</p>\n`);
-        const proto = form === "mixed" ? slash(file) : path.win32.normalize(file);
-        const src = sourcePlan(dir, "outside/add-login.md", withPrototype(proto, PLAN_BODY));
+        const file = attachment(dir, "login.html", `<p>${form}</p>\n`);
+        const source = form === "mixed" ? slash(file) : path.win32.normalize(file);
+        const src = sourcePlan(dir, "outside/add-login.md", withAttachments([`mockup.html: ${source}`], PLAN_BODY));
 
         const result = await run(dir, ["--land", src]);
-        assert.equal(result.status, 0, `${form} -> stderr: ${result.stderr}`);
-        assert.equal(result.stderr, "", form);
-        const landed = path.join(dir, path.dirname(parse(result.stdout).path), "prototype.html");
-        assert.equal(fs.readFileSync(landed, "utf-8"), `<p>${form}</p>\n`, form);
+        assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+        assert.equal(result.stderr, "");
+        const landed = path.join(dir, path.dirname(parse(result.stdout).path), "attachments", "mockup.html");
+        assert.equal(fs.readFileSync(landed, "utf-8"), `<p>${form}</p>\n`);
       });
-    }
-  },
-);
+    },
+  );
+}
 
-test("an --into draft round overwrites prototype.html with its revised mockup, and an existing answer copies nothing", async () => {
+for (const [what, frontmatter, reason] of [
+  ["a repeated name", ["attachments:", "  a.png: /x/one", "  a.png: /x/two"], "duplicate name a.png"],
+  ["a name with a slash", ["attachments:", "  sub/a.png: /x/one"], "invalid name sub/a.png"],
+  ["a name that is a ..", ["attachments:", "  ..: /x/one"], "invalid name .."],
+  ["a name with a .. segment before the extension", ["attachments:", "  ../a.png: /x/one"], "invalid name ../a.png"],
+  ["a name with a leading dot", ["attachments:", "  .a.png: /x/one"], "invalid name .a.png"],
+  ["a name with no file extension", ["attachments:", "  issue: /x/one"], "invalid name issue"],
+  ["an entry with an empty path", ["attachments:", "  a.png:"], "entry without a path: a.png"],
+  ["an entry with no colon", ["attachments:", "  a.png"], "entry without a path: a.png"],
+  ["an attachments: line carrying a value", ["attachments: a.png"], "attachments: carries a value"],
+] as const) {
+  test(`${what} in the attachments map exits 7 naming the entry, with empty stdout and no run directory created`, async () => {
+    await withTempDir("p2p2-viber-", async (dir) => {
+      const src = sourcePlan(dir, "outside/add-login.md", withFrontmatter([...frontmatter], PLAN_BODY));
+
+      const result = await run(dir, ["--land", src]);
+      assert.equal(result.status, 7, `stdout: ${result.stdout}`);
+      assert.equal(result.stdout, "");
+      assert.equal(result.stderr.trim(), `error: unusable attachments: ${reason}`);
+      assert.equal(fs.existsSync(path.join(dir, "docs")), false);
+    });
+  });
+}
+
+test("an attachment source that is missing warns once on stderr and still lands the plan, exit 0 and stdout unchanged (fail-open)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    const gone = posixForm(path.join(dir, ".temp", "viber", "attach", "gone.html"));
+    const src = sourcePlan(dir, "outside/add-login.md", withAttachments([`mockup.html: ${gone}`], PLAN_BODY));
+
+    const result = await run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stderr.trim(), `warning: attachment not found, not landed: ${gone}`);
+    const resolved = parse(result.stdout);
+    assert.deepEqual(Object.keys(resolved), ["path", "key", "state"]);
+    assert.equal(resolved.state, "new");
+    assert.deepEqual(fs.readdirSync(path.join(dir, path.dirname(resolved.path))), ["plan.md"]);
+  });
+});
+
+test("an --into draft round replaces the former round's attachments with its own", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
     const key = "2026-09-19-17-30-00_add-login";
     landPlan(dir, key, "2026-09-19T17:30:00Z", DRAFT_BODY);
-    const landedProto = path.join(dir, "docs", "_specs", key, "prototype.html");
+    const landed = path.join(dir, "docs", "_specs", key, "attachments");
 
-    const first = mockup(dir, "login.html", "<p>round 1</p>\n");
-    const round1 = sourcePlan(dir, "outside/round-1.md", withPrototype(posixForm(first), DRAFT_BODY, key));
+    const old = posixForm(attachment(dir, "old.html", "<p>round 1</p>\n"));
+    const round1 = sourcePlan(dir, "outside/round-1.md", withAttachments([`old.html: ${old}`], DRAFT_BODY, key));
     const one = await run(dir, ["--land", round1]);
     assert.equal(one.status, 0, `stderr: ${one.stderr}`);
-    assert.equal(fs.readFileSync(landedProto, "utf-8"), "<p>round 1</p>\n");
 
-    const revised = mockup(dir, "login-v2.html", "<p>round 2</p>\n");
-    const round2 = sourcePlan(dir, "outside/round-2.md", withPrototype(posixForm(revised), PLAN_BODY, key));
+    const fresh = posixForm(attachment(dir, "fresh.html", "<p>round 2</p>\n"));
+    const round2 = sourcePlan(dir, "outside/round-2.md", withAttachments([`fresh.html: ${fresh}`], PLAN_BODY, key));
     const two = await run(dir, ["--land", round2]);
     assert.equal(two.status, 0, `stderr: ${two.stderr}`);
     assert.equal(parse(two.stdout).state, "new");
-    assert.equal(fs.readFileSync(landedProto, "utf-8"), "<p>round 2</p>\n");
-
-    // the same round landed again answers existing: the run is the state, so a
-    // mockup edited since does not reach it
-    fs.writeFileSync(revised, "<p>edited later</p>\n");
-    const again = await run(dir, ["--land", round2]);
-    assert.equal(again.status, 0, `stderr: ${again.stderr}`);
-    assert.equal(parse(again.stdout).state, "existing");
-    assert.equal(fs.readFileSync(landedProto, "utf-8"), "<p>round 2</p>\n");
+    assert.deepEqual(fs.readdirSync(landed), ["fresh.html"]);
+    assert.equal(fs.readFileSync(path.join(landed, "fresh.html"), "utf-8"), "<p>round 2</p>\n");
   });
 });
 
-test("an --into draft round with no prototype: key removes the prototype.html a former round landed", async () => {
+test("an --into draft round with no attachments: key removes the attachments directory a former round landed", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
     const key = "2026-09-19-17-30-00_add-login";
     landPlan(dir, key, "2026-09-19T17:30:00Z", DRAFT_BODY);
-    const landedProto = path.join(dir, "docs", "_specs", key, "prototype.html");
+    const landed = path.join(dir, "docs", "_specs", key, "attachments");
 
-    const first = mockup(dir, "login.html", "<p>round 1</p>\n");
-    const round1 = sourcePlan(dir, "outside/round-1.md", withPrototype(posixForm(first), DRAFT_BODY, key));
+    const old = posixForm(attachment(dir, "old.html", "<p>round 1</p>\n"));
+    const round1 = sourcePlan(dir, "outside/round-1.md", withAttachments([`old.html: ${old}`], DRAFT_BODY, key));
     const one = await run(dir, ["--land", round1]);
     assert.equal(one.status, 0, `stderr: ${one.stderr}`);
-    assert.ok(fs.existsSync(landedProto));
+    assert.ok(fs.existsSync(landed));
 
-    const round2 = sourcePlan(dir, "outside/round-2.md", ["---", "source: /elsewhere/plans/round.md", `into: ${key}`, "---", "", PLAN_BODY].join("\n"));
+    const round2 = sourcePlan(dir, "outside/round-2.md", withFrontmatter([], PLAN_BODY, key));
     const two = await run(dir, ["--land", round2]);
     assert.equal(two.status, 0, `stderr: ${two.stderr}`);
     assert.equal(two.stderr, "");
     assert.equal(parse(two.stdout).state, "new");
-    assert.equal(fs.existsSync(landedProto), false);
+    assert.equal(fs.existsSync(landed), false);
   });
 });
 
-test("a prototype: key naming a missing mockup warns on stderr and still lands the plan, exit 0 and stdout unchanged (fail-open)", async () => {
+test("landing the same --into round again answers existing and copies nothing (a source edited since does not reach the run)", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    const gone = posixForm(path.join(dir, ".temp", "viber", "prototype", "gone.html"));
-    const src = sourcePlan(dir, "outside/add-login.md", withPrototype(gone, PLAN_BODY));
+    const key = "2026-09-19-17-30-00_add-login";
+    landPlan(dir, key, "2026-09-19T17:30:00Z", DRAFT_BODY);
+    const file = attachment(dir, "login.html", "<p>round 2</p>\n");
+    const round = sourcePlan(dir, "outside/round-2.md", withAttachments([`mockup.html: ${posixForm(file)}`], PLAN_BODY, key));
+    const first = await run(dir, ["--land", round]);
+    assert.equal(first.status, 0, `stderr: ${first.stderr}`);
 
-    const result = await run(dir, ["--land", src]);
-    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
-    assert.match(result.stderr, /^warning: prototype not found/m);
-    assert.equal(result.stderr.trim().split("\n").length, 1, result.stderr);
-    const resolved = parse(result.stdout);
-    assert.deepEqual(Object.keys(resolved), ["path", "key", "state"]);
-    assert.equal(resolved.state, "new");
-    assert.ok(fs.existsSync(path.join(dir, resolved.path)));
-    assert.equal(fs.existsSync(path.join(dir, path.dirname(resolved.path), "prototype.html")), false);
+    fs.writeFileSync(file, "<p>edited later</p>\n");
+    const again = await run(dir, ["--land", round]);
+    assert.equal(again.status, 0, `stderr: ${again.stderr}`);
+    assert.equal(parse(again.stdout).state, "existing");
+    assert.equal(fs.readFileSync(path.join(dir, "docs", "_specs", key, "attachments", "mockup.html"), "utf-8"), "<p>round 2</p>\n");
   });
 });
 
-test("a plan with no prototype: key lands no prototype.html", async () => {
+test("a plan carrying a prototype: key lands neither prototype.html nor attachments/", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
-    const src = sourcePlan(dir, "outside/add-login.md", ["---", "source: /elsewhere/plans/round.md", "---", "", PLAN_BODY].join("\n"));
+    const page = posixForm(attachment(dir, "login.html", "<p>accepted</p>\n"));
+    const src = sourcePlan(dir, "outside/add-login.md", withFrontmatter([`prototype: ${page}`], PLAN_BODY));
 
     const result = await run(dir, ["--land", src]);
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
     assert.equal(result.stderr, "");
-    const resolved = parse(result.stdout);
-    assert.deepEqual(fs.readdirSync(path.join(dir, path.dirname(resolved.path))), ["plan.md"]);
+    assert.deepEqual(fs.readdirSync(path.join(dir, path.dirname(parse(result.stdout).path))), ["plan.md"]);
+  });
+});
+
+test("a plan with no attachments: key lands only plan.md", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    const src = sourcePlan(dir, "outside/add-login.md", withFrontmatter([], PLAN_BODY));
+
+    const result = await run(dir, ["--land", src]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+    assert.equal(result.stderr, "");
+    assert.deepEqual(fs.readdirSync(path.join(dir, path.dirname(parse(result.stdout).path))), ["plan.md"]);
   });
 });
 
@@ -1513,6 +1558,18 @@ function targetLines(stdout: string): string[] {
     .split("\n")
     .filter((line) => line.startsWith("target: "));
 }
+
+test("an unusable attachments map exits 7 before the run branch step: HEAD stays on main and the branch is not created", async () => {
+  await withBranchRepo(["mode: allowed", ...ON_MAIN], async (repo) => {
+    await withSource(["branch: feature/login", "attachments:", "  a.png: /x/one", "  a.png: /x/two"], async (src) => {
+      const result = await runIn(repo, ["--land", src]);
+      assert.equal(result.status, 7, `stdout: ${result.stdout}`);
+      assert.equal(result.stdout, "");
+      assert.equal(await headOf(repo), "main");
+      assert.equal((await repo.git("branch", "--list", "feature/login")).stdout.trim(), "");
+    });
+  });
+});
 
 test("branching off in a repository: a plan naming a branch lands on the current one and stdout carries no branch line", async () => {
   await withBranchRepo(["mode: off"], async (repo) => {

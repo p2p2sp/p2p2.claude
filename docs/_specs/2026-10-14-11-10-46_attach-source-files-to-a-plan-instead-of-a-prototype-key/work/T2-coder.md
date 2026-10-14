@@ -1,0 +1,5 @@
+- The exit 7 check (`read_attachments`) runs on every --land: in the --into branch right after the target directory check (before exit 4 and the branch step), and otherwise right after the --into block, before the already-landed shortcut and branch_land. A bad --into key (exit 2) therefore still wins over a bad map.
+- `land_attachments` re-reads the landed copy (not the source), removes `attachments/` first, and rmdirs it again when every source was missing, so a plan whose files are all gone lands only plan.md.
+- The `not found` warning prints the path as written in the plan, not the cygpath-converted form.
+- Name uniqueness is case-sensitive (`A.png` and `a.png` are two names); on a case-insensitive filesystem the second copy overwrites the first.
+- The old prototype tests were replaced; `prototype:` is simply never read.
