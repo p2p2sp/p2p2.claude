@@ -14,7 +14,7 @@ Holds one directory per run of viber that built a change to this repo and closed
 
 ## Contracts
 
-- A run holds `spec.md` always, and only when the run produced them: `roadmap.md` (a split change), `rulings.md` (rulings the build made itself), `qa.md`/`qa.e2e.md`, `prototype.html`, and `outcome.md` (the build summary, closing on `Drift: <n>` or `Drift: none`). Runs keyed before `2026-10-02` hold no `outcome.md`.
+- A run holds `spec.md` always, and only when the run produced them: `roadmap.md` (a split change), `rulings.md` (rulings the build made itself), `qa.md`/`qa.e2e.md`, `attachments/` (the `.temp/` files the plan was built from, listed at the end of `spec.md`), and `outcome.md` (the build summary, closing on `Drift: <n>` or `Drift: none`). Runs keyed before `2026-10-02` hold no `outcome.md`.
 
 ## Traps
 
