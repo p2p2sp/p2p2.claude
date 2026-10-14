@@ -1,6 +1,0 @@
-- C6 content rules (new parent, part `<k>` title and body) sit in `issue-save.md` Input; `issues-done.true.md` names only what each `parts:` entry holds.
-- The sub-issue offer for a tied split interview runs `issue-templates.sh` itself after the comment question; a resumed roadmap part is not a split interview and gets no set offer.
-- `split.md` `## The summary` owns the `   - Issue: <url>` roadmap line (C5); `issues-done.true.md` points to it.
-- A parent URL of another repository: set parts are created without a `Parent` line (same rule as a single issue).
-- `viber/references/CLAUDE.md` reader line for `issue-save.md` updated for `parent:`/`parts:`.
-- No test covers these prose files; the task's own greps and the help/portability/orphan unit tests are the proof.
