@@ -85,7 +85,8 @@ A typical run is `/viber:setup` once, then `/viber:intent`. Each step names the 
   you want one proposal or three. You refine it in conversation, then it goes on to `/viber:intent`,
   to the issue it started from, or both.
 - **`/viber:create-issue`**: covers issues of any kind, bugs included. Say what it is about, or let
-  it take that from the conversation.
+  it take that from the conversation. Name a parent issue (a number or a same-repository issue URL)
+  and the new issue is attached under it as a sub-issue.
 - **`/viber:create-pr`**: opens a pull request or a draft, titles it per `github.pr-title`, pushes only on your yes,
   assigns it to you as its author, and posts the run's `qa.md` as a QA comment on the run's issue
   (on the pull request when the run has none), once per run.

@@ -1,8 +1,8 @@
 # status
 
-progress: 5/7
-done: T4 T2 T1 T3 T6
+progress: 6/7
+done: T4 T2 T1 T3 T6 T5
 skipped: none
 unreviewed: none
-deferred: none
+deferred: T7:viber/references/issue-save.md
 closed: none
