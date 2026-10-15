@@ -73,14 +73,15 @@ function manifestPath(repoDir: string, plugin: string): string {
 
 /** Writes the fixture manifest release.sh bumps. `viber`'s is
  *  deliberately written WITHOUT a trailing newline, to prove jq's rewrite
- *  still leaves the file newline-terminated (jq always appends one). */
-function writeManifests(repoDir: string, version = "0.1.0"): void {
+ *  still leaves the file newline-terminated (jq always appends one);
+ *  `trailingNewline` writes it already newline-terminated instead. */
+function writeManifests(repoDir: string, version = "0.1.0", trailingNewline = false): void {
   for (const plugin of PLUGINS) {
     const file = manifestPath(repoDir, plugin);
     fs.mkdirSync(path.dirname(file), { recursive: true });
     const body = { name: plugin, version, description: `${plugin} release-fixture plugin` };
     const json = JSON.stringify(body, null, 2);
-    fs.writeFileSync(file, plugin === "viber" ? json : `${json}\n`);
+    fs.writeFileSync(file, trailingNewline ? `${json}\n` : json);
   }
 }
 
@@ -106,13 +107,13 @@ interface Fixture {
  *  full fixture every release.sh scenario below runs against. Nested
  *  `withGitRepo`/`withStub`/`withTempDir` calls guarantee every piece is
  *  cleaned up whether `fn` returns or throws. */
-async function withReleaseFixture<T>(fn: (fx: Fixture) => T): Promise<T> {
+async function withReleaseFixture<T>(fn: (fx: Fixture) => T, opts: { manifestTrailingNewline?: boolean } = {}): Promise<T> {
   return await withGitRepo(
     (origin) =>
       withGitRepo((repo) =>
         withStub("gh", GH_STUB, (ghDir) =>
           withTempDir("p2p2-release-state-", async (stateDir) => {
-            writeManifests(repo.dir);
+            writeManifests(repo.dir, "0.1.0", opts.manifestTrailingNewline ?? false);
             const remote = await repo.git("remote", "add", "origin", origin.dir);
             if (remote.status !== 0) throw new Error(`fixture: git remote add failed: ${remote.stderr}`);
             const add = await repo.git("add", "-A");
@@ -346,6 +347,22 @@ if (!jqAvailable || !bashPath) {
       assert.equal(releaseViewCalls.length, 1);
       assert.equal(releaseCreateCalls.length, 1, "gh release create should be called exactly once");
     });
+  });
+
+  test("a manifest that already ends in a newline is bumped and still ends in exactly one newline (jq must not add a second)", async () => {
+    await withReleaseFixture(
+      async (fx) => {
+        await fx.repo.git("tag", "1.2.3");
+        const result = await runRelease(bash, fx, "patch");
+        assert.equal(result.status, 0, `release.sh should succeed: ${result.stderr}`);
+
+        const raw = fs.readFileSync(manifestPath(fx.repo.dir, "viber"), "utf-8");
+        assert.equal(readManifests(fx.repo.dir).viber.version, "1.2.4");
+        assert.ok(raw.endsWith("\n"), "manifest must end with a newline");
+        assert.ok(!raw.endsWith("\n\n"), "manifest must not end with two newlines");
+      },
+      { manifestTrailingNewline: true },
+    );
   });
 
   test("a release body larger than the OS pipe buffer still publishes - gh exiting without draining the notes must not kill release.sh", async () => {
