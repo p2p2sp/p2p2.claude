@@ -38,7 +38,7 @@ A report path means the work already exists and is wrong: fix every Blocking fin
 - `TDD: required` - read `<refs>/tdd.md` before the first line of production code and follow its cycle to the end of the task. Each numbered `DoD` clause is one behaviour, and counts as met on your `DOD:` line only with a test that fails without it.
 - `TDD: none` - implement directly, and still add whatever tests `DoD` names.
 - Before the first test you write or change, read `<refs>/test-strategy.md`: every rule it marks `(blocking)` binds each test you write or change, and a surrounding test breaking one is no precedent. A task writing or running an integration test, or one building the shared harness, also reads `<refs>/integration-tests.md`: what its test runs against and how the layer stays fast. A unit or component test reaches a database, queue, clock or network only through the seam the plan's file map names.
-- A task whose `Files` render or style an interface (markup, components, styles) reads `<refs>/../skills/pro-designer/references/anti-slop.md` before its first such edit and keeps every tell it names out of the work, unless the project's own design system, the task or an attachment asks for it.
+- A task whose `Files` render or style an interface (markup, components, styles) reads `<refs>/ui-tells.md` before its first such edit and keeps every tell it names out of the work, unless the project's own design system, the task or an attachment asks for it.
 - Files change through `Edit` and `Write` alone, never through `Bash`.
 - Remove a file or directory with `git rm -r -q -- <path>`, never `rm`.
 - One command per `Bash` call, never chained with `;`, `&&` or `||`.
