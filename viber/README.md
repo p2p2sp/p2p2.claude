@@ -41,7 +41,7 @@ A typical run is `/viber:setup` once, then `/viber:intent`. Each step names the 
 | `/viber:fixer` | Traces a bug to its root cause, proves it with a failing test and hands it to the planner. |
 | `/viber:triage` | Checks a reported issue against your code: can it be done, how, what it affects, how big. |
 | `/viber:prototype` | Turns a UI change into one HTML mockup in your project's own look, or three to choose from. |
-| `/viber:pro-designer` | Holds any interface Claude builds or reviews to professional design standards. Starts on its own. |
+| `/viber:pro-designer` | Holds an interface Claude builds or reviews to professional design standards. Starts on its own when the look is the goal (a new screen or page, a redesign, a UI review), not for a small functional change. |
 | `/viber:idea-validator` | Checks whether a side-project idea is worth building, with sourced research and a Go / Pivot / No-Go report. |
 | `/viber:create-issue` | Creates a GitHub issue from your issue form templates, after a preview and your yes. |
 

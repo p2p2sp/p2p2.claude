@@ -1,6 +1,6 @@
 ---
 name: pro-designer
-description: Professional UI/UX design standards to avoid AI slop. ALWAYS use whenever creating, styling or reviewing ANY user interface - a page, screen, dashboard, form, onboarding or pricing flow, landing page, navigation, or a single component - even if the user only says "build/add/fix" and never says "design". Also use when critiquing existing UI, adding animations, making a static page feel alive, choosing colors, fonts, spacing, or layout, or when a UI looks generic, templated, or AI-generated.
+description: Professional UI/UX design standards to avoid AI slop. Use when the look of an interface is the goal - a new screen or page, a redesign, a UI review or critique, choosing colors, type, spacing, layout or motion, or a UI that looks generic or AI-generated. Not for a small functional change.
 allowed-tools: Read, Grep, Glob, Bash(sh:*), Bash(node:*)
 ---
 
