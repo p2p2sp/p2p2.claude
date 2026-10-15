@@ -19,7 +19,7 @@ look generated.
 ## Install
 
 ```
-claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
+claude plugin marketplace add https://github.com/p2p2sp/viber --scope user
 claude plugin install superui@p2p2 --scope user
 ```
 

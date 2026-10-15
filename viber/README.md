@@ -6,7 +6,7 @@ How to use viber, command by command. For what viber is and why, see the
 ## Install
 
 ```
-claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
+claude plugin marketplace add https://github.com/p2p2sp/viber --scope user
 claude plugin install viber@p2p2 --scope user
 ```
 

@@ -1,6 +1,6 @@
 # VIBER *`for Claude Code`*
 
-[![CI](https://github.com/p2p2sp/p2p2.claude/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/p2p2sp/p2p2.claude/actions/workflows/ci.yml)
+[![CI](https://github.com/p2p2sp/viber/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/p2p2sp/viber/actions/workflows/ci.yml)
 
 ![viber building a plan with parallel task-coder agents in Claude Code](docs/viber-tasks.png)
 
@@ -30,7 +30,7 @@ suite. Then it writes down what it learned, so the next run starts from there.
 ## Install
 
 ```
-claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
+claude plugin marketplace add https://github.com/p2p2sp/viber --scope user
 claude plugin install viber@p2p2 --scope user
 ```
 
@@ -102,7 +102,7 @@ claude plugin install superbiz@p2p2 --scope user
 
 These plugins are opinionated and their maintainers set the direction, so pull requests are not
 accepted. Bug reports and ideas are welcome:
-[open an issue](https://github.com/p2p2sp/p2p2.claude/issues/new/choose). More in
+[open an issue](https://github.com/p2p2sp/viber/issues/new/choose). More in
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License

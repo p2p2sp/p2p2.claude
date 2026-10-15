@@ -21,7 +21,7 @@ Writes and fixes Claude Code skills and agents, yours or a plugin's.
 ## Install
 
 ```
-claude plugin marketplace add https://github.com/p2p2sp/p2p2.claude --scope user
+claude plugin marketplace add https://github.com/p2p2sp/viber --scope user
 claude plugin install supercc@p2p2 --scope user
 ```
 
