@@ -193,6 +193,23 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
       </ul>
     </section>
 
+    <section id="idea-validator" data-title="Idea validation">
+      <h2>Idea validation <span class="count"></span></h2>
+      <p><code>/viber:idea-validator</code>: decide whether a business idea is worth turning into a side project.</p>
+      <ul class="f">
+        <li>Starts only when you invoke it, with the idea as text or the path to a file.</li>
+        <li>Asks for missing input once at intake, then proceeds.</li>
+        <li>Web research on the problem, the market and the competition, by three parallel subagents.</li>
+        <li>Scores the idea on 9 dimensions, including Distribution, Side-project fit and Autopilot fit.</li>
+        <li>Every number carries a source URL or is marked as no data found.</li>
+        <li>A council of 7 independent perspectives, in two rounds; <code>--quick</code> skips the second.</li>
+        <li>Disagreement is kept, not averaged; the dissent is part of the report.</li>
+        <li>An experiment plan with Go, Pivot and No-Go thresholds fixed before any result.</li>
+        <li>One self-contained HTML report in the language of the idea.</li>
+        <li>The verdict means worth testing, not worth building.</li>
+      </ul>
+    </section>
+
     <section id="triage" data-title="Issue triage">
       <h2>Issue triage <span class="count"></span></h2>
       <p><code>/viber:triage</code>: assesses one reported issue against the current code.</p>
@@ -260,6 +277,20 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
         <li>The accepted mockup travels with the plan into the build as an attachment.</li>
         <li>The coder of a task that names the mockup matches the screen to it (layout, content, states).</li>
         <li>Never edits the project's code.</li>
+      </ul>
+    </section>
+
+    <section id="pro-designer" data-title="UI design standards">
+      <h2>UI design standards <span class="count"></span></h2>
+      <p><code>viber:pro-designer</code>: professional UI and UX design standards that avoid generic, AI-looking interfaces.</p>
+      <ul class="f">
+        <li>Starts when the look of an interface is the goal: a new screen or page, a redesign, a UI review or critique.</li>
+        <li>Also starts on choices of colors, type, spacing, layout or motion, and on a UI that looks generic or AI-generated.</li>
+        <li>Does not start for a small functional change.</li>
+        <li>Reads its AI slop filter in full first, before proposing anything.</li>
+        <li>Names the visitor's success on the surface before any design decision.</li>
+        <li>A tell nobody asked for is out; a tell the brief pinned stays.</li>
+        <li>Optional contrast check with Node.js.</li>
       </ul>
     </section>
 
@@ -500,6 +531,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
         <li>Git read-only; removal through <code>git rm</code>.</li>
         <li>Never commits, never branches.</li>
         <li>Matches the style of the surrounding code.</li>
+        <li>A task rendering or styling an interface reads <code>references/ui-tells.md</code>, a short checklist of generated-UI tells, in the coder and the reviewer.</li>
         <li>Notes of up to 8 lines: conventions, traps, doubts.</li>
         <li>Returns options to unblock a task it cannot complete.</li>
         <li>TDD: first a test that fails on an assertion.</li>
@@ -784,6 +816,22 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
       </ul>
     </section>
 
+    <section id="skill-designer" data-title="Skill and agent authoring">
+      <h2>Skill and agent authoring <span class="count"></span></h2>
+      <p><code>viber:skill-designer</code>: authoring doctrine for Claude Code skills and agents.</p>
+      <ul class="f">
+        <li>Starts when a skill or agent is created, refactored, split, audited or tuned for a model.</li>
+        <li>Also starts when you ask to shrink an existing <code>SKILL.md</code> or choose <code>model:</code> or <code>effort:</code> for one.</li>
+        <li>Also starts when an agent misbehaves on one model only: stops early, overreaches, under-reports or fabricates.</li>
+        <li>Responsibility check: one skill, one concern; a failing check becomes a split.</li>
+        <li>Per-model profiles for Fable 5.1, Opus 5.5, Sonnet 5.5 and Haiku 5.5; no profile means no extrapolation.</li>
+        <li>A tune request returns the model and effort recommendation and writes no file.</li>
+        <li>Lints the result; every FAIL and WARN is checked against the file.</li>
+        <li>Fixes are applied only on your choice; dispatched as a subagent it applies none.</li>
+        <li>Used by <code>/viber:extension</code> to review the files it writes.</li>
+      </ul>
+    </section>
+
     <div class="part" data-part="Tools">Tools and foundations</div>
 
     <section id="tools" data-title="Tools">
@@ -819,6 +867,8 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
         <li><code>CLAUDE.md</code> and <code>.claude/rules/</code>: what builds learned.</li>
         <li><code>.claude/agents/</code> and <code>.claude/skills/</code>: extensions.</li>
         <li><code>.temp/viber/</code>: scratch files and mockups, kept out of git.</li>
+        <li><code>docs/business/&lt;slug&gt;/</code>: the idea validation report.</li>
+        <li><code>.temp/viber/idea-validator/</code>: the idea validation working files, kept out of git.</li>
         <li>The project's E2E directory: Playwright tests.</li>
       </ul>
     </section>
