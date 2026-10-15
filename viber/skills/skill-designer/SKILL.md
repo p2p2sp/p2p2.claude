@@ -12,7 +12,7 @@ description: Authoring doctrine for Claude Code skills and agents: one responsib
 
 ## Workflow
 
-1. Classify the request: new, refactor, split, audit, or tune (model, effort or per-model wording only, which skips steps 2, 3 and 5). For an existing file read it whole before touching it.
+1. Classify the request: new, refactor, split, audit, or tune (model, effort or per-model wording only, which skips steps 2, 3, 5, 6 and 7, writes no file and ends after step 4 on the model and effort recommendation). For an existing file read it whole before touching it.
 2. Run the responsibility check. If it fails or the request is a split, read `${CLAUDE_SKILL_DIR}/references/split-patterns.md` and build the split, not a bigger monolith.
 3. Decide where the work runs before writing it: read `${CLAUDE_SKILL_DIR}/references/architecture.md` when the skill drives noisy tool calls, chains stages, or repeats a behaviour other skills already carry.
 4. Tune for the model when the request is tune, the target is an agent or a forked skill, pins `model:`, or misbehaves on one model only. Model knowledge is as of 2026-10-07: a model with no profile below is not covered, say so and never extrapolate from a neighbour.
@@ -20,7 +20,7 @@ description: Authoring doctrine for Claude Code skills and agents: one responsib
    - Read `${CLAUDE_SKILL_DIR}/references/cross-model.md`: only it holds the rules several models share and the frontmatter mechanics.
    - One target model: also read its profile. Several or unknown models, or choosing a model or effort for a role: read a profile only to handle a quirk that model shows. Fable 5.1 `${CLAUDE_SKILL_DIR}/references/fable-5-1.md`, Opus 5.5 `${CLAUDE_SKILL_DIR}/references/opus-5-5.md`, Sonnet 5.5 `${CLAUDE_SKILL_DIR}/references/sonnet-5-5.md`, Haiku 5.5 `${CLAUDE_SKILL_DIR}/references/haiku-5-5.md`.
    - Apply only the mitigations the file's task exposes it to: an unattended-loop fix goes to an unattended agent, a recall fix to a reviewer. Never paste a whole profile into a file.
-   - Write each mitigation in the target file's own voice, merged into the rule it modifies when one exists, and carry it with the `model:` and `effort:` into step 6. Quoted snippets are measured wording: shorten one only by whole clauses, and keep verbatim a sentence the profile marks so.
+   - Write each mitigation in the target file's own voice, merged into the rule it modifies when one exists, and carry it with the `model:` and `effort:` into step 6; a tune request returns them as the recommendation and goes to step 8. Quoted snippets are measured wording: shorten one only by whole clauses, and keep verbatim a sentence the profile marks so.
 5. Writing a body from scratch: read `${CLAUDE_SKILL_DIR}/references/example.md` first.
 6. Write frontmatter, then body, then scripts and references.
 7. Lint: `bash "${CLAUDE_SKILL_DIR}/scripts/lint_skill.sh" <skill-dir-or-agent-file>`. Verify every FAIL and WARN against the file, real or false alarm, and draft a fix for each real one. With a user in the session, ask through `AskUserQuestion` which fixes to apply and apply only those; dispatched as a subagent, apply none and return the findings per Output.
@@ -106,7 +106,7 @@ Review like a codebase and remove mercilessly, everything costs context. Cut har
 ## Output
 
 - Created or changed files under the target skill or agent directory, or, for a role to staff, the model and effort recommendation.
-- Lint result: every FAIL and WARN with its verdict (real or false alarm), the proposed fix, and the user's choice, or "not applied" when no user was in the session.
-- For a new skill or a behaviour change: three evaluation scenarios, each the request, the expected behaviour and the model to run it on.
+- For a request that wrote or linted a file, the lint result: every FAIL and WARN with its verdict (real or false alarm), the proposed fix, and the user's choice, or "not applied" when no user was in the session.
+- For a new skill or a behaviour change, never for a tune request: three evaluation scenarios, each the request, the expected behaviour and the model to run it on.
 - Three-line summary: responsibility, trigger, deliberate omissions.
 - Per model mitigation added, one line naming the model behaviour it addresses.
