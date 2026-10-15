@@ -45,7 +45,7 @@ Read `${CLAUDE_SKILL_DIR}/templates/extension.md` and `${CLAUDE_SKILL_DIR}/refer
 - Phases in the answers -> one forked skill per phase, so no phase's tool output fills the agent's context: `Write` each new `.claude/skills/<name>-<phase>/SKILL.md`; a phase skill that already exists is `Read`, then `Edit`ed, never rewritten. Wire the agent to them as the authoring rules' Task section says.
 - Write only under `.claude/agents/` and `.claude/skills/`. Read each file's tail back after the write and delete a leaked bare closing tag.
 
-When `supercc:skill-designer` is in this session's skill listing, invoke it through `Skill` on the agent file and on each phase skill's directory, then apply what it approves. When it is not listed, skip this and install nothing.
+Invoke `viber:skill-designer` through `Skill` on the agent file and on each phase skill's directory, then apply what it approves.
 
 ## 5. Register
 

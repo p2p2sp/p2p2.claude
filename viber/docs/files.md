@@ -8,7 +8,7 @@ Every file viber creates or changes in your project. Back to the [viber guide](.
 | `docs/specs/<date>_<slug>/` | The archive of a finished run |
 | `docs/adr/` | Architecture decision records, with `planning.adr` on |
 | `CLAUDE.md` files, `.claude/rules/` | What builds, `/viber:memory` and `/viber:rules` learned |
-| `.claude/agents/`, `.claude/skills/` | Agents and skills `/viber:extension` writes with you |
+| `.claude/agents/`, `.claude/skills/` | Agents and skills `/viber:extension` and `/viber:skill-designer` write with you |
 | `docs/business/<slug>/report.html` | `/viber:idea-validator`'s report |
 | `.claude/viber.yml` | The config, see [Configuring viber](configuration.md) |
 | `.claude/settings.json` | The settings viber recommends |

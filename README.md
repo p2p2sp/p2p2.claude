@@ -62,7 +62,8 @@ in all your projects; drop it to install for the current repository only.
 Beyond the core loop, viber talks a topic through with you against trusted sources, triages issues,
 opens GitHub issues and pull requests, mocks up UI changes, holds every interface it builds to
 professional design standards, writes Playwright tests, audits large codebases, checks whether a
-side-project idea is worth building and hands a session over to the next one.
+side-project idea is worth building, writes and tunes your own Claude Code skills and agents for
+the model they run on, and hands a session over to the next one.
 The [viber guide](viber/README.md) lists every command.
 
 ## Good to know
@@ -74,24 +75,11 @@ The [viber guide](viber/README.md) lists every command.
 - It changes fast, and a release can change how it behaves. Run `/viber:setup` again after an
   upgrade.
 
-## Also in this marketplace
-
-It installs on its own and does not need viber.
-
-| Plugin | What it does |
-| --- | --- |
-| [supercc](supercc/README.md) | Writes, audits and tunes your own Claude Code skills and agents, for the model they run on. |
-
-```
-claude plugin install supercc@p2p2 --scope user
-```
-
 ## Requirements
 
 | Plugin | Needs |
 | --- | --- |
 | viber | the `gh` CLI for its GitHub steps; optional: `node` for `/viber:setup`'s settings merge, Node.js 22.6 or newer for `pro-designer`'s contrast check, Node.js 18 or newer and web access for `/viber:idea-validator`, Playwright for `/viber:e2e` |
-| supercc | nothing |
 
 ## Contributing
 

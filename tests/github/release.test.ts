@@ -31,7 +31,7 @@ import { withStub } from "../harness/stub.ts";
 import { bashShells } from "../harness/shells.ts";
 
 const RELEASE_SH = path.resolve(import.meta.dirname, "../../.github/scripts/release.sh");
-const PLUGINS = ["supercc", "viber"];
+const PLUGINS = ["viber"];
 
 function commandAvailable(cmd: string): boolean {
   return !spawnSync(cmd, ["--version"]).error;
@@ -71,7 +71,7 @@ function manifestPath(repoDir: string, plugin: string): string {
   return path.join(repoDir, plugin, ".claude-plugin", "plugin.json");
 }
 
-/** Writes the two fixture manifests release.sh bumps. `supercc`'s is
+/** Writes the fixture manifest release.sh bumps. `viber`'s is
  *  deliberately written WITHOUT a trailing newline, to prove jq's rewrite
  *  still leaves the file newline-terminated (jq always appends one). */
 function writeManifests(repoDir: string, version = "0.1.0"): void {
@@ -80,7 +80,7 @@ function writeManifests(repoDir: string, version = "0.1.0"): void {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     const body = { name: plugin, version, description: `${plugin} release-fixture plugin` };
     const json = JSON.stringify(body, null, 2);
-    fs.writeFileSync(file, plugin === "supercc" ? json : `${json}\n`);
+    fs.writeFileSync(file, plugin === "viber" ? json : `${json}\n`);
   }
 }
 
@@ -101,7 +101,7 @@ interface Fixture {
   releaseFlag: string;
 }
 
-/** Builds a work repo (two fixture manifests, an initial commit already
+/** Builds a work repo (the fixture manifest, an initial commit already
  *  pushed to `main` on its own `--bare` `origin`) plus a stubbed `gh` - the
  *  full fixture every release.sh scenario below runs against. Nested
  *  `withGitRepo`/`withStub`/`withTempDir` calls guarantee every piece is
@@ -308,7 +308,7 @@ if (!jqAvailable || !bashPath) {
     });
   });
 
-  test("bumps both manifests' version and nothing else in them, commits with the exact chore(bump) subject, tags and pushes to origin, and creates the GitHub release", async () => {
+  test("bumps the manifest's version and nothing else in it, commits with the exact chore(bump) subject, tags and pushes to origin, and creates the GitHub release", async () => {
     await withReleaseFixture(async (fx) => {
       await fx.repo.git("tag", "1.2.3");
       const before = readManifests(fx.repo.dir);
@@ -324,7 +324,7 @@ if (!jqAvailable || !bashPath) {
         assert.equal(after[plugin].name, before[plugin].name, `${plugin}: only .version should change`);
         assert.equal(after[plugin].description, before[plugin].description, `${plugin}: only .version should change`);
         // jq always emits a trailing newline, whether or not the source had one
-        // (supercc's fixture manifest was written without one).
+        // (viber's fixture manifest was written without one).
         assert.ok(fs.readFileSync(manifestPath(fx.repo.dir, plugin), "utf-8").endsWith("\n"), `${plugin}: manifest must end with a newline`);
       }
 

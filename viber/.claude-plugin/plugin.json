@@ -26,7 +26,8 @@
     "./skills/handoff/",
     "./skills/commit/",
     "./skills/pro-designer/",
-    "./skills/idea-validator/"
+    "./skills/idea-validator/",
+    "./skills/skill-designer/"
   ],
   "agents": [
     "./agents/planner-review.md",

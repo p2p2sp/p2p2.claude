@@ -1,6 +1,6 @@
 # tests - dev-time regression suites for the plugin scripts
 
-Owns every automated check in the repository: the per-plugin suites, the `release.sh` suite and the repo-wide static sweeps. It sits outside every plugin and never ships; supercc has no suite.
+Owns every automated check in the repository: the per-plugin suites, the `release.sh` suite and the repo-wide static sweeps. It sits outside every plugin and never ships.
 
 ## Terms
 

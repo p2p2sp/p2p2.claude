@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# release.sh - tag-driven version bump for the supercc + viber plugins.
+# release.sh - tag-driven version bump for the viber plugin.
 #
 # Computes the next MAJOR.MINOR.PATCH version (no "v" prefix) from the highest
-# existing git tag, syncs it into BOTH subdir plugin manifests' .version
-# (supercc/, viber/ .claude-plugin/plugin.json -
+# existing git tag, syncs it into the subdir plugin manifest's .version
+# (viber/.claude-plugin/plugin.json -
 # shared version, one tag namespace), commits the bump (`chore(bump): …`, no
 # [skip ci]), creates + pushes the tag, then publishes a GitHub Release whose
 # notes are built from the commits since the previous tag (grouped by conventional
@@ -23,7 +23,7 @@
 set -euo pipefail
 
 part="${1:?usage: release.sh <major|minor|patch>}"
-manifests=(supercc/.claude-plugin/plugin.json viber/.claude-plugin/plugin.json)
+manifests=(viber/.claude-plugin/plugin.json)
 seed="0.1.0"
 
 current="$(git tag --list --sort=-v:refname \
@@ -48,7 +48,7 @@ fi
 git config user.name  "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-# 1. Write the new version into ALL plugin manifests (shared version).
+# 1. Write the new version into the plugin manifest.
 for manifest in "${manifests[@]}"; do
   tmp="$(mktemp)"
   jq --arg v "$new" '.version = $v' "$manifest" >"$tmp"

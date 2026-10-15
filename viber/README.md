@@ -61,6 +61,7 @@ A typical run is `/viber:setup` once, then `/viber:intent`. Each step names the 
 | `/viber:rules` | Reviews or extends your project's `.claude/rules/`. |
 | `/viber:code-auditor` | Audits your code through one lens (bugs, security, performance, tests, design) over the current diff, one directory or the whole repository. |
 | `/viber:extension` | Creates, with you, an agent of your own that runs at the close of every build. |
+| `/viber:skill-designer` | Writes, audits and tunes your own Claude Code skills and agents, for the model they run on. Starts on its own. |
 
 ### Utilities
 

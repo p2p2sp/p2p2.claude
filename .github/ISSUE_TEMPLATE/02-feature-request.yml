@@ -8,7 +8,6 @@ body:
       label: Plugin
       options:
         - viber
-        - supercc
         - a new plugin
     validations:
       required: true

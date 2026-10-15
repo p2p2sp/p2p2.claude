@@ -911,6 +911,12 @@ oknie<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="current
     No-Go.</span></dd>
   </div>
   <div>
+    <dt><a href="#skill-skill-designer"><code data-copy>/viber:skill-designer</code></a></dt>
+    <dd><span lang="en">Writes, audits and tunes your own Claude Code skills and agents, for the model they run on.
+    Starts on its own.</span><span lang="pl">Pisze, audytuje i stroi twoje własne skille i agenty Claude Code pod
+    model, na którym działają. Startuje sam.</span></dd>
+  </div>
+  <div>
     <dt><a href="#skill-e2e"><code data-copy>/viber:e2e</code></a></dt>
     <dd><span lang="en">Turns a build's <a href="#term-qa">QA scenarios</a> into Playwright tests.</span><span lang="pl">Zamienia
     <a href="#term-qa">scenariusze QA</a> z buildu w testy Playwright.</span></dd>
@@ -2414,6 +2420,42 @@ z nich mówi, jak nim sterować.</p>
       the report, one self-contained <code>docs/business/&lt;slug&gt;/report.html</code>.</span><span lang="pl">Pliki
       robocze w <code>.temp/viber/idea-validator/&lt;slug&gt;-&lt;date&gt;/</code> i raport, jeden samodzielny plik
       <code>docs/business/&lt;slug&gt;/report.html</code>.</span></dd>
+    </div>
+  </dl>
+</article>
+
+<article class="card" id="skill-skill-designer">
+  <h4><code>/viber:skill-designer</code></h4>
+  <p lang="en">Writes and fixes Claude Code skills and agents, yours or a plugin's: one responsibility per skill, a
+  description that gets it triggered, rarely needed material moved to files read only when needed, and wording
+  tuned for the model the file runs on (Fable, Opus, Sonnet or Haiku). Every result passes a lint run against the
+  platform's limits and the style rules.</p>
+  <p lang="pl">Pisze i naprawia skille i agenty Claude Code, twoje albo z pluginu: jedna odpowiedzialność na skill,
+  opis, który go uruchamia, rzadko potrzebny materiał przeniesiony do plików czytanych tylko w razie potrzeby,
+  i sformułowania dostrojone do modelu, na którym plik działa (Fable, Opus, Sonnet albo Haiku). Każdy wynik przechodzi
+  lint względem limitów platformy i reguł stylu.</p>
+  <dl>
+    <div>
+      <dt><span lang="en">Start</span><span lang="pl">Uruchomienie</span></dt>
+      <dd><span lang="en">On its own whenever you create, split, audit or tune a skill or an agent, or pick the model
+      it runs on, or by typing the command.</span><span lang="pl">Sam, gdy tworzysz, dzielisz, audytujesz albo
+      stroisz skill lub agenta, albo wybierasz model, na którym działa, albo przez wpisanie polecenia.</span></dd>
+    </div>
+    <div>
+      <dt><span lang="en">Arguments</span><span lang="pl">Argumenty</span></dt>
+      <dd><span lang="en">The request in your own words:
+      <code>/viber:skill-designer this agent runs on haiku, tune it</code>.</span><span lang="pl">Prośba własnymi
+      słowami: <code>/viber:skill-designer ten agent działa na haiku, dostrój go</code>.</span></dd>
+    </div>
+    <div>
+      <dt><span lang="en">Switches</span><span lang="pl">Przełączniki</span></dt>
+      <dd><span lang="en">None.</span><span lang="pl">Brak.</span></dd>
+    </div>
+    <div>
+      <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
+      <dd><span lang="en">Only the skill or agent files you asked about, and only the lint fixes you
+      approve.</span><span lang="pl">Tylko pliki skilla albo agenta, o które prosisz, i tylko poprawki z lintu,
+      które zatwierdzisz.</span></dd>
     </div>
   </dl>
 </article>

@@ -1,6 +1,5 @@
 ---
 paths:
-  - "supercc/skills/*/scripts/*.sh"
   - "viber/scripts/*.sh"
   - "viber/hooks/scripts/*.sh"
   - "viber/skills/*/scripts/*.sh"
