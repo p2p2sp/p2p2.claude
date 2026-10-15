@@ -9,15 +9,16 @@ Every file viber creates or changes in your project. Back to the [viber guide](.
 | `docs/adr/` | Architecture decision records, with `planning.adr` on |
 | `CLAUDE.md` files, `.claude/rules/` | What builds, `/viber:memory` and `/viber:rules` learned |
 | `.claude/agents/`, `.claude/skills/` | Agents and skills `/viber:extension` and `/viber:skill-designer` write with you |
-| `docs/business/<slug>/report.html` | `/viber:idea-validator`'s report |
+| `docs/business/<slug>/report.html` | `/viber:idea-validator`'s report, always at this path |
 | `.claude/viber.yml` | The config, see [Configuring viber](configuration.md) |
 | `.claude/settings.json` | The settings viber recommends |
 | `.gitignore` | `.temp/` and `.claude/viber.local.yml`, when no rule ignores them yet |
 | `.temp/viber/` | Scratch files, `/viber:prototype`'s mockups in `.temp/viber/prototype/`, `/viber:idea-validator`'s working files in `.temp/viber/idea-validator/` and `/viber:code-auditor`'s `findings.md` files in `.temp/viber/code-auditor/` |
 | your e2e directory | Playwright tests from `/viber:e2e` |
 
-The directory names under `docs/` are the defaults; `directories:` in `.claude/viber.yml` changes
-them.
+The names `_specs` and `specs` under `docs/` are the defaults; `directories:` in `.claude/viber.yml`
+changes only those two (the run and archive directories). `docs/adr/` and `docs/business/` keep their
+names.
 
 ## The run directory
 
