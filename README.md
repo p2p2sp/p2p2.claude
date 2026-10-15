@@ -1,4 +1,4 @@
-# viber
+# VIBER *`for Claude Code`*
 
 [![CI](https://github.com/p2p2sp/p2p2.claude/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/p2p2sp/p2p2.claude/actions/workflows/ci.yml)
 
