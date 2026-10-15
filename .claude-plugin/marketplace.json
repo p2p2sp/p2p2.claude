@@ -7,16 +7,6 @@
   },
   "plugins": [
     {
-      "name": "superui",
-      "source": "./superui",
-      "description": "Professional UI/UX design standards, applied whenever you build or review an interface."
-    },
-    {
-      "name": "superbiz",
-      "source": "./superbiz",
-      "description": "Checks a side-project idea with sourced research and a Go / Pivot / No-Go report."
-    },
-    {
       "name": "supercc",
       "source": "./supercc",
       "description": "Writes, audits and tunes Claude Code skills and agents."

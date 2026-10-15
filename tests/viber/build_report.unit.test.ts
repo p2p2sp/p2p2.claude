@@ -1,5 +1,5 @@
 /*
- * build_report.unit.test.ts - locks down superbiz's report builder: every
+ * build_report.unit.test.ts - locks down idea-validator's report builder: every
  * validation rule of report-data.json, the label merge, the one-pass template
  * fill, exit 2 on a wrong argument count and import safety. Imports the
  * script, spawns nothing, writes nothing; the file-writing CLI cases live in
@@ -7,7 +7,7 @@
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is
  * run directly by Node's native test runner + TypeScript type stripping:
- *   node --test tests/superbiz/build_report.unit.test.ts
+ *   node --test tests/viber/build_report.unit.test.ts
  */
 
 import { test } from "../harness/test.ts";
@@ -19,8 +19,8 @@ import {
   mergeLabels,
   render,
   validate,
-} from "../../superbiz/skills/idea-validator/scripts/build_report.mjs";
-import { capture, validReport as valid } from "./fixture.ts";
+} from "../../viber/skills/idea-validator/scripts/build_report.mjs";
+import { capture, validReport as valid } from "./build_report-fixture.ts";
 
 const dim = (d: any, key: string) => d.scorecard.dimensions.find((x: any) => x.key === key);
 const TEMPLATE = `<html lang="__LANG__"><title>__TITLE__</title><script type="application/json">__REPORT_DATA__</script></html>`;

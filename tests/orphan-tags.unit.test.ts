@@ -22,7 +22,7 @@
  * own `CLAUDE.md` cascade and `.claude/rules/`, the two surfaces the memory and
  * rules writers contaminated.
  *
- * Orphan, not "any closing tag on its own line": `superbiz`'s HTML report
+ * Orphan, not "any closing tag on its own line": `idea-validator`'s HTML report
  * template and `viber/hooks/content/manifest.md`'s `</viber:manifest>`
  * are legitimate and each has its opener in the same file.
  *

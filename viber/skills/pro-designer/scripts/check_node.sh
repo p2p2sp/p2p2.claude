@@ -1,6 +1,6 @@
 #!/bin/sh
-# superui - scripts/check_node.sh
-# Plugin-level Node.js runtime preflight, shared by every superui skill that runs a
+# viber - skills/pro-designer/scripts/check_node.sh
+# Node.js runtime preflight for the pro-designer skill, which runs a
 # bundled .ts step. The bundled scripts are TypeScript executed directly by Node's
 # native type stripping (no build step, no npm install), which needs Node >= 22.6
 # (behind --experimental-strip-types) or >= 23.6 (on by default). Resolves the exact

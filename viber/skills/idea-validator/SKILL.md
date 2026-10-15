@@ -32,7 +32,7 @@ The output is one standalone HTML file. Everything before that is working materi
 
 ## Working directory
 
-Create `.temp/superbiz/<slug>-<YYYY-MM-DD>/` (slug = 2-4 words from the idea, kebab-case) for every working file. Subagents read the working files by path, so the main context stays small. The deliverable `report.html` is the one file outside it (step 15).
+Create `.temp/viber/idea-validator/<slug>-<YYYY-MM-DD>/` (slug = 2-4 words from the idea, kebab-case) for every working file. Subagents read the working files by path, so the main context stays small. The deliverable `report.html` is the one file outside it (step 15).
 
 ```
 00-input.md            raw idea + answers to clarifying questions
@@ -91,5 +91,5 @@ Before the user sees any experiment result, write the Go / Pivot / No-Go thresho
 1. Read `${CLAUDE_SKILL_DIR}/references/report-schema.md` and assemble `report-data.json` in the working directory exactly to it; the renderer depends on the field names.
 2. Write `appendix.closing_note` in the report language: the report does not answer "will they pay", only the step-13 experiments can; the verdict means worth testing, not worth building; the final decision combines the experiment results with the user's own time constraints.
 3. Create `docs/business/<slug>/` (same slug as the working directory) at the host repo root.
-4. Run `node ${CLAUDE_SKILL_DIR}/scripts/build_report.mjs .temp/superbiz/<slug>-<YYYY-MM-DD>/report-data.json docs/business/<slug>/report.html`. On exit 1 it lists every problem: fix the JSON and rerun, never edit the HTML. If `node` is not found, stop and tell the user the report needs Node.js (https://nodejs.org); `report-data.json` stays in the working directory for a rerun.
+4. Run `node ${CLAUDE_SKILL_DIR}/scripts/build_report.mjs .temp/viber/idea-validator/<slug>-<YYYY-MM-DD>/report-data.json docs/business/<slug>/report.html`. On exit 1 it lists every problem: fix the JSON and rerun, never edit the HTML. If `node` is not found, stop and tell the user the report needs Node.js (https://nodejs.org); `report-data.json` stays in the working directory for a rerun.
 5. Tell the user the path to `report.html` and give a 3-line summary: verdict, biggest risk, first experiment to run. Close with the line that the verdict means worth testing, not worth building.

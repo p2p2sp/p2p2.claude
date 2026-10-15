@@ -18,7 +18,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 
-import { contrastRatio, parseColor } from "../../superui/skills/pro-designer/scripts/check_contrast.ts";
+import { contrastRatio, parseColor } from "../../viber/skills/pro-designer/scripts/check_contrast.ts";
 
 const VIBER = path.resolve(import.meta.dirname, "../../viber");
 const PAGE_PATH = path.join(VIBER, "skills/setup/assets/help.html");

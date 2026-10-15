@@ -2,7 +2,7 @@
 
 > All files in English
 
-Source of four independently installable Claude Code plugins (`superui`, `superbiz`, `supercc`, `viber`), co-listed as the `p2p2` marketplace by `.claude-plugin/marketplace.json`; the artifacts are markdown, JSON manifests and bundled scripts.
+Source of two independently installable Claude Code plugins (`supercc`, `viber`), co-listed as the `p2p2` marketplace by `.claude-plugin/marketplace.json`; the artifacts are markdown, JSON manifests and bundled scripts.
 
 ## Owner strict rules
 - Always in English: every CLAUDE.md, script, skill, agent and reference.

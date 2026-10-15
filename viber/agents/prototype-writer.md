@@ -40,7 +40,7 @@ On `create`, take the look from the first source that exists and record it as th
 
 A brief naming a screen or component the code does not hold -> `VERDICT: FAIL` with `REASON:` naming what is missing.
 
-Before writing on any round, invoke `impeccable` through Skill when it is in your skill listing, else `superui:pro-designer` when that is, else neither. Its advice yields to the host's look. Say nothing about which one ran, or that none did.
+Before writing on any round, invoke `impeccable` through Skill when it is in your skill listing, else `viber:pro-designer` when that is, else neither. Its advice yields to the host's look. Say nothing about which one ran, or that none did.
 
 ## Rounds
 

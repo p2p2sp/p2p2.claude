@@ -2,7 +2,6 @@
 paths:
   - "tests/**/*.ts"
   - "supercc/skills/*/scripts/*.sh"
-  - "superui/skills/pro-designer/scripts/*.sh"
   - "viber/scripts/*.sh"
   - "viber/hooks/scripts/*.sh"
   - "viber/skills/*/scripts/*.sh"
@@ -16,7 +15,7 @@ paths:
 - Two levels of parallelism multiply: `--test-concurrency` sets how many files run at once, and `tests/harness/test.ts` runs up to 4 cases of one file at once (`P2P2_TEST_CONCURRENCY=<n>` overrides it; `1` restores one-at-a-time, the way to rule concurrency out when a case flakes).
 - Never run the integration tier, a plugin subset or the whole `"tests/**/*.test.ts"` on a developer machine: a case spawning a script costs 1-2 s on Windows and the full suite takes minutes. To debug one red CI file, name only that file: `node --test tests/viber/config.test.ts`.
 - Quote every glob: `node --test "tests/**/*.unit.test.ts"`. The quotes are mandatory - the shell must not expand the glob, `node --test` resolves it itself.
-- NEVER pass a bare directory. `node --test tests/superui/` does not select the files inside it: Node resolves the argument as a module path and reports the failure as a failed test named `tests\superui`, so a wrong argument reads like a red suite rather than like a usage error.
+- NEVER pass a bare directory. `node --test tests/viber/` does not select the files inside it: Node resolves the argument as a module path and reports the failure as a failed test named `tests\viber`, so a wrong argument reads like a red suite rather than like a usage error.
 - Select a single case with `--test-name-pattern`: `node --test --test-name-pattern "a commented-out" tests/viber/config.test.ts` runs exactly 1 test.
 - `--test-name-pattern` takes a JavaScript regular expression, not a literal string. Anchor it on a distinctive plain-word fragment of the test name instead of pasting the whole name, whose punctuation (`(`, `[`, `.`, `?`) is regex syntax.
 - There are no suite names to filter on: `describe()` appears zero times in the test files, so `--test-name-pattern` matches top-level `test()` names only.

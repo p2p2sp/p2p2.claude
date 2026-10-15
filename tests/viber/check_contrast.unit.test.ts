@@ -6,7 +6,7 @@
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is
  * run directly by Node's native test runner + TypeScript type stripping:
- *   node --test tests/superui/check_contrast.unit.test.ts
+ *   node --test tests/viber/check_contrast.unit.test.ts
  */
 
 import { test } from "../harness/test.ts";
@@ -15,7 +15,7 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { parseColor, main } from "../../superui/skills/pro-designer/scripts/check_contrast.ts";
+import { parseColor, main } from "../../viber/skills/pro-designer/scripts/check_contrast.ts";
 
 // ---------------------------------------------------------------------------
 // parseColor - out-of-range rgb() components

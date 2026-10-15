@@ -1,12 +1,12 @@
 /*
- * build_report.test.ts - the file-writing half of superbiz's report builder
+ * build_report.test.ts - the file-writing half of idea-validator's report builder
  * CLI: unparsable input and invalid data exit 1 and write nothing, valid data
  * exits 0 and writes the filled template with LF line endings. Integration
  * tier (each case builds a temp-dir fixture); it calls `main` in-process.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is
  * run directly by Node's native test runner + TypeScript type stripping:
- *   CI=true node --test tests/superbiz/build_report.test.ts
+ *   CI=true node --test tests/viber/build_report.test.ts
  */
 
 import { test } from "../harness/test.ts";
@@ -15,11 +15,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 
-import { main } from "../../superbiz/skills/idea-validator/scripts/build_report.mjs";
-import { capture, validReport } from "./fixture.ts";
+import { main } from "../../viber/skills/idea-validator/scripts/build_report.mjs";
+import { capture, validReport } from "./build_report-fixture.ts";
 
 test("unparsable input exits 1 with a 'Cannot parse' line and writes no report", async () => {
-  await withTempDir("superbiz-", (dir) => {
+  await withTempDir("idea-validator-", (dir) => {
     const src = path.join(dir, "report-data.json");
     const dest = path.join(dir, "report.html");
     fs.writeFileSync(src, "{not json", "utf-8");
@@ -31,7 +31,7 @@ test("unparsable input exits 1 with a 'Cannot parse' line and writes no report",
 });
 
 test("invalid data exits 1, prints the problem count and one line per problem, and writes no report (the skill fixes the JSON, never the HTML)", async () => {
-  await withTempDir("superbiz-", (dir) => {
+  await withTempDir("idea-validator-", (dir) => {
     const d = validReport();
     d.thresholds = {};
     const src = path.join(dir, "report-data.json");
@@ -46,7 +46,7 @@ test("invalid data exits 1, prints the problem count and one line per problem, a
 });
 
 test("valid data exits 0 and writes the filled template with every placeholder replaced and LF line endings", async () => {
-  await withTempDir("superbiz-", (dir) => {
+  await withTempDir("idea-validator-", (dir) => {
     const src = path.join(dir, "report-data.json");
     const dest = path.join(dir, "report.html");
     fs.writeFileSync(src, JSON.stringify(validReport()), "utf-8");

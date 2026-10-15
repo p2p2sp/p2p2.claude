@@ -1,5 +1,5 @@
 /*
- * check_node.test.ts - proves superui/skills/pro-designer/scripts/check_node.sh's single-line
+ * check_node.test.ts - proves viber/skills/pro-designer/scripts/check_node.sh's single-line
  * contract across every documented Node version threshold: `NODE_OK <cmd>`
  * (node, or node --experimental-strip-types) below the type-stripping
  * cutover, or `NODE_MISSING` when node is absent, unparsable, or too old -
@@ -10,7 +10,7 @@
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
- *   node --test tests/superui/check_node.test.ts
+ *   node --test tests/viber/check_node.test.ts
  */
 
 import { test } from "../harness/test.ts";
@@ -22,7 +22,7 @@ import { runScript, type RunResult } from "../harness/run.ts";
 import { withStub } from "../harness/stub.ts";
 import { forEachShell, type Shell } from "../harness/shells.ts";
 
-const SUT = path.resolve(import.meta.dirname, "../../superui/skills/pro-designer/scripts/check_node.sh");
+const SUT = path.resolve(import.meta.dirname, "../../viber/skills/pro-designer/scripts/check_node.sh");
 
 /** The real PATH, minus every directory that resolves a real `node` - so
  *  "no node on PATH" is genuine even on a dev machine that has node

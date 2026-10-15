@@ -24,7 +24,9 @@
     "./skills/code-auditor/",
     "./skills/help/",
     "./skills/handoff/",
-    "./skills/commit/"
+    "./skills/commit/",
+    "./skills/pro-designer/",
+    "./skills/idea-validator/"
   ],
   "agents": [
     "./agents/planner-review.md",
