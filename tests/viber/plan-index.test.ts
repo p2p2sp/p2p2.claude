@@ -2254,6 +2254,76 @@ test("a DoD line naming another task's id outside backticks exits 4 with the C1 
   });
 });
 
+/** `count` distinct paths, joined as one Files value. */
+function manyFiles(count: number): string {
+  return Array.from({ length: count }, (_, k) => `src/f${k + 1}.ts`).join(", ");
+}
+
+/** `count` clauses, joined as one DoD value, with one empty clause the count skips. */
+function manyClauses(count: number): string {
+  return [...Array.from({ length: count }, (_, k) => `case ${k + 1} holds`), " "].join("; ");
+}
+
+test("a TDD: required task at 12 Files and 6 DoD clauses exits 0 (the caps are inclusive, and an empty clause counts as none)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seed(dir, planBody([{ id: "T1", files: manyFiles(12), dod: manyClauses(6) }], 1));
+
+    const result = await run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+  });
+});
+
+test("a TDD: required task with 13 Files exits 4 naming the count and nothing on stdout (one behaviour per task)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seed(dir, planBody([{ id: "T1", files: manyFiles(13) }], 1));
+
+    const result = await run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /task T1: 13 Files, past the 12 a TDD: required task may hold - split it, one behaviour per task/);
+  });
+});
+
+test("a TDD: required task with 7 DoD clauses exits 4 naming the count and nothing on stdout (one behaviour per task)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seed(dir, planBody([{ id: "T1", dod: manyClauses(7) }], 1));
+
+    const result = await run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /task T1: 7 DoD clauses, past the 6 a TDD: required task may hold - split it, one behaviour per task/);
+  });
+});
+
+test("a TDD: none task at 25 Files and 10 DoD clauses exits 0 (a task with no red-green cycle may be larger)", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seed(dir, planBody([{ id: "T1", tdd: "none", files: manyFiles(25), dod: manyClauses(10) }], 1));
+
+    const result = await run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+  });
+});
+
+test("a TDD: none task with 26 Files and 11 DoD clauses exits 4 naming both counts", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seed(dir, planBody([{ id: "T1", tdd: "none", files: manyFiles(26), dod: manyClauses(11) }], 1));
+
+    const result = await run(dir, {}, [PLAN_REL]);
+    assert.equal(result.status, 4, `stderr: ${result.stderr}`);
+    assert.match(result.stderr, /task T1: 26 Files, past the 25 a TDD: none task may hold/);
+    assert.match(result.stderr, /task T1: 11 DoD clauses, past the 10 a TDD: none task may hold/);
+  });
+});
+
+test("a task past both size caps validates under --split - a frozen plan resumed after the rule lands must still decompose", async () => {
+  await withTempDir("p2p2-viber-", async (dir) => {
+    seed(dir, planBody([{ id: "T1", files: manyFiles(13), dod: manyClauses(7) }], 1));
+
+    const result = await run(dir, {}, [PLAN_REL, "--split"]);
+    assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+  });
+});
+
 test("a DoD line naming the task's own id exits 0 - a task's own id never matches", async () => {
   await withTempDir("p2p2-viber-", async (dir) => {
     seed(dir, planBody([{ id: "T1", files: "src/a.ts", dod: "T1 handles this case" }], 1));

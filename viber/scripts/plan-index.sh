@@ -216,7 +216,10 @@
 #       task, the entry and the one reaching it), or a "DoD:" line naming
 #       another task of the plan as a whole token outside a backtick span
 #       (its own id never matches - prove each clause inside the task itself,
-#       naming a file or symbol instead). The last four cases and the
+#       naming a file or symbol instead), or a task holding more "Files:"
+#       entries or "DoD:" clauses than its TDD value allows - 12 and 6 on
+#       "required", 25 and 10 on "none" (it bundles several behaviours -
+#       split it). The last five cases and the
 #       parenthetical one above are exempted under --split
 #       alone: a plan that landed before the rule is frozen, and a run resumed
 #       after the upgrade must still validate and decompose.
@@ -486,6 +489,11 @@ function scope(self,   f, line, p, k, out, me, claimed) {
 
 BEGIN {
   n = 0; ncrit = 0; ncon = 0; err = 0; title = ""
+  # a TDD task is one behaviour run red-green clause by clause, so it stays
+  # small; a TDD-none task (a shape, a migration, config) carries no cycle to
+  # drift in and may span more files
+  maxfiles["required"] = 12; maxdod["required"] = 6
+  maxfiles["none"] = 25;     maxdod["none"] = 10
   plan = ENVIRON["plan"]
   mode = ENVIRON["mode"]
   extra = ENVIRON["extra"]
@@ -658,6 +666,18 @@ END {
       if (p ~ /[`"]/)                  { fail("task " id[i] ": Files entry \"" p "\" is not a bare path, drop the quoting"); continue }
       fset[i, p] = 1
       fpath[i, ++nf[i]] = p
+    }
+
+    # Size: a task past either cap bundles several behaviours, and a coder
+    # holding that many files and clauses at once drifts. Skipped under --split,
+    # like the other checks added after plans were frozen.
+    if (mode != "--split" && (tdd[i] in maxfiles)) {
+      tm = tdd[i]
+      if (nf[i] > maxfiles[tm]) fail("task " id[i] ": " nf[i] " Files, past the " maxfiles[tm] " a TDD: " tm " task may hold - split it, one behaviour per task")
+      nd = 0
+      m = split(dod[i], dc, /;/)
+      for (k = 1; k <= m; k++) if (trim(dc[k]) != "") nd++
+      if (nd > maxdod[tm]) fail("task " id[i] ": " nd " DoD clauses, past the " maxdod[tm] " a TDD: " tm " task may hold - split it, one behaviour per task")
     }
 
     # Repro: the reproduction test the fixer left RED, one path the task already

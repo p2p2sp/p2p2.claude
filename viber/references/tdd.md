@@ -31,4 +31,4 @@ Only code this task wrote. Never refactor while red; the file stays green throug
 
 ## Workflow
 
-Decide the public interface before coding. The behaviors are the plan task's numbered `DoD` clauses, one failing test each. Where the task leaves a choice open, take it; where it leaves the behavior under test unnameable, stop and report the task failed with that reason.
+Decide the public interface before coding. The behaviors are the plan task's numbered `DoD` clauses, one failing test each, worked in their numbered order: never start a clause before the one above it is green. Where the task leaves a choice open, take it; where it leaves the behavior under test unnameable, stop and report the task failed with that reason.
