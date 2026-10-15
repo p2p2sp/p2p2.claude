@@ -33,14 +33,22 @@ before they read any code:
   issue (one saved at the end of the interview or diagnosis counts, and is settled again as the
   last bullet below says).
 - HEAD is then checked against that entry's `base`: when HEAD is at another commit you are asked
-  to switch to the base now, stay on the current branch, or abort, with how far the base is behind
-  its remote. A base missing locally cannot be switched to, and uncommitted changes block the
-  switch until you commit or stash them.
-- Under `required`, staying is never offered on a detached HEAD or on any entry's base.
+  to switch to the base now, stay for now, build on the current branch, or abort, with how far the
+  base is behind its remote. A base missing locally cannot be switched to, and uncommitted changes
+  block the switch until you commit or stash them. `/viber:fixer` offers the same without "stay":
+  its reproduction test is left uncommitted, which would block cutting the run branch from another
+  commit when the plan lands.
+  - "Stay" moves nothing and leaves the run branch to the entry's own name, cut from the base when
+    the plan lands.
+  - "Build on" makes no run branch: the build's commits land on the current branch. It is the only
+    answer that pins the current branch.
+  - Switching leaves the run branch to be cut from the base when the plan lands.
+- Under `required`, building on the current branch is never offered on a detached HEAD or on any
+  entry's base; `/viber:intent` still offers "stay" there, as the run gets its own branch.
 - `/viber:intent` continuing a draft asks no entry question and offers a switch to the draft's
   recorded branch when HEAD is elsewhere.
-- `/viber:intent` continuing a `roadmap.md` on a branch that is no entry's base stays on it without
-  asking: the next part builds on the previous part's branch.
+- `/viber:intent` continuing a `roadmap.md` on a branch that is no entry's base builds on it
+  without asking: the next part builds on the previous part's branch.
 
 - Once the entry is settled, a line announces the run branch: the entry, the branch pattern, its
   `base` and its pull request `target`, or that no run branch is made and commits land on the
@@ -49,7 +57,7 @@ before they read any code:
   maps to replaces the earlier choice, "no branch" included, and is announced and base-checked;
   otherwise the earlier choice stays.
 
-The chosen entry, and the branch you stayed on, travel with the interview summary or the diagnosis
+The chosen entry, and the current branch only after "build on", travel with the interview summary or the diagnosis
 to the planner, which records the branch from them instead of asking again and announces the final
 branch once. When the planner finds no entry usable yet and HEAD is on an entry's base, it asks
 whether to continue on the current branch or stop; stopping ends it with nothing landed. Under
@@ -137,8 +145,8 @@ branching:
 ```
 
 One entry, cut from and landing back on `main`; `allowed` leaves the choice to you only when the
-start check finds you off `main`, where you can stay on your current branch. Use `required` if every
-run should get a branch.
+start check finds you off `main`, where you can build on your current branch instead of getting a
+run branch. Use `required` if every run should get a branch.
 
 ### GitHub Flow
 

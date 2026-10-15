@@ -1,0 +1,3 @@
+- The returning-draft question in intent's start fragments still reads "switch to that branch, stay on `current:`, or abort": there "stay" moves nothing and the draft's recorded branch already carries `branch:`, so it was left as is.
+- Under `required`, the intent "no usable switch" case (`base-exists: no` on a base entry) now leaves "stay" and "abort"; the old "abort is the only option" sentence was dropped for intent and kept (reworded) for fixer.
+- Other prose outside Files that may still say "stay" for the build branch (intent/fixer SKILL.md bodies, README, docs/) was not searched beyond the task's Files.

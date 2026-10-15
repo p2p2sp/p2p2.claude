@@ -3377,18 +3377,24 @@ domyślnego. Planowanie działa na modelu bieżącej sesji i zakres go nie ogran
     <dt><code>mode</code> <span class="tag">off</span></dt>
     <dd><span lang="en">off stays on the branch the run started on. allowed lets the run get its own
     branch, or none if you choose. required always gives the run its own branch and never commits onto the
-    base of any work entry: staying on one, or on a detached HEAD, is not offered. Under both, the interview or
+    base of any work entry: building on one, or on a detached HEAD, is not offered. Under both, the interview or
     diagnosis settles the work entry when it starts, before reading any code, and when you are not on that
-    entry's base it offers to switch there, stay, or abort (the next part of a roadmap, on a branch that
-    is no entry's base, stays without asking); the planner then takes the branch from that
+    entry's base the interview offers four answers: switch there, stay for now (nothing moves and the run
+    branch is still cut from the base when the plan lands), build on the current branch (no run branch is made
+    and commits land on it) or abort. The diagnosis offers the same without stay, since its reproduction test
+    stays uncommitted. The next part of a roadmap, on a branch that is no entry's base, builds on it without
+    asking. Only building on the current branch pins it: the planner takes the branch from that
     choice.</span><span lang="pl">off
     zostawia przebieg na gałęzi, na której się zaczął. allowed pozwala przebiegowi dostać własną gałąź albo,
     jeśli tak wybierzesz, żadnej. required zawsze daje przebiegowi własną gałąź i nigdy nie commituje na bazę
-    żadnego wpisu work: pozostanie na takiej bazie albo na odłączonym HEAD nie jest proponowane. W obu
+    żadnego wpisu work: budowanie na takiej bazie albo na odłączonym HEAD nie jest proponowane. W obu
     przypadkach wywiad albo diagnoza ustala wpis work na samym początku, zanim przeczyta jakikolwiek kod, a gdy
-    nie jesteś na bazie tego wpisu, proponuje przełączenie się na nią, pozostanie albo przerwanie (kolejna
-    część roadmapy na gałęzi, która nie jest bazą żadnego wpisu, zostaje na niej bez pytania); planista
-    bierze potem gałąź z tego wyboru.</span></dd>
+    nie jesteś na bazie tego wpisu, wywiad proponuje cztery odpowiedzi: przełączenie się na nią, pozostanie na
+    razie (nic się nie przesuwa, a gałąź przebiegu i tak jest wycinana z bazy, gdy plan trafia do repozytorium),
+    budowanie na bieżącej gałęzi (gałąź przebiegu nie powstaje, a commity trafiają na bieżącą) albo przerwanie.
+    Diagnoza proponuje to samo bez pozostania, bo jej test reprodukujący zostaje niezacommitowany. Kolejna
+    część roadmapy na gałęzi, która nie jest bazą żadnego wpisu, buduje na niej bez pytania. Tylko budowanie na
+    bieżącej gałęzi ją przypina: planista bierze gałąź z tego wyboru.</span></dd>
   </div>
   <div id="key-branching-work">
     <dt><code>work</code></dt>
