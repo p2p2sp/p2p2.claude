@@ -5,7 +5,7 @@ accepted: a pull request is closed without review.
 
 Your feedback is welcome all the same:
 
-- **Found a bug?** [Open a bug report](https://github.com/p2p2sp/p2p2.claude/issues/new/choose).
+- **Found a bug?** [Open a bug report](https://github.com/p2p2sp/viber/issues/new/choose).
   Name the plugin and its version, what you did, and what happened instead.
 - **Have an idea?** Open a feature request and describe the problem it solves.
 
