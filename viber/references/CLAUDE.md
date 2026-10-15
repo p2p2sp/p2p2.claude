@@ -1,6 +1,6 @@
 # viber/references - shared rule and format references read at runtime
 
-The nine markdown files viber skills and agents read by path while they work: the plan rules, the test rules, the TDD cycle, the admission gates for decision records and `.claude/rules/`, the node doctrine, the QA document formats and the issue save steps. No script parses them: each is prose a model holds itself to, so its wording is its contract. Skill-private references live under `skills/<skill>/references/`, never here.
+The ten markdown files viber skills and agents read by path while they work: the plan rules, the test rules, the TDD cycle, the admission gates for decision records and `.claude/rules/`, the node doctrine, the QA document formats, the issue save steps and the UI tells checklist. No script parses them: each is prose a model holds itself to, so its wording is its contract. Skill-private references live under `skills/<skill>/references/`, never here.
 
 ## Relationships
 
@@ -14,6 +14,7 @@ The nine markdown files viber skills and agents read by path while they work: th
   - `adr-admission.md`: `adr-screener`, dispatched through `skills/planner/references/adr-tasks.md` when `planning.adr` is on.
   - `rule-admission.md`: `rules-writer` and `rules-auditor`.
   - `node-doctrine.md`: `memory-writer`, `memory-node-writer` and `memory-auditor` (its `## Template` part, for `SHAPE` findings).
+  - `ui-tells.md`: `task-coder` and `task-reviewer` on a task whose `Files` render or style an interface; the short form of `skills/pro-designer/references/anti-slop.md`, which `pro-designer` reads in full.
   - `issue-save.md`: `create-issue` and the fragments `skills/fixer/fragments/issues-save.true.md` and `skills/intent/fragments/issues-done.true.md`, each passing `directory:`, `eligible:` and `content:` (an issue set: `parent:` and `parts:` in place of `content:`).
 
 ## Contracts
@@ -29,6 +30,7 @@ The nine markdown files viber skills and agents read by path while they work: th
 - The test layers are defined in parallel wording in `plan-rules.md` (`Layers`, `Layered`, `Shared harness`, `TDD`), `test-strategy.md` (unit and component) and `integration-tests.md` (integration); `PRODUCT.md` names the same four layers.
 - The end-to-end rule (written only when the user asked in their own words, run only when they asked for a run): `plan-rules.md`'s `End-to-end`, `test-strategy.md`'s first `(blocking)` rule and `skills/planner/SKILL.md`.
 - `issue-save.md` step 6 and the argv and exit contract in the header of `scripts/issue-create.sh`.
+- `ui-tells.md` and `skills/pro-designer/references/anti-slop.md` keep the same `##` sections; `ui-tells.md` stays within 4096 bytes and names nothing of pro-designer's context (`tests/viber/ui-tells.unit.test.ts`).
 - `qa-format.md`'s `qa.e2e.md` headings and `## Automation` lines and the ID handling of `skills/e2e/SKILL.md`, which lists IDs from `## UI scenarios` / `## API scenarios` and skips `## Not automatable`.
 
 ## Traps

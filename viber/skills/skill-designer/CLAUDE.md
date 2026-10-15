@@ -6,7 +6,8 @@ Owns `skill-designer/`: authoring, audit and model tuning doctrine in `SKILL.md`
 
 - `SKILL.md` step 4 reads `cross-model.md` on every model tuning pass and a profile only per target model, then carries `model:`, `effort:` and mitigations into the write step; `references/architecture.md` (Fork) defers a fork's model and effort to that step.
 - `SKILL.md` step 7 runs the linter as `bash "${CLAUDE_SKILL_DIR}/scripts/lint_skill.sh" <skill-dir-or-agent-file>`.
-- `extension/SKILL.md` invokes `viber:skill-designer` through `Skill` on the agent file and each phase skill's directory.
+- `SKILL.md` step 1 gives a tune request (model, effort or per-model wording only) its own path: steps 2, 3, 5, 6 and 7 are skipped, no file is written and step 4's model and effort recommendation is the output; the three evaluation scenarios belong to a new skill or a behaviour change only.
+- `extension/SKILL.md` invokes `viber:skill-designer` through `Skill` once, on the agent file and every phase skill directory together, and skips the step with one line when the skill is absent from the listing.
 
 ## Contracts
 
