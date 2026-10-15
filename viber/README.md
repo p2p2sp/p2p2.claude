@@ -164,8 +164,9 @@ an arbiter agent picks one way forward from a closed list. That happens when:
 - a commit is refused
 
 Every ruling goes into `rulings.md` with its reason and its cost if wrong, and the final summary
-lists them. When the run is archived, the screen shows a two-line result, and the full summary is
-in `outcome.md` in the archive, along with every file the build left uncommitted and the reason.
+lists them. When the run is archived, the screen shows a two-line result, plus the command
+that starts the next roadmap part when one is left, and the full summary is in `outcome.md` in the
+archive, along with every file the build left uncommitted and the reason.
 
 ### When it stops to ask you
 

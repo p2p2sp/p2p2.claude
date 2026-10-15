@@ -243,7 +243,7 @@ Complete every task the last `progress: <n>/<total>` settled and every entry sti
 
 Then close:
 
-- `closeout` returned `VERDICT: ARCHIVED` -> print exactly two lines: `<n>/<total> tasks committed, tests <the test verdict>, <elapsed>` (`, <elapsed>` left out on `elapsed: unknown`), then `Summary: <path>/outcome.md`, `<path>` being the directory its `PATH:` line names, the parenthesized file count dropped.
+- `closeout` returned `VERDICT: ARCHIVED` -> print `<n>/<total> tasks committed, tests <the test verdict>, <elapsed>` (`, <elapsed>` left out on `elapsed: unknown`), then `Summary: <path>/outcome.md`, then, only with a `next: part` index line, `/viber:intent <path>/roadmap.md`; `<path>` is the directory its `PATH:` line names, the parenthesized file count dropped. Nothing else.
 - Every other case (the close part not run, `abort`, `BLOCKED`, an accepted `DENIED`) -> print the final summary in its screen form.
 
 Final summary, both forms: max 7 lines, then every line this step places after them. The 7 lines: tasks committed, review rounds spent, test verdict, the clock's `elapsed:` (none on `elapsed: unknown`, never estimated), what memory, rules and QA recorded, then the form's own line below, then everything the steps carried to it but the `FIXED:`, `OWNER:` and `left uncommitted:` lines.
@@ -255,7 +255,7 @@ After the summary and outside its 7 lines, list every `FIXED:` line the final re
 
 After those, also outside its 7 lines, list the rulings: each index `ruling:` line, then each ruling this session recorded that is not already one, every one with its ruling, `why:` and `cost if wrong:`.
 
-With a `next: part` index line and a build not ended on `abort`, the last line, after the summary and outside its 7, is `/viber:intent <archive path>/roadmap.md` in the archived form, `/viber:intent <dir>/roadmap.md` in the screen form.
+With a `next: part` index line and a build not ended on `abort`, the last line of the screen form, after the summary and outside its 7, is `/viber:intent <dir>/roadmap.md`.
 
 On a pull request branch (step 1) with no `next: part` index line:
 
