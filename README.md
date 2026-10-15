@@ -10,6 +10,36 @@ writes a reviewed plan, builds it task by task and remembers what it learned.
 Coding agents tend to jump straight into code and fill the gaps with guesses. viber writes no code
 until you approve a plan that a reviewer has already checked against your codebase.
 
+## Why viber
+
+### It asks before it guesses
+One question at a time, with options and a recommendation. Add `--prove` and every recommendation is checked against your code before you see it.
+
+### Every step is checked
+The plan is reviewed before you approve it, each task before its commit, and the whole build before it ends.
+
+### It runs without you
+A failed task retries up to five times, one model tier up each time. Where a build would stop to ask, an arbiter agent picks a way forward and records why.
+
+### It saves tokens
+Each task gets the cheapest model that can do it, between a floor and a ceiling you set, so your usage limits last longer.
+
+### It learns your project
+Conventions go to `.claude/rules/`, area knowledge to that area's `CLAUDE.md`. You explain less with every run.
+
+### Nothing gets lost
+The plan and its progress are committed, so an interrupted build resumes in a new session or on another machine.
+
+### It fits your stack
+Build and test commands and conventions come from your own `CLAUDE.md` and `.claude/rules/`, whatever language you work in.
+
+Beyond the core loop, `viber` talks a topic through with you against trusted sources, triage's issues,
+opens GitHub issues and pull requests, mocks up UI changes, holds every interface it builds to
+professional design standards, writes Playwright tests, audits large codebase's, checks whether a
+side-project idea is worth building, writes and tunes your own Claude Code skills and agents for
+the model they run on, and hands a session over to the next one.
+The [viber guide](viber/README.md) lists every command.
+
 ## How it works
 
 You describe what you want with `/viber:intent`. viber asks one question at a time, each with
@@ -41,36 +71,6 @@ Then, in your project:
 
 `/viber:help` opens the full usage guide in your browser. `--scope user` makes the plugin available
 in all your projects; drop it to install for the current repository only.
-
-## Why viber
-
-### It asks before it guesses
-One question at a time, with options and a recommendation. Add `--prove` and every recommendation is checked against your code before you see it.
-
-### Every step is checked
-The plan is reviewed before you approve it, each task before its commit, and the whole build before it ends.
-
-### It runs without you
-A failed task retries up to five times, one model tier up each time. Where a build would stop to ask, an arbiter agent picks a way forward and records why.
-
-### It saves tokens
-Each task gets the cheapest model that can do it, between a floor and a ceiling you set, so your usage limits last longer.
-
-### It learns your project
-Conventions go to `.claude/rules/`, area knowledge to that area's `CLAUDE.md`. You explain less with every run.
-
-### Nothing gets lost
-The plan and its progress are committed, so an interrupted build resumes in a new session or on another machine.
-
-### It fits your stack
-Build and test commands and conventions come from your own `CLAUDE.md` and `.claude/rules/`, whatever language you work in.
-
-Beyond the core loop, `viber` talks a topic through with you against trusted sources, triage's issues,
-opens GitHub issues and pull requests, mocks up UI changes, holds every interface it builds to
-professional design standards, writes Playwright tests, audits large codebase's, checks whether a
-side-project idea is worth building, writes and tunes your own Claude Code skills and agents for
-the model they run on, and hands a session over to the next one.
-The [viber guide](viber/README.md) lists every command.
 
 ## Good to know
 
