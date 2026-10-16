@@ -19,7 +19,7 @@ Optional tools. A step that needs one skips with a note when it is missing:
 | the `gh` CLI | the GitHub steps, checked by `/viber:setup` |
 
 `/viber:setup` adds a bare `Bash` allow to `.claude/settings.json`. `/viber:intent`,
-`/viber:prototype`, `/viber:fixer` and `/viber:create-issue` rely on it for the script calls they
+`/viber:prototype`, `/viber:fixer` and `/viber:issue-create` rely on it for the script calls they
 make after a later reply of yours. Without it, each of those calls asks for permission once.
 
 ## Before your first run
@@ -43,14 +43,14 @@ A typical run is `/viber:setup` once, then `/viber:intent`. Each step names the 
 | `/viber:prototype` | Turns a UI change into one HTML mockup in your project's own look, or three to choose from. |
 | `/viber:pro-designer` | Holds an interface Claude builds or reviews to professional design standards. Starts on its own when the look is the goal (a new screen or page, a redesign, a UI review), not for a small functional change. |
 | `/viber:idea-validator` | Checks whether a side-project idea is worth building, with sourced research and a Go / Pivot / No-Go report. |
-| `/viber:create-issue` | Creates a GitHub issue from your issue form templates, after a preview and your yes. |
+| `/viber:issue-create` | Creates a GitHub issue from your issue form templates, after a preview and your yes. |
 
 ### Ship it
 
 | Command | What it does |
 | --- | --- |
 | `/viber:e2e` | Turns the build's QA scenarios into Playwright tests and runs them against your app. |
-| `/viber:create-pr` | Opens a pull request for the current branch from your template, after a preview and your yes. |
+| `/viber:pr-create` | Opens a pull request for the current branch from your template, after a preview and your yes. |
 | "commit" | Commits your changes, or only the paths you name, with a Conventional Commits message. |
 
 ### Keep the project healthy
@@ -87,10 +87,10 @@ A typical run is `/viber:setup` once, then `/viber:intent`. Each step names the 
 - **`/viber:prototype`**: takes an issue reference or a plain description, and asks first whether
   you want one proposal or three. You refine it in conversation, then it goes on to `/viber:intent`,
   to the issue it started from, or both.
-- **`/viber:create-issue`**: covers issues of any kind, bugs included. Say what it is about, or let
+- **`/viber:issue-create`**: covers issues of any kind, bugs included. Say what it is about, or let
   it take that from the conversation. Name a parent issue (a number or a same-repository issue URL)
   and the new issue is attached under it as a sub-issue.
-- **`/viber:create-pr`**: opens a pull request or a draft, titles it per `github.pr-title`, pushes only on your yes,
+- **`/viber:pr-create`**: opens a pull request or a draft, titles it per `github.pr-title`, pushes only on your yes,
   assigns it to you as its author, and posts the run's `qa.md` as a QA comment on the run's issue
   (on the pull request when the run has none), once per run.
   A build finished on its run branch, with no roadmap part left, offers to run it.

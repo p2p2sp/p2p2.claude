@@ -170,7 +170,7 @@ test("a run whose spec.md names an issue posts on that issue, never asking for a
   });
 });
 
-test("a run with an issue ignores --pr and posts on the issue (create-pr and the build close reach the same target)", async () => {
+test("a run with an issue ignores --pr and posts on the issue (pr-create and the build close reach the same target)", async () => {
   await assertPosix(async (shell) => {
     const { result, calls } = await runInRepo(shell, [QA_REL, "--pr", PR_URL], {
       env: { POST_OUT: ISSUE_COMMENT_URL },

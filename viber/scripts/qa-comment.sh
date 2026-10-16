@@ -3,7 +3,7 @@
 # qa-comment.sh - posts one build's qa.md as a comment on the run's issue, or on
 # a pull request when the run has no issue, at most once per run.
 #
-# It exists so the build close and `create-pr` publish through ONE
+# It exists so the build close and `pr-create` publish through ONE
 # pre-approved command, and so a run reaching its target from both never
 # posts twice: the body carries a marker naming the qa file, and a comment
 # already holding a marker of the same run key - whether it named the run

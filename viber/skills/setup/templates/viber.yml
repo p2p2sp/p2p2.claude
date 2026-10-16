@@ -77,7 +77,7 @@ github:
   # own title prefix, {type} its issue type, {summary} a one-line statement.
   # Quoted, since it opens on `{`.
   issue-title: '{summary}'
-  # The title of a pull request /viber:create-pr opens: {type} is feat or fix,
+  # The title of a pull request /viber:pr-create opens: {type} is feat or fix,
   # {summary} a one-line statement, {issue-number} the first issue it refers
   # to, {entry} its branching work entry.
   pr-title: '[{issue-number}] {summary}'
@@ -100,7 +100,7 @@ tiers:
 # Whether a run works on its own git branch - so its commits land where the
 # project's branching strategy expects them. No branching step fetches, pushes,
 # merges or deletes anything: a branch is only created, switched to and committed
-# on; only /viber:create-pr pushes it, on your yes.
+# on; only /viber:pr-create pushes it, on your yes.
 # mode is off (stay on the branch the run started on, today's behavior),
 # allowed (the run may get its own branch, settled when the interview or
 # diagnosis starts) or required (a run always gets its own branch, never an

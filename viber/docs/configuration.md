@@ -115,9 +115,9 @@ branching:
   `issue-type-mappings`.
 - Under `allowed` and `required`, the entry is settled when the interview or diagnosis starts,
   before any code is read, with an offer to switch to its base first.
-- No branching step fetches, pushes, merges or deletes. Only `/viber:create-pr` pushes, on your
+- No branching step fetches, pushes, merges or deletes. Only `/viber:pr-create` pushes, on your
   yes.
 
 [BRANCHING.md](../BRANCHING.md) has the full schema, one example per branching strategy (trunk
 based development, GitHub Flow, GitLab Flow, Release Flow and GitFlow), and the pull request
-template convention `/viber:create-pr` reads.
+template convention `/viber:pr-create` reads.

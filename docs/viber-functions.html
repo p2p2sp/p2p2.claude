@@ -236,7 +236,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
 
     <section id="issues" data-title="GitHub issues">
       <h2>GitHub issues <span class="count"></span></h2>
-      <p><code>/viber:create-issue</code> and the <code>github.issues</code> switch.</p>
+      <p><code>/viber:issue-create</code> and the <code>github.issues</code> switch.</p>
       <ul class="f">
         <li>Creates an issue from the project's issue form templates.</li>
         <li>Covers issues of every kind, bugs included.</li>
@@ -616,7 +616,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
         <li>Plan, status, tasks and notes dropped in one commit (git keeps them).</li>
         <li>Closing screen: two lines with the result, tests and elapsed time.</li>
         <li>Summary without an archive: at most 7 lines plus fixes and rulings.</li>
-        <li>On a run branch with no roadmap part left: asks whether to open the pull request through <code>/viber:create-pr</code>.</li>
+        <li>On a run branch with no roadmap part left: asks whether to open the pull request through <code>/viber:pr-create</code>.</li>
         <li>Suggests the command for the next roadmap part.</li>
         <li>Uncommitted paths and skipped tasks named in the summary.</li>
       </ul>
@@ -649,7 +649,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 
 
     <section id="pr" data-title="Pull requests">
       <h2>Pull requests <span class="count"></span></h2>
-      <p><code>/viber:create-pr</code>.</p>
+      <p><code>/viber:pr-create</code>.</p>
       <ul class="f">
         <li>A pull request for the current branch, after a preview.</li>
         <li>Started by you, or by your yes when a build finishes on its run branch with no roadmap part left.</li>

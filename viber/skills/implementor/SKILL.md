@@ -259,5 +259,5 @@ With a `next: part` index line and a build not ended on `abort`, the last line o
 
 On a pull request branch (step 1) with no `next: part` index line:
 
-- The build ended on `abort`, or `closeout` returned `BLOCKED` -> the final summary carries one line naming the `branch:` value and the `target:` value as the pull request target and suggesting `/viber:create-pr`.
-- Otherwise, once everything above is printed -> `AskUserQuestion` naming both values: open the pull request now, or not now. Now -> invoke the `viber:create-pr` skill (Skill tool). Not now -> end.
+- The build ended on `abort`, or `closeout` returned `BLOCKED` -> the final summary carries one line naming the `branch:` value and the `target:` value as the pull request target and suggesting `/viber:pr-create`.
+- Otherwise, once everything above is printed -> `AskUserQuestion` naming both values: open the pull request now, or not now. Now -> invoke the `viber:pr-create` skill (Skill tool). Not now -> end.

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# pr-facts.sh - resolves every fact `create-pr` needs to open a pull request for
+# pr-facts.sh - resolves every fact `pr-create` needs to open a pull request for
 # the current branch, as one fixed text block: whether a pull request can be
 # opened at all, the branching work entry and target, the template, the type,
 # the issues and the commits the pull request carries.

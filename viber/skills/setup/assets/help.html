@@ -889,7 +889,7 @@ oknie<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="current
     jedno issue względem kodu i wskazuje następny krok.</span></dd>
   </div>
   <div>
-    <dt><a href="#skill-create-issue"><code data-copy>/viber:create-issue</code></a></dt>
+    <dt><a href="#skill-issue-create"><code data-copy>/viber:issue-create</code></a></dt>
     <dd><span lang="en">Files a GitHub issue from your project's issue form templates.</span><span lang="pl">Zakłada
     issue na GitHubie z formularzy issue twojego projektu.</span></dd>
   </div>
@@ -922,7 +922,7 @@ oknie<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="current
     <a href="#term-qa">scenariusze QA</a> z buildu w testy Playwright.</span></dd>
   </div>
   <div>
-    <dt><a href="#skill-create-pr"><code data-copy>/viber:create-pr</code></a></dt>
+    <dt><a href="#skill-pr-create"><code data-copy>/viber:pr-create</code></a></dt>
     <dd><span lang="en">Opens a pull request for the current branch, after a preview.</span><span lang="pl">Otwiera
     pull request dla bieżącej gałęzi, po podglądzie.</span></dd>
   </div>
@@ -2267,8 +2267,8 @@ z nich mówi, jak nim sterować.</p>
   </dl>
 </article>
 
-<article class="card" id="skill-create-issue">
-  <h4><code>/viber:create-issue</code></h4>
+<article class="card" id="skill-issue-create">
+  <h4><code>/viber:issue-create</code></h4>
   <p lang="en">Creates a GitHub issue from your project's issue form templates, a bug template included. It
   proposes the template that fits, fills its fields from what you say, shows the title and body, and creates
   the issue only after you accept. Name a parent issue and the new one is attached under it as a sub-issue.</p>
@@ -2285,9 +2285,9 @@ z nich mówi, jak nim sterować.</p>
     </div>
     <div>
       <dt><span lang="en">Arguments</span><span lang="pl">Argumenty</span></dt>
-      <dd><span lang="en">What the issue is about, optionally: <code>/viber:create-issue the export button
+      <dd><span lang="en">What the issue is about, optionally: <code>/viber:issue-create the export button
       ignores the date filter</code>. Without it the conversation so far is the content.</span><span lang="pl">Opcjonalnie,
-      czego dotyczy issue: <code>/viber:create-issue przycisk eksportu ignoruje filtr daty</code>. Bez
+      czego dotyczy issue: <code>/viber:issue-create przycisk eksportu ignoruje filtr daty</code>. Bez
       argumentu treścią jest dotychczasowa rozmowa.</span></dd>
     </div>
     <div>
@@ -2300,9 +2300,9 @@ z nich mówi, jak nim sterować.</p>
     <div>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
       <dd><span lang="en">No code. The issue body it creates from goes to
-      <code>.temp/viber/create-issue/issue-body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>, removed once the issue exists. It stops with a reason when the project has no issue
+      <code>.temp/viber/issue-create/issue-body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>, removed once the issue exists. It stops with a reason when the project has no issue
       form template, no <code>gh</code> or no GitHub repository.</span><span lang="pl">Żadnego kodu. Treść issue
-      trafia do <code>.temp/viber/create-issue/issue-body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>, usuwana po utworzeniu issue. Kończy z powodem, gdy projekt nie ma
+      trafia do <code>.temp/viber/issue-create/issue-body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>, usuwana po utworzeniu issue. Kończy z powodem, gdy projekt nie ma
       formularza issue, <code>gh</code> albo repozytorium na GitHubie.</span></dd>
     </div>
   </dl>
@@ -2612,13 +2612,13 @@ z nich mówi, jak nim sterować.</p>
       stalls, the <a href="#agent-arbiter"><code>arbiter</code></a> rules after the task's 5 attempts, and the
       build asks you only about a refused tool call, another open run, files no task claims or a task commit that
       committed nothing, and, once it finishes on its run branch with no roadmap part left, whether to open the
-      pull request through <a href="#skill-create-pr"><code>/viber:create-pr</code></a>.</span><span lang="pl">Po
+      pull request through <a href="#skill-pr-create"><code>/viber:pr-create</code></a>.</span><span lang="pl">Po
       zatwierdzeniu planu poproś Claude o jego zbudowanie. Przerwany build wznowisz, prosząc Claude
       o kontynuację buildu: otworzy przebieg, nad którym pracowano ostatnio. Szkicu nie zbuduje. Gdy zadanie
       utknie, po jego 5 próbach rozstrzyga <a href="#agent-arbiter"><code>arbiter</code></a>, a build pyta cię
       tylko o odmowę wywołania narzędzia, inny otwarty przebieg, pliki, do których nie przyznaje się żadne zadanie,
       albo commit zadania, który niczego nie zacommitował, a po zakończeniu na gałęzi przebiegu bez kolejnej
-      części roadmapy, czy otworzyć pull request przez <a href="#skill-create-pr"><code>/viber:create-pr</code></a>.</span></dd>
+      części roadmapy, czy otworzyć pull request przez <a href="#skill-pr-create"><code>/viber:pr-create</code></a>.</span></dd>
     </div>
     <div>
       <dt><span lang="en">Arguments</span><span lang="pl">Argumenty</span></dt>
@@ -2751,8 +2751,8 @@ z nich mówi, jak nim sterować.</p>
   </dl>
 </article>
 
-<article class="card" id="skill-create-pr">
-  <h4><code>/viber:create-pr</code></h4>
+<article class="card" id="skill-pr-create">
+  <h4><code>/viber:pr-create</code></h4>
   <p lang="en">Opens a pull request for the branch you are on. It settles the
   <a href="#key-branching-work"><code>branching.work</code></a> entry and the target branch, fills the title and
   the body from the entry's pull request template, the run's files, the commits and what you said, shows both,
@@ -2797,13 +2797,13 @@ z nich mówi, jak nim sterować.</p>
     </div>
     <div>
       <dt><span lang="en">Writes</span><span lang="pl">Zapisuje</span></dt>
-      <dd><span lang="en">No code. The body goes to <code>.temp/viber/create-pr/body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>, removed once the pull request exists. On your yes it
+      <dd><span lang="en">No code. The body goes to <code>.temp/viber/pr-create/body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>, removed once the pull request exists. On your yes it
       pushes the branch to its remote and creates the pull request, or a draft; it reports the pull request's
       URL. Nothing else in viber pushes. When the run has a <code>qa.md</code>, it also posts it as a comment on the
       run's issue, or on the pull request when the run has no issue, once per run: a target that already has
       that comment gets no second one. On a branch
       whose pull request exists already, that comment is all it does.</span><span lang="pl">Żadnego kodu. Treść trafia do
-      <code>.temp/viber/create-pr/body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>, usuwana po utworzeniu pull requesta. Na twoje tak wypycha gałąź na jej zdalne repozytorium i tworzy
+      <code>.temp/viber/pr-create/body-&lt;yyyy-mm-dd-HH-mm-ss&gt;.md</code>, usuwana po utworzeniu pull requesta. Na twoje tak wypycha gałąź na jej zdalne repozytorium i tworzy
       pull request albo szkic; podaje jego adres URL. Nic innego w viber niczego nie wypycha. Gdy przebieg ma
       <code>qa.md</code>, publikuje go też jako komentarz pod issue przebiegu, a gdy przebieg nie ma issue, pod
       pull requestem, raz na przebieg: miejsce, które ma już ten komentarz, nie dostaje drugiego. Na gałęzi, której pull request już istnieje, robi tylko to.</span></dd>
@@ -3389,12 +3389,12 @@ wartość.</p>
     <a href="#agent-qa-writer"><code>qa-writer</code></a>: an acceptance document a person performs and a handoff
     file <a href="#skill-e2e"><code>/viber:e2e</code></a> turns into tests. <code>qa.md</code> is also posted as a
     comment on the pull request of the branch, once per run, by the build close and by
-    <a href="#skill-create-pr"><code>/viber:create-pr</code></a>. Turn it on before the build
+    <a href="#skill-pr-create"><code>/viber:pr-create</code></a>. Turn it on before the build
     starts.</span><span lang="pl">Build kończy się zapisaniem scenariuszy QA w katalogu przebiegu przez
     <a href="#agent-qa-writer"><code>qa-writer</code></a>: dokumentu akceptacyjnego, który wykonuje człowiek,
     i pliku przekazania, który <a href="#skill-e2e"><code>/viber:e2e</code></a> zamienia w testy. <code>qa.md</code>
     trafia też jako komentarz do pull requesta gałęzi, raz na przebieg, z zamknięcia buildu i z
-    <a href="#skill-create-pr"><code>/viber:create-pr</code></a>. Włącz go przed
+    <a href="#skill-pr-create"><code>/viber:pr-create</code></a>. Włącz go przed
     rozpoczęciem buildu.</span></dd>
   </div>
   <div id="key-build-cleanup">
@@ -3555,12 +3555,12 @@ it there is no issue number to fill in.</p>
 <code>{slug}</code> i <code>{issue-number}</code>. Ten ostatni wymaga <code>github.issues: true</code>, bo bez
 tego nie ma numeru issue do wstawienia.</p>
 <p class="note" lang="en">No branching step fetches, pushes, merges or deletes anything: they only create a
-branch, switch to it and commit on it; <a href="#skill-create-pr"><code>/viber:create-pr</code></a> alone pushes
+branch, switch to it and commit on it; <a href="#skill-pr-create"><code>/viber:pr-create</code></a> alone pushes
 the branch, on your yes. A bad entry or mapping is dropped with a readable reason and the rest of the file still
 applies; see <code>viber/BRANCHING.md</code> for the full list.</p>
 <p class="note" lang="pl">Żaden krok gałęzi niczego nie pobiera (fetch), nie wypycha (push), nie scala ani nie
 usuwa: tylko tworzy gałąź, przełącza się na nią i na niej commituje; gałąź wypycha wyłącznie
-<a href="#skill-create-pr"><code>/viber:create-pr</code></a>, na twoje tak. Błędny wpis lub mapowanie jest
+<a href="#skill-pr-create"><code>/viber:pr-create</code></a>, na twoje tak. Błędny wpis lub mapowanie jest
 odrzucane z czytelnym powodem, a reszta pliku nadal obowiązuje; pełną listę znajdziesz w
 <code>viber/BRANCHING.md</code>.</p>
 <p class="note" lang="en">Each example below is a complete setup for one strategy; the strategy's name itself is
@@ -3684,7 +3684,7 @@ produkcyjne jest wycinane z <code>main</code>. Gałęzie wydań, ich numery wers
 powrotem do <code>develop</code> zostają poza viber.</p>
 
 <h4 id="pr-templates"><span lang="en">Pull request templates</span><span lang="pl">Szablony pull requestów</span></h4>
-<p lang="en"><a href="#skill-create-pr"><code>/viber:create-pr</code></a> takes the body from the first template
+<p lang="en"><a href="#skill-pr-create"><code>/viber:pr-create</code></a> takes the body from the first template
 that exists: <code>.github/PULL_REQUEST_TEMPLATE/&lt;entry key&gt;.md</code>, named after the
 <a href="#key-branching-work"><code>branching.work</code></a> entry, then <code>.github/pull_request_template.md</code>;
 with neither it writes Summary, Changes and Testing. In a template <code>{type}</code>, <code>{summary}</code>,
@@ -3693,7 +3693,7 @@ with neither it writes Summary, Changes and Testing. In a template <code>{type}<
 reads <code>_No response_</code>, and HTML comments are dropped. One line per issue ends the body:
 <code>Closes #&lt;n&gt;</code> when the target is the default branch, <code>Refs #&lt;n&gt;</code> otherwise.
 viber never writes under <code>.github/</code>: you create the templates.</p>
-<p lang="pl"><a href="#skill-create-pr"><code>/viber:create-pr</code></a> bierze treść z pierwszego istniejącego
+<p lang="pl"><a href="#skill-pr-create"><code>/viber:pr-create</code></a> bierze treść z pierwszego istniejącego
 szablonu: <code>.github/PULL_REQUEST_TEMPLATE/&lt;klucz wpisu&gt;.md</code>, nazwanego po wpisie
 <a href="#key-branching-work"><code>branching.work</code></a>, potem <code>.github/pull_request_template.md</code>;
 bez żadnego z nich pisze Summary, Changes i Testing. W szablonie <code>{type}</code>, <code>{summary}</code>,

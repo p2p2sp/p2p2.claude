@@ -3,7 +3,7 @@
 #
 # Pushes the current branch with its upstream set and opens a pull request for
 # it in one deterministic step: `git push -u <remote> <branch>` -> `gh pr
-# create` -> parse the printed URL. It exists so `create-pr` publishes through
+# create` -> parse the printed URL. It exists so `pr-create` publishes through
 # ONE pre-approved command, and so the push is never repeated or skipped by a
 # model deciding step by step. Self-verifying: PR_URL is printed only after gh
 # returned a well-formed pull request URL - the caller trusts the block without

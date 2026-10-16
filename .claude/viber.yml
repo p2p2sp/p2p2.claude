@@ -104,7 +104,7 @@ github:
   # own title prefix, {type} its issue type, {summary} a one-line statement.
   # Quoted, since it opens on `{`.
   issue-title: '{template-title}{summary}'
-  # The title of a pull request /viber:create-pr opens: {type} is feat or fix,
+  # The title of a pull request /viber:pr-create opens: {type} is feat or fix,
   # {summary} a one-line statement, {issue-number} the first issue it refers
   # to, {entry} its branching work entry.
   pr-title: '{type}: {summary}'

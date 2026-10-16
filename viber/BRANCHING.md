@@ -7,7 +7,7 @@ GitHub Flow, GitLab Flow, Release Flow and GitFlow; every decision is made by `c
 `run-branch.sh`, so neither the planner nor the implementor carries stack-specific instructions.
 
 No branching step ever fetches, pushes, merges or deletes: a branch is only created, switched to
-and committed on. Only `/viber:create-pr` pushes it, on your yes (see Pull requests below).
+and committed on. Only `/viber:pr-create` pushes it, on your yes (see Pull requests below).
 
 ## Modes
 
@@ -251,7 +251,7 @@ instead. Release branches, their version numbers and back-merging a hotfix into 
 
 ## Pull requests
 
-`/viber:create-pr` opens a pull request for the branch you are on, after a preview:
+`/viber:pr-create` opens a pull request for the branch you are on, after a preview:
 
 - The work entry comes from the run's `work:`, else from the one entry whose `name` pattern matches
   the branch; when that leaves several or none you are asked. Under `mode: off` you are asked for
@@ -261,11 +261,11 @@ instead. Release branches, their version numbers and back-merging a hotfix into 
 - You answer create, create as draft or cancel. Only on create does it push the branch to its
   remote and open the pull request.
 - A build that finishes on its run branch, with no roadmap part left, asks whether to open the
-  pull request now and runs `/viber:create-pr` on your yes. A build ended on abort, or whose
+  pull request now and runs `/viber:pr-create` on your yes. A build ended on abort, or whose
   archive commit failed, only suggests the command; a build with a next roadmap part neither asks
   nor suggests.
 - A run's `qa.md` is posted as a comment on the run's issue, or on the branch's pull request when
-  the run has no issue, once per run, by the build close and by `/viber:create-pr`; a target that
+  the run has no issue, once per run, by the build close and by `/viber:pr-create`; a target that
   already holds the comment gets no second. `qa.e2e.md` is never posted.
 
 ### Template convention

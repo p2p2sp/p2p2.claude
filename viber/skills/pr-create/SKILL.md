@@ -1,12 +1,12 @@
 ---
-name: create-pr
+name: pr-create
 description: Opens a pull request for the current branch. Only on the user's request.
-allowed-tools: Read, Edit(./.temp/viber/create-pr/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pr-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pr-create.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh:*), Bash(date:*)
+allowed-tools: Read, Edit(./.temp/viber/pr-create/**), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pr-facts.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pr-create.sh:*), Bash(${CLAUDE_PLUGIN_ROOT}/scripts/qa-comment.sh:*), Bash(date:*)
 user-invocable: true
 model: sonnet
 ---
 
-# create-pr
+# pr-create
 
 One pull request for the current branch. The block below is trusted: never resolve the branch, the target, the template or the commits yourself.
 
@@ -60,7 +60,7 @@ End the body with one line per `ISSUE=` value, after a blank line: `Closes #<n>`
 
 ## 5. Preview
 
-`Write` the body to `<root>/.temp/viber/create-pr/body-<stamp>.md` first (`<root>` the project root, `<stamp>` the output of `date +%Y-%m-%d-%H-%M-%S`, so every body gets its own file). Then print, never the body text:
+`Write` the body to `<root>/.temp/viber/pr-create/body-<stamp>.md` first (`<root>` the project root, `<stamp>` the output of `date +%Y-%m-%d-%H-%M-%S`, so every body gets its own file). Then print, never the body text:
 
 - `Title: <title>`
 - `Target: <TARGET=>`

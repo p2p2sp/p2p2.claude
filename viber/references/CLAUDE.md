@@ -15,7 +15,7 @@ The ten markdown files viber skills and agents read by path while they work: the
   - `rule-admission.md`: `rules-writer` and `rules-auditor`.
   - `node-doctrine.md`: `memory-writer`, `memory-node-writer` and `memory-auditor` (its `## Template` part, for `SHAPE` findings).
   - `ui-tells.md`: `task-coder` and `task-reviewer` on a task whose `Files` render or style an interface; the short form of `skills/pro-designer/references/anti-slop.md`, which `pro-designer` reads in full.
-  - `issue-save.md`: `create-issue` and the fragments `skills/fixer/fragments/issues-save.true.md` and `skills/intent/fragments/issues-done.true.md`, each passing `directory:`, `eligible:` and `content:` (an issue set: `parent:` and `parts:` in place of `content:`).
+  - `issue-save.md`: `issue-create` and the fragments `skills/fixer/fragments/issues-save.true.md` and `skills/intent/fragments/issues-done.true.md`, each passing `directory:`, `eligible:` and `content:` (an issue set: `parent:` and `parts:` in place of `content:`).
 
 ## Contracts
 
