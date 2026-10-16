@@ -1,0 +1,4 @@
+- C4 names no reply-flow source of chosen threads, so the reply flow reads `review.md` sections (their `Comment:` ids and `Reply file:` paths) to tell ready from missing replies; `pr-threads.sh` runs there only for the stop checks and `PUSHED=`.
+- Verification greps `REASON=wrong-branch` in the skill, so the stop list spells every reason as `REASON=<name>`.
+- `lint_skill.sh` on the skill directory: FAIL=0 WARN=0 (the description needs a "use it when" cue).
+- `tests/viber/help.unit.test.ts` likely needs the `skill-pr-feedback` card in `help.html` (plugin.json too): not in this task's Files, left for the documenting task.
