@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # signoz
 
-Environment: !`for v in SIGNOZ_URL SIGNOZ_API_KEY; do if [ -n "$(printenv "$v")" ]; then echo "$v set"; else echo "$v MISSING"; fi; done`
+Environment: !`for v in SIGNOZ_URL SIGNOZ_API_KEY; do if test -n "$(printenv "$v")"; then echo "$v set"; else echo "$v MISSING"; fi; done`
 
 ## Connection
 
