@@ -3,7 +3,9 @@
 # pr-threads.sh - resolves the branch facts of one pull request for the skill
 # that turns its review threads into plan tasks: the pull request's number,
 # url and head branch, the branch checked out here and whether the local HEAD
-# is the commit the pull request head points at, as one fixed text block.
+# is the commit the pull request head points at, then, when the checked-out
+# branch is the head branch, its unresolved review threads, as one fixed text
+# block plus a threads file holding every listed thread's comments.
 #
 # It exists so the skill reads a pull request through ONE pre-approved command
 # with a fixed output shape: a hand-composed `gh api graphql` differs per run
@@ -11,7 +13,8 @@
 # filter runs through gh's own `--jq`, so no external `jq` is needed.
 # Self-verifying: the block is printed only after gh exited 0 AND returned the
 # url, the head branch and the head commit - the caller trusts it and never
-# re-fetches. Nothing is checked out, pushed or written here.
+# re-fetches. Nothing is checked out or pushed here; the only write is the
+# threads file.
 #
 # Contract:
 #   argv   : exactly one: <N> | #<N> | https://<host>/<owner>/<repo>/pull/<N>
@@ -38,12 +41,31 @@
 #              HEAD_BRANCH=<headRefName>
 #              BRANCH=<current branch, empty when HEAD is detached>
 #              PUSHED=yes|no                       (local HEAD equals headRefOid)
+#              THREADS_FILE=<repo-relative path>   (ready only)
+#              SKIPPED=<count>                     (ready only)
+#              TRUNCATED=yes|no                    (ready only)
+#              THREAD=<k> | <comment-id> | <path>:<line> | <author> | outdated|current
+#                                                  (0+, ready only, k from 1)
 #            A no-gh or no-repo stop prints only STATUS= and REASON=. A
 #            wrong-branch stop (BRANCH differs from HEAD_BRANCH) prints the
-#            block up to PUSHED=.
+#            block up to PUSHED=. A THREAD= line lists an unresolved thread:
+#            <comment-id> is its first comment databaseId, <author> that
+#            comment author, <line> its line, else originalLine, else ?, and
+#            `outdated` its isOutdated. A thread whose latest comment opens with
+#            the line `<!-- viber:pr-feedback <comment-id> -->` (a viber reply)
+#            is left out and counted in SKIPPED=. TRUNCATED=yes when the query
+#            reports a further page of threads (only the first 100 are read).
+#   file   : <repo root>/.temp/viber/pr-feedback/<N>/threads.md, replaced on
+#            every ready run (empty when no thread is listed):
+#              ## <k> - <path>:<line> (<outdated|current>)
+#              comment-id: <comment-id>
+#              then per comment, oldest first: ### <author> - <createdAt>, a
+#              blank line, the body (carriage returns dropped)
+#            a blank line separates each heading from what precedes it.
 #   exit   : 0 with the block (a stop included); 1 with one `ERROR
 #            pr-threads.sh: ...` line on stderr and nothing on stdout when gh
-#            failed or its output did not parse; 2 on bad arguments.
+#            failed, its output did not parse or the threads file could not be
+#            written; 2 on bad arguments.
 #
 set -u
 
@@ -81,7 +103,7 @@ root=$(git rev-parse --show-toplevel 2>/dev/null)
 [ -n "$root" ] && cd "$root" 2>/dev/null || stop no-repo
 
 query='query($owner: String!, $name: String!, $number: Int!) { repository(owner: $owner, name: $name) { pullRequest(number: $number) { url headRefName headRefOid reviewThreads(first: 100) { pageInfo { hasNextPage } nodes { isResolved isOutdated path line originalLine comments(first: 100) { nodes { databaseId author { login } createdAt body } } } } } } }'
-filter='.data.repository.pullRequest | "URL=\(.url)\nHEAD=\(.headRefName)\nOID=\(.headRefOid)"'
+filter='.data.repository.pullRequest | "URL=\(.url)\nHEAD=\(.headRefName)\nOID=\(.headRefOid)\nMORE=\(.reviewThreads.pageInfo.hasNextPage)", (.reviewThreads.nodes[] | "T\t\(.isResolved)\t\(.isOutdated)\t\(.line // "")\t\(.originalLine // "")\t\(.path)", (.comments.nodes[] | "C\t\(.databaseId)\t\(.author.login // "ghost")\t\(.createdAt)", (.body // "" | split("\n")[] | "B\t\(.)")))'
 
 set -- api graphql
 if [ -n "$host" ]; then
@@ -118,6 +140,73 @@ pushed=no
 if [ -n "$local_oid" ] && [ "$local_oid" = "$head_oid" ]; then pushed=yes; fi
 
 if [ "$branch" = "$head_branch" ]; then status=ready; else status=stop; fi
+
+if [ "$status" = ready ]; then
+  tdir=".temp/viber/pr-feedback/$n"
+  tfile="$tdir/threads.md"
+  if ! mkdir -p "$tdir" 2>/dev/null || ! printf '' 2>/dev/null >"$tfile"; then
+    echo "ERROR pr-threads.sh: cannot write $root/$tfile" >&2
+    exit 1
+  fi
+  more=$(printf '%s\n' "$out" | sed -n 's/^MORE=//p' | sed -n 1p)
+  truncated=no
+  if [ "$more" = true ]; then truncated=yes; fi
+  # No apostrophe anywhere in here: this program sits INSIDE single quotes.
+  # Input: T/C/B lines of the gh filter. Writes the threads file, prints
+  # SKIPPED= then one THREAD= line per listed thread.
+  # A final bare T line closes the last thread.
+  list=$(printf '%s\nT\t\n' "$out" | THREADS_OUT="$tfile" awk '
+    BEGIN { f = ENVIRON["THREADS_OUT"] }
+    substr($0, 1, 2) == "T\t" {
+      keep = have && res != "true" && nc > 0
+      if (keep && fl[nc] == "<!-- viber:pr-feedback " cid[1] " -->") { skipped++; keep = 0 }
+      if (keep) {
+        k++
+        loc = "?"
+        if (oln != "") loc = oln
+        if (ln != "") loc = ln
+        state = "current"
+        if (outd == "true") state = "outdated"
+        if (k > 1) print "" > f
+        print "## " k " - " path ":" loc " (" state ")" > f
+        print "comment-id: " cid[1] > f
+        for (i = 1; i <= nc; i++) {
+          print "" > f
+          print "### " au[i] " - " cr[i] > f
+          print "" > f
+          print body[i] > f
+        }
+        tl[k] = "THREAD=" k " | " cid[1] " | " path ":" loc " | " au[1] " | " state
+      }
+      m = split($0, p, "\t")
+      res = p[2]; outd = p[3]; ln = p[4]; oln = p[5]; path = p[6]
+      for (i = 7; i <= m; i++) path = path "\t" p[i]
+      have = 1; nc = 0
+      next
+    }
+    substr($0, 1, 2) == "C\t" && have {
+      split($0, p, "\t")
+      nc++
+      cid[nc] = p[2]; au[nc] = p[3]; cr[nc] = p[4]
+      body[nc] = ""; bc[nc] = 0; fl[nc] = ""
+      next
+    }
+    substr($0, 1, 2) == "B\t" && have && nc > 0 {
+      text = substr($0, 3)
+      if (bc[nc] == 0) { body[nc] = text; fl[nc] = text } else body[nc] = body[nc] "\n" text
+      bc[nc]++
+    }
+    END {
+      print "SKIPPED=" skipped + 0
+      for (i = 1; i <= k; i++) print tl[i]
+    }
+  ')
+  if [ -z "$list" ]; then
+    echo "ERROR pr-threads.sh: could not read the review threads" >&2
+    exit 1
+  fi
+fi
+
 echo "STATUS=$status"
 if [ "$status" = stop ]; then echo "REASON=wrong-branch"; fi
 echo "PR=$n"
@@ -125,4 +214,10 @@ echo "PR_URL=$pr_url"
 echo "HEAD_BRANCH=$head_branch"
 echo "BRANCH=$branch"
 echo "PUSHED=$pushed"
+if [ "$status" = ready ]; then
+  echo "THREADS_FILE=$tfile"
+  printf '%s\n' "$list" | sed -n 1p
+  echo "TRUNCATED=$truncated"
+  printf '%s\n' "$list" | sed 1d
+fi
 exit 0

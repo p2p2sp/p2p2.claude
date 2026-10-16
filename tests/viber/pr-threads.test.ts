@@ -1,17 +1,19 @@
 /*
  * pr-threads.test.ts - proves viber/scripts/pr-threads.sh's
- * `pr-threads.sh <N | #N | pull request url>` contract up to its thread lines,
- * against a real throwaway git repo and a stubbed `gh`: the argument forms and
- * the exit 2 on a malformed one, the no-gh and no-repo stops, the wrong-branch
- * stop (no thread line, no threads file), the PR= to PUSHED= lines of a ready
- * run and exit 1 with one ERROR line when gh fails or prints nothing usable.
+ * `pr-threads.sh <N | #N | pull request url>` contract, against a real
+ * throwaway git repo and a stubbed `gh`: the argument forms and the exit 2 on a
+ * malformed one, the no-gh and no-repo stops, the wrong-branch stop (no thread
+ * line, no threads file), the PR= to PUSHED= lines of a ready run, its
+ * THREADS_FILE=, SKIPPED=, TRUNCATED= and THREAD= lines with the threads file,
+ * and exit 1 with one ERROR line when gh fails or prints nothing usable.
  *
  * pr-threads.sh is `#!/bin/sh`, so every case runs through
  * forEachShell("posix", ...) via opts.shell, never executed directly. `gh` is
  * always a withStub, or absent - this test never shells out to the real gh. The
  * stub answers `gh api graphql ... --jq <filter>` with the text the filter
- * would print (URL=, HEAD=, OID= lines), because the filter itself runs inside
- * the real gh.
+ * would print (URL=, HEAD=, OID=, MORE= lines, then per thread a T line and per
+ * comment a C line and one B line per body line), because the filter itself
+ * runs inside the real gh.
  *
  * Repo reality: no build, no lint, no npm, no package.json - this file is run
  * directly by Node's native test runner + TypeScript type stripping:
@@ -72,10 +74,46 @@ async function withScene<T>(fn: (scene: Scene) => Promise<T>): Promise<T> {
   );
 }
 
-/** What the real gh prints once its --jq filter ran. */
-function ghOut(head: string, oid: string, url = PR_URL): string {
-  return `URL=${url}\nHEAD=${head}\nOID=${oid}\n`;
+interface FixtureComment {
+  id: number;
+  author: string;
+  at: string;
+  body: string;
 }
+
+interface FixtureThread {
+  resolved?: boolean;
+  outdated?: boolean;
+  line?: number;
+  originalLine?: number;
+  path: string;
+  comments: FixtureComment[];
+}
+
+/** One thread as the --jq filter prints it: a T line, then per comment a C line and one B line per body line. */
+function threadText(t: FixtureThread): string {
+  const head = `T\t${t.resolved ?? false}\t${t.outdated ?? false}\t${t.line ?? ""}\t${t.originalLine ?? ""}\t${t.path}\n`;
+  const comments = t.comments.map(
+    (c) => `C\t${c.id}\t${c.author}\t${c.at}\n` + c.body.split("\n").map((l) => `B\t${l}\n`).join(""),
+  );
+  return head + comments.join("");
+}
+
+/** What the real gh prints once its --jq filter ran. */
+function ghOut(head: string, oid: string, opts: { url?: string; more?: boolean; threads?: FixtureThread[] } = {}): string {
+  const header = `URL=${opts.url ?? PR_URL}\nHEAD=${head}\nOID=${oid}\nMORE=${opts.more ?? false}\n`;
+  return header + (opts.threads ?? []).map(threadText).join("");
+}
+
+function comment(id: number, author: string, body: string, at = "2026-10-01T10:00:00Z"): FixtureComment {
+  return { id, author, at, body };
+}
+
+function threadLines(result: RunResult): string[] {
+  return lines(result).filter((l) => l.startsWith("THREAD="));
+}
+
+const marker = (id: number) => `<!-- viber:pr-feedback ${id} -->`;
 
 async function runThreads(
   shell: Shell,
@@ -268,7 +306,190 @@ test("a local commit on top of headRefOid gives PUSHED=no", async () => {
   });
 });
 
-// --- gh failure (DoD 5) -----------------------------------------------------------------
+// --- the listed threads (DoD 1) ---------------------------------------------------------
+
+const THREADS_PATH = ".temp/viber/pr-feedback/7/threads.md";
+
+test("a ready run prints THREADS_FILE=, SKIPPED=, TRUNCATED= and one THREAD= line per unresolved thread after PUSHED=, none for a resolved one", async () => {
+  await assertPosix(async (shell) => {
+    await withScene(async (scene) => {
+      const threads: FixtureThread[] = [
+        { path: "src/a.ts", line: 12, comments: [comment(101, "alice", "first")] },
+        { resolved: true, path: "src/b.ts", line: 3, comments: [comment(102, "bob", "done")] },
+        { path: "src/c.ts", line: 30, comments: [comment(103, "carol", "second"), comment(104, "dave", "reply")] },
+      ];
+      const result = await runThreads(shell, scene, ["7"], { env: { GH_STDOUT: ghOut("feature/x", scene.sha, { threads }) } });
+      assert.equal(result.status, 0, `stderr: ${result.stderr}`);
+      assert.deepEqual(lines(result).slice(6), [
+        `THREADS_FILE=${THREADS_PATH}`,
+        "SKIPPED=0",
+        "TRUNCATED=no",
+        "THREAD=1 | 101 | src/a.ts:12 | alice | current",
+        "THREAD=2 | 103 | src/c.ts:30 | carol | current",
+      ]);
+    });
+  });
+});
+
+test("a ready run with no thread prints THREADS_FILE=, SKIPPED=0 and TRUNCATED=no and no THREAD= line", async () => {
+  await assertPosix(async (shell) => {
+    await withScene(async (scene) => {
+      const result = await runThreads(shell, scene, ["7"], { env: { GH_STDOUT: ghOut("feature/x", scene.sha) } });
+      assert.deepEqual(lines(result).slice(6), [`THREADS_FILE=${THREADS_PATH}`, "SKIPPED=0", "TRUNCATED=no"]);
+    });
+  });
+});
+
+// --- outdated and the line (DoD 2) ------------------------------------------------------
+
+const LOCATIONS: { name: string; thread: Partial<FixtureThread>; want: string }[] = [
+  { name: "an outdated thread reads outdated", thread: { outdated: true, line: 12 }, want: "src/a.ts:12 | alice | outdated" },
+  { name: "a thread with no line takes originalLine", thread: { originalLine: 9 }, want: "src/a.ts:9 | alice | current" },
+  { name: "a thread with neither line nor originalLine reads ?", thread: {}, want: "src/a.ts:? | alice | current" },
+  { name: "a thread with both takes line", thread: { line: 12, originalLine: 9 }, want: "src/a.ts:12 | alice | current" },
+];
+
+for (const row of LOCATIONS) {
+  test(`${row.name}`, async () => {
+    await assertPosix(async (shell) => {
+      await withScene(async (scene) => {
+        const threads: FixtureThread[] = [{ path: "src/a.ts", comments: [comment(101, "alice", "x")], ...row.thread }];
+        const result = await runThreads(shell, scene, ["7"], { env: { GH_STDOUT: ghOut("feature/x", scene.sha, { threads }) } });
+        assert.deepEqual(threadLines(result), [`THREAD=1 | 101 | ${row.want}`]);
+      });
+    });
+  });
+}
+
+// --- the viber reply marker (DoD 3) -----------------------------------------------------
+
+test("a thread whose latest comment opens with the reply marker is absent and counted in SKIPPED=", async () => {
+  await assertPosix(async (shell) => {
+    await withScene(async (scene) => {
+      const threads: FixtureThread[] = [
+        { path: "src/a.ts", line: 1, comments: [comment(101, "alice", "fix this"), comment(102, "me", `${marker(101)}\nFixed in abc123.`)] },
+        { path: "src/b.ts", line: 2, comments: [comment(201, "bob", "and this")] },
+      ];
+      const result = await runThreads(shell, scene, ["7"], { env: { GH_STDOUT: ghOut("feature/x", scene.sha, { threads }) } });
+      assert.deepEqual(lines(result).slice(6), [
+        `THREADS_FILE=${THREADS_PATH}`,
+        "SKIPPED=1",
+        "TRUNCATED=no",
+        "THREAD=1 | 201 | src/b.ts:2 | bob | current",
+      ]);
+    });
+  });
+});
+
+test("a thread with a reviewer comment after the viber reply is listed (the reviewer answered back)", async () => {
+  await assertPosix(async (shell) => {
+    await withScene(async (scene) => {
+      const threads: FixtureThread[] = [
+        {
+          path: "src/a.ts",
+          line: 1,
+          comments: [comment(101, "alice", "fix this"), comment(102, "me", `${marker(101)}\nFixed.`), comment(103, "alice", "still wrong")],
+        },
+      ];
+      const result = await runThreads(shell, scene, ["7"], { env: { GH_STDOUT: ghOut("feature/x", scene.sha, { threads }) } });
+      assert.deepEqual(lines(result).slice(7), ["SKIPPED=0", "TRUNCATED=no", "THREAD=1 | 101 | src/a.ts:1 | alice | current"]);
+    });
+  });
+});
+
+test("a latest comment that only mentions the marker on a later line is not a viber reply and stays listed", async () => {
+  await assertPosix(async (shell) => {
+    await withScene(async (scene) => {
+      const threads: FixtureThread[] = [
+        { path: "src/a.ts", line: 1, comments: [comment(101, "alice", `see below\n${marker(101)}`)] },
+      ];
+      const result = await runThreads(shell, scene, ["7"], { env: { GH_STDOUT: ghOut("feature/x", scene.sha, { threads }) } });
+      assert.deepEqual(lines(result).slice(7), ["SKIPPED=0", "TRUNCATED=no", "THREAD=1 | 101 | src/a.ts:1 | alice | current"]);
+    });
+  });
+});
+
+// --- TRUNCATED (DoD 4) ------------------------------------------------------------------
+
+const TRUNCATION: { name: string; more: boolean; want: string }[] = [
+  { name: "hasNextPage true", more: true, want: "TRUNCATED=yes" },
+  { name: "hasNextPage false", more: false, want: "TRUNCATED=no" },
+];
+
+for (const row of TRUNCATION) {
+  test(`${row.name} prints ${row.want}`, async () => {
+    await assertPosix(async (shell) => {
+      await withScene(async (scene) => {
+        const result = await runThreads(shell, scene, ["7"], { env: { GH_STDOUT: ghOut("feature/x", scene.sha, { more: row.more }) } });
+        assert.equal(lines(result)[8], row.want);
+      });
+    });
+  });
+}
+
+// --- the threads file (DoD 5) -----------------------------------------------------------
+
+test("the threads file holds every listed thread with its comments oldest first and bodies verbatim, and no resolved or skipped thread", async () => {
+  await assertPosix(async (shell) => {
+    await withScene(async (scene) => {
+      const threads: FixtureThread[] = [
+        {
+          path: "src/a.ts",
+          line: 12,
+          comments: [
+            comment(101, "alice", "Rename this.\n\n- keep `x`\n\ttabbed", "2026-10-01T10:00:00Z"),
+            comment(102, "bob", "Agreed.", "2026-10-02T11:30:00Z"),
+          ],
+        },
+        { resolved: true, path: "src/b.ts", line: 3, comments: [comment(201, "carol", "resolved one")] },
+        { outdated: true, originalLine: 40, path: "src/c.ts", comments: [comment(301, "dave", "old code")] },
+        { path: "src/d.ts", line: 5, comments: [comment(401, "erin", "fix"), comment(402, "me", `${marker(401)}\nDone.`)] },
+      ];
+      await runThreads(shell, scene, ["7"], { env: { GH_STDOUT: ghOut("feature/x", scene.sha, { threads }) } });
+      const file = fs.readFileSync(path.join(scene.work.dir, THREADS_PATH), "utf-8");
+      assert.equal(
+        file,
+        [
+          "## 1 - src/a.ts:12 (current)",
+          "comment-id: 101",
+          "",
+          "### alice - 2026-10-01T10:00:00Z",
+          "",
+          "Rename this.",
+          "",
+          "- keep `x`",
+          "\ttabbed",
+          "",
+          "### bob - 2026-10-02T11:30:00Z",
+          "",
+          "Agreed.",
+          "",
+          "## 2 - src/c.ts:40 (outdated)",
+          "comment-id: 301",
+          "",
+          "### dave - 2026-10-01T10:00:00Z",
+          "",
+          "old code",
+          "",
+        ].join("\n"),
+      );
+    });
+  });
+});
+
+test("a ready run replaces the threads file of the earlier run, an empty one when no thread is listed", async () => {
+  await assertPosix(async (shell) => {
+    await withScene(async (scene) => {
+      const target = path.join(scene.work.dir, THREADS_PATH);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, "stale\n");
+      await runThreads(shell, scene, ["7"], { env: { GH_STDOUT: ghOut("feature/x", scene.sha) } });
+      assert.equal(fs.readFileSync(target, "utf-8"), "");
+    });
+  });
+});
+
+// --- gh failure -------------------------------------------------------------------------
 
 const GH_FAILURES: { name: string; env: Record<string, string> }[] = [
   { name: "gh exits 1", env: { GH_EXIT: "1", GH_STDERR: "HTTP 401: Bad credentials\n" } },

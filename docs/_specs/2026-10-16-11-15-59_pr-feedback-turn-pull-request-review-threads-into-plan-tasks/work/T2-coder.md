@@ -1,0 +1,5 @@
+- The --jq filter now flattens threads into tab lines: MORE=, then per thread `T<TAB>resolved<TAB>outdated<TAB>line<TAB>originalLine<TAB>path`, per comment `C<TAB>id<TAB>author<TAB>createdAt`, per body line `B<TAB>text`. The stub in the test returns that text; the filter was checked once against real jq with sample JSON.
+- Resolved/skip/numbering logic lives in the awk block (testable through the stub), not in the filter; the filter keeps every thread.
+- The portability sweep flags `function NAME` and `((` even inside the awk block, so the awk has no function (a sentinel `T` line closes the last thread) and the filter avoids `((`.
+- The marker check needs the exact `<!-- viber:pr-feedback <first comment id> -->` first line of the latest comment; a null author reads `ghost`; carriage returns are dropped from bodies (the whole gh output goes through `tr -d '\r'`, as in T1).
+- The threads file separates each heading from what precedes it with a blank line; it is truncated before the awk so a run with no listed thread leaves it empty.
