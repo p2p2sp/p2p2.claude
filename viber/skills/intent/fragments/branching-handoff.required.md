@@ -1,5 +1,5 @@
 The confirmed summary carries the run branch the start step settled, and the hand-off restates the `Work:` / `Branch:` and run branch lines as last settled: after a re-settle following an issue save they replace the confirmed summary's ones, with no new confirmation. Each line on its own, and none when the start step handed off no branch line:
 
-- `Work: <entry key>` (after "stay" it is the only branch line besides the entry's run branch line).
+- `Work: <entry key>` (after "stay" it is the only branch line besides the entry's run branch line), or `Work: none` after "pull request branch".
 - `Branch: <the current: value>` only after "build on `current:`", never for `current: detached`.
-- The run branch line beside `Work:`, in the conversation's language and opening with neither `Work:` nor `Branch:`: the entry key, the `name:` pattern, the entry's `base:` and `target:`; or, after "build on `current:`", that there is no run branch and commits land on `<current:>`.
+- The run branch line beside `Work:`, in the conversation's language and opening with neither `Work:` nor `Branch:`: the entry key, the `name:` pattern, the entry's `base:` and `target:`; or, after "build on `current:`" or "pull request branch", that there is no run branch and commits land on `<current:>`.

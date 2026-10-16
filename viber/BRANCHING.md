@@ -49,12 +49,15 @@ before they read any code:
   recorded branch when HEAD is elsewhere.
 - `/viber:intent` continuing a `roadmap.md` on a branch that is no entry's base builds on it
   without asking: the next part builds on the previous part's branch.
+- `/viber:intent` started by `/viber:pr-feedback` makes no run branch and asks nothing: the fixes
+  land on the pull request's own branch. Under `required` this holds only when that branch is no
+  entry's base and HEAD is not detached; otherwise the usual questions follow.
 
 - Once the entry is settled, a line announces the run branch: the entry, the branch pattern, its
   `base` and its pull request `target`, or that no run branch is made and commits land on the
   current branch.
 - A run that saves a new issue after this step is settled again from that issue: an entry its type
-  maps to replaces the earlier choice, "no branch" included, and is announced and base-checked;
+  maps to replaces the earlier choice, "no branch" included (never a pull request's own branch), and is announced and base-checked;
   otherwise the earlier choice stays.
 
 The chosen entry, and the current branch only after "build on", travel with the interview summary or the diagnosis

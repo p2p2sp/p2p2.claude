@@ -2822,12 +2822,14 @@ z nich mówi, jak nim sterować.</p>
   <p lang="en">Turns the unresolved review threads of one pull request into plan tasks. It lists the threads nobody
   answered yet, lets you pick the ones to act on and hands them to
   <a href="#skill-intent"><code>/viber:intent</code></a>, so that every thread becomes its own plan task whose done
-  condition writes a reply describing the fix. A second call of the same skill posts those replies into their
+  condition writes a reply describing the fix. The build commits on the pull request's own branch, never on a new
+  run branch. A second call of the same skill posts those replies into their
   threads once the fixes are pushed. Resolving a thread stays with the reviewer.</p>
   <p lang="pl">Zamienia nierozwiązane wątki przeglądu jednego pull requesta w zadania planu. Wypisuje wątki, na które
   nikt jeszcze nie odpowiedział, pozwala wybrać te, którymi się zajmiesz, i przekazuje je do
   <a href="#skill-intent"><code>/viber:intent</code></a>, tak że każdy wątek staje się osobnym zadaniem planu,
-  którego warunek ukończenia zapisuje odpowiedź opisującą poprawkę. Drugie wywołanie tego samego skilla wysyła te
+  którego warunek ukończenia zapisuje odpowiedź opisującą poprawkę. Build commituje na gałęzi pull requesta, nigdy
+  na nowej gałęzi runu. Drugie wywołanie tego samego skilla wysyła te
   odpowiedzi do ich wątków, gdy poprawki są wypchnięte. Rozwiązanie wątku zostaje po stronie recenzenta.</p>
   <dl>
     <div>

@@ -98,7 +98,7 @@ A typical run is `/viber:setup` once, then `/viber:intent`. Each step names the 
 - **`/viber:pr-feedback`**: `/viber:pr-feedback <pull request number or URL>` lists the unresolved review
   threads not yet answered, lets you pick which to act on and hands them to `/viber:intent`, so that every
   thread becomes its own plan task whose done condition writes a reply. It runs only on the pull request's own
-  branch. After the build, push the fixes and call `/viber:pr-feedback <pull request number or URL> --reply`
+  branch, and the build commits there, never on a new run branch. After the build, push the fixes and call `/viber:pr-feedback <pull request number or URL> --reply`
   to post each reply into its thread, once per thread; it never resolves a thread.
 - **`/viber:code-auditor`**: `/viber:code-auditor [<lens>] [diff | diff:<sha> | <directory> | repo]`.
   Six lenses: `bugs`, `security`, `web-performance`, `runtime-performance`, `tests` and `design`;
