@@ -1,5 +1,0 @@
-- The `--jq` filter runs inside the real gh, so the test stub returns the filtered text (`URL=`, `HEAD=`, `OID=` lines), as `issue-facts.test.ts` does; the later thread-lines task extends the filter and the stub output together.
-- The graphql query already asks for reviewThreads (C1) but the T1 filter prints only the three header fields; the thread flattening is the next task's.
-- A URL argument passes `-f owner=/-f name=` plus `--hostname`; a bare number passes `-F owner={owner} -F name={repo}` (gh fills placeholders only for `-F`).
-- The header documents stdout up to PUSHED= (present state); the next task must extend it with the ready-only lines.
-- Ready run in T1 prints STATUS=ready .. PUSHED= and stops there; tests read the first six lines so they survive the extension.

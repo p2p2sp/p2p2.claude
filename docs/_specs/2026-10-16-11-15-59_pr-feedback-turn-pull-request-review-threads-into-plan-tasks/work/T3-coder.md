@@ -1,4 +1,0 @@
-- The comments read uses gh's own `--jq` to emit one `<in_reply_to_id> <first body line>` line per comment, so no jq is needed; the id filter and marker match run in the shell. The test stub emulates that jq output, so a change to the jq shape in `pr-reply.sh` must change the stub's `COMMENTS` lines too.
-- The POST asks `--jq .html_url`; the reply URL must carry the same pull number `<N>` as the argument, else exit 1.
-- A relative reply file resolves from the cwd (not the repo root, unlike `qa-comment.sh`); outside a git repository the script exits 1 (the body file needs the root).
-- `git update-index --chmod=+x` staged the blob of the first skeleton: the mode is 100755, the content is whatever the working tree holds at commit.
