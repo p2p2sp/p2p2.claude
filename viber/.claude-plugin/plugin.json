@@ -18,6 +18,7 @@
     "./skills/fixer/",
     "./skills/e2e/",
     "./skills/pr-create/",
+    "./skills/pr-feedback/",
     "./skills/memory/",
     "./skills/rules/",
     "./skills/extension/",

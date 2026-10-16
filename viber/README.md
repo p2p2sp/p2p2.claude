@@ -51,6 +51,7 @@ A typical run is `/viber:setup` once, then `/viber:intent`. Each step names the 
 | --- | --- |
 | `/viber:e2e` | Turns the build's QA scenarios into Playwright tests and runs them against your app. |
 | `/viber:pr-create` | Opens a pull request for the current branch from your template, after a preview and your yes. |
+| `/viber:pr-feedback` | Turns a pull request's unresolved review threads into plan tasks, then posts the replies once the fixes are pushed. |
 | "commit" | Commits your changes, or only the paths you name, with a Conventional Commits message. |
 
 ### Keep the project healthy
@@ -94,6 +95,11 @@ A typical run is `/viber:setup` once, then `/viber:intent`. Each step names the 
   assigns it to you as its author, and posts the run's `qa.md` as a QA comment on the run's issue
   (on the pull request when the run has none), once per run.
   A build finished on its run branch, with no roadmap part left, offers to run it.
+- **`/viber:pr-feedback`**: `/viber:pr-feedback <pull request number or URL>` lists the unresolved review
+  threads not yet answered, lets you pick which to act on and hands them to `/viber:intent`, so that every
+  thread becomes its own plan task whose done condition writes a reply. It runs only on the pull request's own
+  branch. After the build, push the fixes and call `/viber:pr-feedback <pull request number or URL> --reply`
+  to post each reply into its thread, once per thread; it never resolves a thread.
 - **`/viber:code-auditor`**: `/viber:code-auditor [<lens>] [diff | diff:<sha> | <directory> | repo]`.
   Six lenses: `bugs`, `security`, `web-performance`, `runtime-performance`, `tests` and `design`;
   `performance` or `quality` picks a group and asks only which of its two lenses. Three scopes: the
